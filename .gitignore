@@ -4,3 +4,28 @@ __pycache__/
 .DS_Store
 .ipynb_checkpoints/
 data/processed/
+
+# --- Baum_dspro_vkr_research: не тащим мусор/данные ---
+Baum_dspro_vkr_research/**/.DS_Store
+Baum_dspro_vkr_research/**/__pycache__/
+Baum_dspro_vkr_research/**/*.pyc
+
+# виртуальные окружения
+Baum_dspro_vkr_research/**/venv/
+Baum_dspro_vkr_research/**/.venv/
+
+# секреты
+Baum_dspro_vkr_research/**/.env
+
+# ноутбуки-черновики
+Baum_dspro_vkr_research/**/Untitled*.ipynb
+Baum_dspro_vkr_research/**/notebooks/
+Baum_dspro_vkr_research/**/.ipynb_checkpoints/
+
+# большие сырые данные
+Baum_dspro_vkr_research/**/data/raw/
+Baum_dspro_vkr_research/**/data/**/*.csv
+Baum_dspro_vkr_research/**/exoplanets_pscomppars_clean.csv
+
+# (если хочешь оставить часть csv из data/eda — скажи, сделаем точечно)
+Baum_dspro_vkr_research/**/dspro_vkr_local.session.sql
