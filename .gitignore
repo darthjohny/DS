@@ -29,5 +29,3 @@ Baum_dspro_vkr_research/**/exoplanets_pscomppars_clean.csv
 # (если хочешь оставить часть csv из data/eda — скажи, сделаем точечно)
 Baum_dspro_vkr_research/**/dspro_vkr_local.session.sql
 .env
-Untitled*.ipynb
-Pandas_*.ipynb
