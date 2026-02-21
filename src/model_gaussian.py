@@ -25,7 +25,7 @@ from __future__ import annotations
 import json
 import math
 import os
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, cast
 
 import numpy as np
 import pandas as pd
@@ -260,7 +260,41 @@ def choose_m_subclass_label(teff: float) -> str:
         return "M_EARLY"
     if M_MID_MIN <= teff < M_MID_MAX:
         return "M_MID"
-    return "M_LATE"
+    if teff < M_LATE_MAX:
+        return "M_LATE"
+    # За пределами M-диапазона не делаем
+    # искусственного отнесения к M_LATE.
+    return "M_UNKNOWN"
+
+
+def has_missing_values(
+    teff: Any,
+    logg: Any,
+    radius: Any,
+) -> bool:
+    """Проверяет, есть ли пропуски
+    во входных признаках.
+    """
+    return bool(
+        is_missing_scalar(teff)
+        or is_missing_scalar(logg)
+        or is_missing_scalar(radius)
+    )
+
+
+def is_missing_scalar(value: Any) -> bool:
+    """Проверяет одно значение
+    на пропуск (None / NaN / pd.NA).
+    """
+    if value is None or value is pd.NA:
+        return True
+
+    # Для чисел (включая numpy-скаляры)
+    # проверяем NaN через math.isnan.
+    try:
+        return bool(math.isnan(cast(float, value)))
+    except (TypeError, ValueError):
+        return False
 
 
 # ------------------------------------------------------------
@@ -354,14 +388,28 @@ def fit_gaussian_model(
 def score_one(
     model: Dict[str, Any],
     spec_class: str,
-    teff: float,
-    logg: float,
-    radius: float,
+    teff: Any,
+    logg: Any,
+    radius: Any,
 ) -> Dict[str, Any]:
     """Оценивает одну звезду по spec_class."""
+    # Если есть пропуски,
+    # корректно возвращаем NaN/0.0,
+    # чтобы дальше не падать в расчётах.
+    if has_missing_values(teff, logg, radius):
+        return {
+            "label": str(spec_class),
+            "d_mahal": float("nan"),
+            "similarity": 0.0,
+        }
+
+    teff_val = float(teff)
+    logg_val = float(logg)
+    radius_val = float(radius)
+
     label = spec_class
     if spec_class == "M" and "M_EARLY" in model["classes"]:
-        label = choose_m_subclass_label(teff)
+        label = choose_m_subclass_label(teff_val)
 
     if label not in model["classes"]:
         return {
@@ -373,7 +421,7 @@ def score_one(
     z_mu = np.array(model["global_mu"], dtype=float)
     z_sigma = np.array(model["global_sigma"], dtype=float)
 
-    x = np.array([teff, logg, radius], dtype=float)
+    x = np.array([teff_val, logg_val, radius_val], dtype=float)
     xz = zscore_apply(x, z_mu, z_sigma)
 
     params = model["classes"][label]
@@ -387,6 +435,64 @@ def score_one(
         "label": label,
         "d_mahal": float(d),
         "similarity": float(s),
+    }
+
+
+def score_one_all_classes(
+    model: Dict[str, Any],
+    teff: Any,
+    logg: Any,
+    radius: Any,
+) -> Dict[str, Any]:
+    """Оценивает звезду по всем классам
+    и берёт лучший вариант.
+    """
+    if has_missing_values(teff, logg, radius):
+        return {
+            "label": "UNKNOWN",
+            "d_mahal": float("nan"),
+            "similarity": 0.0,
+        }
+
+    teff_val = float(teff)
+    logg_val = float(logg)
+    radius_val = float(radius)
+
+    classes = model.get("classes", {})
+    if not classes:
+        return {
+            "label": "UNKNOWN",
+            "d_mahal": float("nan"),
+            "similarity": 0.0,
+        }
+
+    z_mu = np.array(model["global_mu"], dtype=float)
+    z_sigma = np.array(model["global_sigma"], dtype=float)
+    x = np.array([teff_val, logg_val, radius_val], dtype=float)
+    xz = zscore_apply(x, z_mu, z_sigma)
+
+    best_label = "UNKNOWN"
+    best_d = float("inf")
+
+    for label, params in classes.items():
+        mu = np.array(params["mu"], dtype=float)
+        inv_cov = np.array(params["inv_cov"], dtype=float)
+        d = mahalanobis_distance(xz, mu, inv_cov)
+        if d < best_d:
+            best_d = d
+            best_label = label
+
+    if best_label == "UNKNOWN":
+        return {
+            "label": "UNKNOWN",
+            "d_mahal": float("nan"),
+            "similarity": 0.0,
+        }
+
+    return {
+        "label": best_label,
+        "d_mahal": float(best_d),
+        "similarity": float(similarity_from_distance(best_d)),
     }
 
 
@@ -408,9 +514,39 @@ def score_df(
         out = score_one(
             model=model,
             spec_class=str(r[spec_class_col]),
-            teff=float(r["teff_gspphot"]),
-            logg=float(r["logg_gspphot"]),
-            radius=float(r["radius_gspphot"]),
+            teff=r["teff_gspphot"],
+            logg=r["logg_gspphot"],
+            radius=r["radius_gspphot"],
+        )
+        rows.append(out)
+
+    res = df.copy()
+    res["gauss_label"] = [x["label"] for x in rows]
+    res["d_mahal"] = [x["d_mahal"] for x in rows]
+    res["similarity"] = [x["similarity"] for x in rows]
+    return res
+
+
+def score_df_all_classes(
+    model: Dict[str, Any],
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Скоринг DataFrame без spec_class:
+    выбор лучшего класса.
+    """
+    for col in FEATURES:
+        if col not in df.columns:
+            raise ValueError(
+                f"В df не хватает колонки: {col}"
+            )
+
+    rows: List[Dict[str, Any]] = []
+    for _, r in df.iterrows():
+        out = score_one_all_classes(
+            model=model,
+            teff=r["teff_gspphot"],
+            logg=r["logg_gspphot"],
+            radius=r["radius_gspphot"],
         )
         rows.append(out)
 
