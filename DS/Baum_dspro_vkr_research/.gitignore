@@ -1,9 +1,0 @@
-venv/
-__pycache__/
-*.pyc
-.DS_Store
-.ipynb_checkpoints/
-data/processed/
-.env
-Untitled*.ipynb
-Pandas_*.ipynb
