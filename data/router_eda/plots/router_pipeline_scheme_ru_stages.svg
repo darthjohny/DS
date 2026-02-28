@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1040" viewBox="0 0 1600 1040" role="img" aria-labelledby="title desc">
+  <title id="title">Этапная схема пайплайна ВКР</title>
+  <desc id="desc">Схема с акцентом на этапы, ветвление и таблицы БД после распознавания и приоритизации.</desc>
+  <defs>
+    <linearGradient id="bgB" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f9f4ea"/>
+      <stop offset="100%" stop-color="#eef8f5"/>
+    </linearGradient>
+    <linearGradient id="stage1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fce8d5"/>
+      <stop offset="100%" stop-color="#f6d19a"/>
+    </linearGradient>
+    <linearGradient id="stage2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#dceeff"/>
+      <stop offset="100%" stop-color="#bfd9f3"/>
+    </linearGradient>
+    <linearGradient id="stage3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e4f7e3"/>
+      <stop offset="100%" stop-color="#c3e4bf"/>
+    </linearGradient>
+    <linearGradient id="stage4" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fce0de"/>
+      <stop offset="100%" stop-color="#f4c1bc"/>
+    </linearGradient>
+    <filter id="shadowB" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#334155" flood-opacity="0.13"/>
+    </filter>
+    <marker id="arrowB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <style>
+      .title { font: 700 36px 'Trebuchet MS', Verdana, sans-serif; fill: #16202a; }
+      .subtitle { font: 400 17px 'Trebuchet MS', Verdana, sans-serif; fill: #4a5565; }
+      .stage-title { font: 700 24px 'Trebuchet MS', Verdana, sans-serif; fill: #16202a; }
+      .stage-text { font: 400 16px 'Trebuchet MS', Verdana, sans-serif; fill: #233142; }
+      .stage-small { font: 400 13px 'Trebuchet MS', Verdana, sans-serif; fill: #44505f; }
+      .step-num { font: 700 30px 'Trebuchet MS', Verdana, sans-serif; fill: #ffffff; }
+      .branch { font: 700 16px 'Trebuchet MS', Verdana, sans-serif; fill: #233142; }
+      .footer { font: 400 14px 'Trebuchet MS', Verdana, sans-serif; fill: #475569; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1600" height="1040" fill="url(#bgB)"/>
+  <text x="88" y="84" class="title">Пайплайн ВКР: от распознавания звезды до таблицы приоритетов</text>
+  <text x="88" y="116" class="subtitle">Вариант схемы с акцентом на этапы, ветвление решений и результаты в БД</text>
+
+  <rect x="88" y="172" width="1424" height="150" rx="30" fill="url(#stage1)" stroke="#c78934" stroke-width="2" filter="url(#shadowB)"/>
+  <circle cx="144" cy="247" r="34" fill="#bf7b24"/>
+  <text x="133" y="258" class="step-num">1</text>
+  <text x="204" y="230" class="stage-title">Подготовка reference-слоёв</text>
+  <text x="204" y="262" class="stage-text">`lab.v_gaia_ref_mkgf_dwarfs`, `lab.v_gaia_ref_mkgf_evolved`,</text>
+  <text x="204" y="290" class="stage-text">`lab.v_gaia_ref_abo_dwarfs`, `lab.v_gaia_ref_abo_evolved` → `lab.v_gaia_router_training`</text>
+  <text x="204" y="315" class="stage-small">Смысл: дать router-модели физически чистые reference-группы без смешения dwarfs и evolved</text>
+
+  <rect x="88" y="374" width="1424" height="165" rx="30" fill="url(#stage2)" stroke="#6d95ba" stroke-width="2" filter="url(#shadowB)"/>
+  <circle cx="144" cy="457" r="34" fill="#5f87b1"/>
+  <text x="133" y="468" class="step-num">2</text>
+  <text x="204" y="438" class="stage-title">Router EDA + Gaussian Router</text>
+  <text x="204" y="470" class="stage-text">`src/router_eda.py` проверяет структуры, графики, ковариации и готовность классов к Gaussian.</text>
+  <text x="204" y="498" class="stage-text">`src/gaussian_router.py` учится распознавать `spec_class` и `evolution_stage` по `teff`, `logg`, `radius`.</text>
+  <text x="204" y="525" class="stage-small">Выход router: `router_label`, `predicted_spec_class`, `predicted_evolution_stage`, `d_mahal_router`, `router_similarity`</text>
+
+  <rect x="88" y="595" width="1424" height="188" rx="30" fill="url(#stage3)" stroke="#5e8a60" stroke-width="2" filter="url(#shadowB)"/>
+  <circle cx="144" cy="689" r="34" fill="#5a8b59"/>
+  <text x="133" y="700" class="step-num">3</text>
+  <text x="204" y="666" class="stage-title">Оркестрация и ветвление пайплайна</text>
+  <text x="204" y="698" class="stage-text">`src/star_orchestrator.py` забирает Gaia-кандидатов, вызывает router и записывает результат в `lab.gaia_router_results`.</text>
+  <text x="204" y="726" class="stage-text">Дальше звезда попадает в одну из веток:</text>
+  <text x="238" y="754" class="branch">• `M/K/G/F dwarf` → в `src/model_gaussian.py` для host similarity</text>
+  <text x="830" y="754" class="branch">• `A/B/O` или `evolved` → в low-priority stub с reason_code</text>
+
+  <rect x="88" y="838" width="1424" height="132" rx="30" fill="url(#stage4)" stroke="#b36b64" stroke-width="2" filter="url(#shadowB)"/>
+  <circle cx="144" cy="904" r="34" fill="#b46059"/>
+  <text x="133" y="915" class="step-num">4</text>
+  <text x="204" y="888" class="stage-title">Итоговая таблица приоритизации</text>
+  <text x="204" y="920" class="stage-text">`lab.gaia_priority_results` хранит финальный результат: router-метки, similarity, final_score, priority_tier, reason_code.</text>
+  <text x="204" y="946" class="stage-small">Эта таблица уже годится для ранжирования, UX-слоя и дальнейших наблюдательных сценариев.</text>
+
+  <path d="M 800 322 L 800 374" fill="none" stroke="#334155" stroke-width="4" marker-end="url(#arrowB)"/>
+  <path d="M 800 539 L 800 595" fill="none" stroke="#334155" stroke-width="4" marker-end="url(#arrowB)"/>
+  <path d="M 800 783 L 800 838" fill="none" stroke="#334155" stroke-width="4" marker-end="url(#arrowB)"/>
+
+  <rect x="1112" y="634" width="330" height="94" rx="20" fill="#ffffff" opacity="0.68" stroke="#5e8a60" stroke-width="1.5"/>
+  <text x="1140" y="668" class="stage-text" style="font-size:15px;">Host-model работает только на</text>
+  <text x="1140" y="695" class="stage-text" style="font-size:15px;">`lab.v_nasa_gaia_train_dwarfs`</text>
+
+  <rect x="972" y="644" width="108" height="74" rx="20" fill="#ffffff" opacity="0.68" stroke="#b36b64" stroke-width="1.5"/>
+  <text x="996" y="688" class="stage-text" style="font-size:15px;">LOW</text>
+
+  <text x="88" y="1010" class="footer">Ключевая идея архитектуры: сначала модель понимает, что за звезда перед ней, и только потом решает, стоит ли сравнивать её с NASA host-stars.</text>
+</svg>

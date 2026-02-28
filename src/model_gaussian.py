@@ -1,31 +1,51 @@
-"""
-model_gaussian.py
+# model_gaussian.py
+# ============================================================
+# Назначение
+# ------------------------------------------------------------
+# Математическое ядро для Gaussian similarity / Mahalanobis
+# в проекте ВКР (Gaia DR3 + NASA hosts).
+#
+# Цель файла:
+# обучить многомерную гауссову модель
+# на звёздах главной последовательности
+# классов M/K/G/F
+# и затем использовать её
+# для оценки физической похожести объектов.
+#
+# Что делает этот файл:
+# 1. Загружает обучающую выборку DWARFS из БД
+#    (только объекты с logg >= 4.0).
+# 2. Выполняет глобальную нормализацию признаков
+#    teff_gspphot / logg_gspphot / radius_gspphot.
+# 3. Считает параметры гауссианы по классам:
+#    mu, covariance, shrinkage-covariance.
+# 4. Поддерживает подклассы M-карликов:
+#    M_EARLY / M_MID / M_LATE.
+# 5. Считает Mahalanobis distance
+#    и similarity score для новых объектов.
+# 6. Сохраняет и загружает обученную модель с диска.
+#
+# Важно:
+# - здесь нет EDA и визуализаций;
+# - здесь нет финального ranking layer;
+# - здесь нет маршрутизации A/B/O / evolved;
+# - здесь нет записи итоговых результатов в БД.
+#
+# То есть:
+# model_gaussian.py отвечает только
+# за физическое Gaussian-ядро,
+# а orchestration / ranking
+# будет вынесен в отдельный файл пайплайна.
+# ============================================================
 
-Упрощённый модуль для ВКР:
-- Обучение многомерной гауссовой модели (3D)
-  по звёздам-хостам.
-- Оценка «похожести» через расстояние
-  Махаланобиса.
-- Работаем с 3 признаками Gaia DR3 (GSP-Phot):
-  teff_gspphot, logg_gspphot, radius_gspphot
-
-Важно:
-- Обучаем модель только на карликах (logg >= 4.0).
-- Эволюционировавшие (logg < 4.0) —
-  отдельный слой,
-  в модель не входят.
-- Для M-класса используем подтипы
-  (Early/Mid/Late) по Teff,
-  чтобы модель была более «узкой»
-  и физически однородной.
-"""
+"""Гауссово ядро физической похожести для MKGF-карликов."""
 
 from __future__ import annotations
 
 import json
 import math
 import os
-from typing import Any, Dict, List, Tuple, cast
+from typing import Any, Dict, List, Tuple, TypedDict
 
 import numpy as np
 import pandas as pd
@@ -33,41 +53,27 @@ from sqlalchemy import create_engine
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.engine import Engine
 
-# ------------------------------------------------------------
-# 0) Константы и соглашения
-# ------------------------------------------------------------
-
-# Порядок признаков важен для mu, cov и Mahalanobis
 FEATURES: List[str] = ["teff_gspphot", "logg_gspphot", "radius_gspphot"]
-
-# Базовые классы карликов
 DWARF_CLASSES: List[str] = ["M", "K", "G", "F"]
-
-# Порог карликов
 LOGG_DWARF_MIN = 4.0
-
-# Подтипы M по Teff
 M_EARLY_MIN = 3500.0
 M_EARLY_MAX = 4000.0
 M_MID_MIN = 3200.0
 M_MID_MAX = 3500.0
 M_LATE_MAX = 3200.0
-
-# Защита от деления на ноль
 EPS = 1e-12
 
 
-# ------------------------------------------------------------
-# 1) Мини-лоадер .env (без python-dotenv)
-# ------------------------------------------------------------
+class ScoreResult(TypedDict):
+    """Typed score payload returned by Gaussian scoring helpers."""
+
+    label: str
+    d_mahal: float
+    similarity: float
+
 
 def _load_dotenv_local(path: str = ".env") -> None:
-    """Читает .env и кладёт переменные
-    в окружение.
-
-    Если переменная уже задана —
-    не перетираем.
-    """
+    """Load .env values into the process environment without overwriting."""
     if not os.path.exists(path):
         return
 
@@ -75,41 +81,27 @@ def _load_dotenv_local(path: str = ".env") -> None:
         with open(path, "r", encoding="utf-8") as file:
             for raw in file:
                 line = raw.strip()
-                if not line or line.startswith("#"):
-                    continue
-                if "=" not in line:
+                if not line or line.startswith("#") or "=" not in line:
                     continue
                 key, value = line.split("=", 1)
                 key = key.strip()
-                value = value.strip().strip("\"").strip("'")
-                if key and (key not in os.environ):
+                value = value.strip().strip('"').strip("'")
+                if key and key not in os.environ:
                     os.environ[key] = value
     except OSError:
         return
 
 
-# ------------------------------------------------------------
-# 2) Работа с БД
-# ------------------------------------------------------------
-
 def make_engine_from_env() -> Engine:
-    """Создаёт SQLAlchemy engine
-    из переменных окружения.
-
-    Приоритет:
-    1) DATABASE_URL
-    2) PGHOST/PGPORT/PGDATABASE/PGUSER/PGPASSWORD
-    """
+    """Create SQLAlchemy engine from DATABASE_URL or PG* variables."""
     _load_dotenv_local(".env")
     url = os.getenv("DATABASE_URL")
 
     if url:
         bad_tokens = ["HOST", "USER", "PASSWORD", "DBNAME"]
-        if any(tok in url for tok in bad_tokens):
+        if any(token in url for token in bad_tokens):
             raise RuntimeError(
-                "DATABASE_URL выглядит как пример с "
-                "плейсхолдерами. Задай реальную "
-                "строку подключения."
+                "DATABASE_URL looks like a placeholder. Provide a real DSN."
             )
         return create_engine(url)
 
@@ -120,14 +112,12 @@ def make_engine_from_env() -> Engine:
     password = os.getenv("PGPASSWORD")
 
     if all([host, dbname, user, password]):
-        url = (
+        return create_engine(
             f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
         )
-        return create_engine(url)
 
     raise RuntimeError(
-        "Не найдено подключение к БД. "
-        "Задай DATABASE_URL или PG* переменные."
+        "Database connection is missing. Set DATABASE_URL or PG* variables."
     )
 
 
@@ -135,13 +125,7 @@ def load_dwarfs_from_db(
     engine: Engine,
     view_name: str = "lab.v_nasa_gaia_train_dwarfs",
 ) -> pd.DataFrame:
-    """Загружает карликов MKGF
-    для обучения модели.
-
-    Если отдельной view нет,
-    берём lab.v_nasa_gaia_train_classified
-    и фильтруем logg >= 4.0 прямо в SQL.
-    """
+    """Load MKGF dwarfs for Gaussian training."""
     if "." in view_name:
         schema, rel = view_name.split(".", 1)
     else:
@@ -155,6 +139,7 @@ def load_dwarfs_from_db(
 
     if has_rel:
         source = f"{schema}.{rel}"
+        # Prefer the dedicated dwarfs view when it is available.
         query = f"""
         SELECT spec_class, {", ".join(FEATURES)}
         FROM {source}
@@ -172,16 +157,11 @@ def load_dwarfs_from_db(
     return pd.read_sql(query, engine)
 
 
-# ------------------------------------------------------------
-# 3) Математика: нормализация,
-#    ковариация, расстояние
-# ------------------------------------------------------------
-
 def zscore_fit(X: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """Оценивает параметры z-score (mean, std)."""
+    """Estimate z-score parameters."""
     mu = X.mean(axis=0)
     sigma = X.std(axis=0, ddof=0)
-    sigma = np.where(sigma < EPS, EPS, sigma)
+    sigma = np.where(np.abs(sigma) < EPS, EPS, sigma)
     return mu, sigma
 
 
@@ -190,30 +170,24 @@ def zscore_apply(
     mu: np.ndarray,
     sigma: np.ndarray,
 ) -> np.ndarray:
-    """Применяет z-score нормализацию."""
+    """Apply z-score normalization."""
     return (X - mu) / sigma
 
 
 def cov_sample(X: np.ndarray) -> np.ndarray:
-    """Выборочная ковариация (ddof=1)."""
+    """Sample covariance with ddof=1."""
     if X.shape[0] < 2:
         raise ValueError(
-            "Нужно минимум 2 наблюдения "
-            "для ковариации."
+            "At least 2 rows are required to estimate covariance."
         )
     return np.cov(X, rowvar=False, ddof=1)
 
 
-def shrink_covariance(
-    cov_matrix: np.ndarray,
-    alpha: float,
-) -> np.ndarray:
-    """Простая shrinkage ковариации."""
+def shrink_covariance(cov_matrix: np.ndarray, alpha: float) -> np.ndarray:
+    """Shrink covariance toward its diagonal."""
     alpha = float(alpha)
-    if not (0.0 <= alpha <= 1.0):
-        raise ValueError(
-            "alpha должен быть в диапазоне [0, 1]."
-        )
+    if not 0.0 <= alpha <= 1.0:
+        raise ValueError("alpha must be in [0, 1].")
     diag = np.diag(np.diag(cov_matrix))
     return (1.0 - alpha) * cov_matrix + alpha * diag
 
@@ -223,140 +197,111 @@ def mahalanobis_distance(
     mu: np.ndarray,
     inv_cov: np.ndarray,
 ) -> float:
-    """d_M(x) = sqrt((x - mu)^T * inv_cov * (x - mu))"""
-    d = x - mu
-    v = float(d.T @ inv_cov @ d)
-    v = max(v, 0.0)
-    return math.sqrt(v)
+    """Return Mahalanobis distance."""
+    delta = x - mu
+    value = float(delta.T @ inv_cov @ delta)
+    return math.sqrt(max(value, 0.0))
 
 
 def similarity_from_distance(d: float) -> float:
-    """Перевод расстояния в «похожесть» (0..1)."""
+    """Convert Mahalanobis distance into similarity in [0, 1]."""
     return 1.0 / (1.0 + float(d))
 
 
-# ------------------------------------------------------------
-# 4) Разбиение M-класса на подтипы
-# ------------------------------------------------------------
-
 def split_m_subclasses(df_m: pd.DataFrame) -> Dict[str, pd.DataFrame]:
-    """Делит M-карликов на подтипы."""
+    """Split M dwarfs into early/mid/late subclasses by Teff."""
     teff = df_m["teff_gspphot"].astype(float)
-
-    df_early = df_m[(teff >= M_EARLY_MIN) & (teff < M_EARLY_MAX)].copy()
-    df_mid = df_m[(teff >= M_MID_MIN) & (teff < M_MID_MAX)].copy()
-    df_late = df_m[(teff < M_LATE_MAX)].copy()
-
     return {
-        "M_EARLY": df_early,
-        "M_MID": df_mid,
-        "M_LATE": df_late,
+        "M_EARLY": df_m[(teff >= M_EARLY_MIN) & (teff < M_EARLY_MAX)].copy(),
+        "M_MID": df_m[(teff >= M_MID_MIN) & (teff < M_MID_MAX)].copy(),
+        "M_LATE": df_m[teff < M_LATE_MAX].copy(),
     }
 
 
 def choose_m_subclass_label(teff: float) -> str:
-    """Выбирает label подкласса M по Teff."""
+    """Choose M subclass label from Teff."""
     if M_EARLY_MIN <= teff < M_EARLY_MAX:
         return "M_EARLY"
     if M_MID_MIN <= teff < M_MID_MAX:
         return "M_MID"
     if teff < M_LATE_MAX:
         return "M_LATE"
-    # За пределами M-диапазона не делаем
-    # искусственного отнесения к M_LATE.
     return "M_UNKNOWN"
 
 
-def has_missing_values(
-    teff: Any,
-    logg: Any,
-    radius: Any,
-) -> bool:
-    """Проверяет, есть ли пропуски
-    во входных признаках.
-    """
-    return bool(
+def is_missing_scalar(value: Any) -> bool:
+    """Return True for None / NaN / pd.NA."""
+    if value is None or value is pd.NA:
+        return True
+    try:
+        return bool(math.isnan(float(value)))
+    except (TypeError, ValueError):
+        return False
+
+
+def has_missing_values(teff: Any, logg: Any, radius: Any) -> bool:
+    """Return True if any core feature is missing."""
+    return (
         is_missing_scalar(teff)
         or is_missing_scalar(logg)
         or is_missing_scalar(radius)
     )
 
 
-def is_missing_scalar(value: Any) -> bool:
-    """Проверяет одно значение
-    на пропуск (None / NaN / pd.NA).
-    """
-    if value is None or value is pd.NA:
-        return True
+def _empty_score(label: str) -> ScoreResult:
+    """Return a neutral score payload for missing or unsupported cases."""
+    return {
+        "label": label,
+        "d_mahal": float("nan"),
+        "similarity": 0.0,
+    }
 
-    # Для чисел (включая numpy-скаляры)
-    # проверяем NaN через math.isnan.
-    try:
-        return bool(math.isnan(cast(float, value)))
-    except (TypeError, ValueError):
-        return False
-
-
-# ------------------------------------------------------------
-# 5) Обучение модели
-# ------------------------------------------------------------
 
 def fit_gaussian_model(
     df_dwarfs: pd.DataFrame,
     use_m_subclasses: bool = True,
     shrink_alpha: float = 0.15,
 ) -> Dict[str, Any]:
-    """Обучает модель по DWARFS MKGF.
-
-    Возвращает словарь модели:
-    - global_mu, global_sigma
-    - classes: параметры для каждого
-      класса/подкласса
-    """
+    """Fit Gaussian model for MKGF dwarfs."""
     required = ["spec_class"] + FEATURES
-    missing = [c for c in required if c not in df_dwarfs.columns]
+    missing = [col for col in required if col not in df_dwarfs.columns]
     if missing:
-        raise ValueError(
-            f"В df_dwarfs не хватает колонок: {missing}"
-        )
+        raise ValueError(f"Missing required columns in df_dwarfs: {missing}")
 
     df = df_dwarfs.dropna(subset=required).copy()
+    if df.empty:
+        raise ValueError("No training rows remain after dropping NULL values.")
 
-    # Глобальная нормализация по всем DWARFS MKGF
     X_all = df[FEATURES].astype(float).to_numpy()
     z_mu, z_sigma = zscore_fit(X_all)
 
-    # Сбор поднаборов по классам
-    subsets: Dict[str, pd.DataFrame] = {}
-    for cls in DWARF_CLASSES:
-        subsets[cls] = df[df["spec_class"] == cls].copy()
-
+    subsets: Dict[str, pd.DataFrame] = {
+        cls: df[df["spec_class"] == cls].copy() for cls in DWARF_CLASSES
+    }
     if use_m_subclasses and "M" in subsets:
-        m_sub = split_m_subclasses(subsets["M"])
+        # M dwarfs are modeled with narrower subclasses to reduce covariance
+        # smearing across the full M temperature range.
         subsets.pop("M", None)
-        subsets.update(m_sub)
+        subsets.update(split_m_subclasses(df[df["spec_class"] == "M"].copy()))
 
     classes: Dict[str, Dict[str, Any]] = {}
-
-    for label, sdf in subsets.items():
-        n = int(sdf.shape[0])
+    for label, subset in subsets.items():
+        n = int(subset.shape[0])
         if n < 3:
-            # Слишком мало данных
-            # для ковариации
             continue
 
-        X = sdf[FEATURES].astype(float).to_numpy()
+        X = subset[FEATURES].astype(float).to_numpy()
         Xz = zscore_apply(X, z_mu, z_sigma)
-
         mu_z = Xz.mean(axis=0)
         cov_matrix = cov_sample(Xz)
         cov_matrix = shrink_covariance(cov_matrix, alpha=shrink_alpha)
 
         try:
-            inv_cov_matrix = np.linalg.inv(cov_matrix)
+            inv_cov = np.linalg.inv(cov_matrix)
         except np.linalg.LinAlgError:
+            # Keep scoring robust when a covariance matrix is near-singular.
             jitter = 1e-6
-            inv_cov_matrix = np.linalg.inv(
+            inv_cov = np.linalg.inv(
                 cov_matrix + jitter * np.eye(cov_matrix.shape[0])
             )
 
@@ -364,10 +309,16 @@ def fit_gaussian_model(
             "n": n,
             "mu": mu_z.tolist(),
             "cov": cov_matrix.tolist(),
-            "inv_cov": inv_cov_matrix.tolist(),
+            "inv_cov": inv_cov.tolist(),
         }
 
-    model: Dict[str, Any] = {
+    if not classes:
+        raise ValueError(
+            "No Gaussian classes were fitted. "
+            "Check input filters and class counts."
+        )
+
+    return {
         "global_mu": z_mu.tolist(),
         "global_sigma": z_sigma.tolist(),
         "classes": classes,
@@ -378,12 +329,7 @@ def fit_gaussian_model(
             "shrink_alpha": float(shrink_alpha),
         },
     }
-    return model
 
-
-# ------------------------------------------------------------
-# 6) Скоринг
-# ------------------------------------------------------------
 
 def score_one(
     model: Dict[str, Any],
@@ -391,50 +337,37 @@ def score_one(
     teff: Any,
     logg: Any,
     radius: Any,
-) -> Dict[str, Any]:
-    """Оценивает одну звезду по spec_class."""
-    # Если есть пропуски,
-    # корректно возвращаем NaN/0.0,
-    # чтобы дальше не падать в расчётах.
+) -> ScoreResult:
+    """Score one star against the class selected by spec_class."""
     if has_missing_values(teff, logg, radius):
-        return {
-            "label": str(spec_class),
-            "d_mahal": float("nan"),
-            "similarity": 0.0,
-        }
+        return _empty_score(str(spec_class))
 
     teff_val = float(teff)
     logg_val = float(logg)
     radius_val = float(radius)
 
-    label = spec_class
-    if spec_class == "M" and "M_EARLY" in model["classes"]:
+    classes = model.get("classes", {})
+    label = str(spec_class)
+    if label == "M" and "M_EARLY" in classes:
         label = choose_m_subclass_label(teff_val)
 
-    if label not in model["classes"]:
-        return {
-            "label": label,
-            "d_mahal": float("nan"),
-            "similarity": 0.0,
-        }
+    if label not in classes:
+        return _empty_score(label)
 
     z_mu = np.array(model["global_mu"], dtype=float)
     z_sigma = np.array(model["global_sigma"], dtype=float)
-
     x = np.array([teff_val, logg_val, radius_val], dtype=float)
     xz = zscore_apply(x, z_mu, z_sigma)
 
-    params = model["classes"][label]
+    params = classes[label]
     mu = np.array(params["mu"], dtype=float)
     inv_cov = np.array(params["inv_cov"], dtype=float)
-
-    d = mahalanobis_distance(xz, mu, inv_cov)
-    s = similarity_from_distance(d)
+    d_mahal = mahalanobis_distance(xz, mu, inv_cov)
 
     return {
         "label": label,
-        "d_mahal": float(d),
-        "similarity": float(s),
+        "d_mahal": float(d_mahal),
+        "similarity": float(similarity_from_distance(d_mahal)),
     }
 
 
@@ -443,51 +376,32 @@ def score_one_all_classes(
     teff: Any,
     logg: Any,
     radius: Any,
-) -> Dict[str, Any]:
-    """Оценивает звезду по всем классам
-    и берёт лучший вариант.
-    """
+) -> ScoreResult:
+    """Score one star against all Gaussian classes and take the best match."""
     if has_missing_values(teff, logg, radius):
-        return {
-            "label": "UNKNOWN",
-            "d_mahal": float("nan"),
-            "similarity": 0.0,
-        }
-
-    teff_val = float(teff)
-    logg_val = float(logg)
-    radius_val = float(radius)
+        return _empty_score("UNKNOWN")
 
     classes = model.get("classes", {})
     if not classes:
-        return {
-            "label": "UNKNOWN",
-            "d_mahal": float("nan"),
-            "similarity": 0.0,
-        }
+        return _empty_score("UNKNOWN")
 
     z_mu = np.array(model["global_mu"], dtype=float)
     z_sigma = np.array(model["global_sigma"], dtype=float)
-    x = np.array([teff_val, logg_val, radius_val], dtype=float)
+    x = np.array([float(teff), float(logg), float(radius)], dtype=float)
     xz = zscore_apply(x, z_mu, z_sigma)
 
     best_label = "UNKNOWN"
     best_d = float("inf")
-
     for label, params in classes.items():
         mu = np.array(params["mu"], dtype=float)
         inv_cov = np.array(params["inv_cov"], dtype=float)
-        d = mahalanobis_distance(xz, mu, inv_cov)
-        if d < best_d:
-            best_d = d
+        distance = mahalanobis_distance(xz, mu, inv_cov)
+        if distance < best_d:
+            best_d = distance
             best_label = label
 
     if best_label == "UNKNOWN":
-        return {
-            "label": "UNKNOWN",
-            "d_mahal": float("nan"),
-            "similarity": 0.0,
-        }
+        return _empty_score("UNKNOWN")
 
     return {
         "label": best_label,
@@ -501,110 +415,80 @@ def score_df(
     df: pd.DataFrame,
     spec_class_col: str = "spec_class",
 ) -> pd.DataFrame:
-    """Применяет score_one ко всему DataFrame."""
+    """Score a DataFrame using the provided spec_class column."""
     required = [spec_class_col] + FEATURES
     for col in required:
         if col not in df.columns:
-            raise ValueError(
-                f"В df не хватает колонки: {col}"
+            raise ValueError(f"Missing required column in df: {col}")
+
+    rows: List[ScoreResult] = []
+    for _, row in df.iterrows():
+        rows.append(
+            score_one(
+                model=model,
+                spec_class=str(row[spec_class_col]),
+                teff=row["teff_gspphot"],
+                logg=row["logg_gspphot"],
+                radius=row["radius_gspphot"],
             )
-
-    rows: List[Dict[str, Any]] = []
-    for _, r in df.iterrows():
-        out = score_one(
-            model=model,
-            spec_class=str(r[spec_class_col]),
-            teff=r["teff_gspphot"],
-            logg=r["logg_gspphot"],
-            radius=r["radius_gspphot"],
         )
-        rows.append(out)
 
-    res = df.copy()
-    res["gauss_label"] = [x["label"] for x in rows]
-    res["d_mahal"] = [x["d_mahal"] for x in rows]
-    res["similarity"] = [x["similarity"] for x in rows]
-    return res
+    result = df.copy()
+    result["gauss_label"] = [item["label"] for item in rows]
+    result["d_mahal"] = [item["d_mahal"] for item in rows]
+    result["similarity"] = [item["similarity"] for item in rows]
+    return result
 
 
 def score_df_all_classes(
     model: Dict[str, Any],
     df: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Скоринг DataFrame без spec_class:
-    выбор лучшего класса.
-    """
+    """Score a DataFrame against all Gaussian classes."""
     for col in FEATURES:
         if col not in df.columns:
-            raise ValueError(
-                f"В df не хватает колонки: {col}"
+            raise ValueError(f"Missing required column in df: {col}")
+
+    rows: List[ScoreResult] = []
+    for _, row in df.iterrows():
+        rows.append(
+            score_one_all_classes(
+                model=model,
+                teff=row["teff_gspphot"],
+                logg=row["logg_gspphot"],
+                radius=row["radius_gspphot"],
             )
-
-    rows: List[Dict[str, Any]] = []
-    for _, r in df.iterrows():
-        out = score_one_all_classes(
-            model=model,
-            teff=r["teff_gspphot"],
-            logg=r["logg_gspphot"],
-            radius=r["radius_gspphot"],
         )
-        rows.append(out)
 
-    res = df.copy()
-    res["gauss_label"] = [x["label"] for x in rows]
-    res["d_mahal"] = [x["d_mahal"] for x in rows]
-    res["similarity"] = [x["similarity"] for x in rows]
-    return res
+    result = df.copy()
+    result["gauss_label"] = [item["label"] for item in rows]
+    result["d_mahal"] = [item["d_mahal"] for item in rows]
+    result["similarity"] = [item["similarity"] for item in rows]
+    return result
 
-
-# ------------------------------------------------------------
-# 7) Сохранение / загрузка модели
-# ------------------------------------------------------------
 
 def save_model(model: Dict[str, Any], path: str) -> None:
-    """Сохраняет модель в JSON."""
+    """Save model as JSON."""
     with open(path, "w", encoding="utf-8") as file:
         json.dump(model, file, ensure_ascii=False, indent=2)
 
 
 def load_model(path: str) -> Dict[str, Any]:
-    """Загружает модель из JSON."""
+    """Load model from JSON."""
     with open(path, "r", encoding="utf-8") as file:
-        data: Dict[str, Any] = json.load(file)
-    return data
+        return json.load(file)
 
-
-# ------------------------------------------------------------
-# 8) Мини-точка входа для ручного прогона
-# ------------------------------------------------------------
 
 if __name__ == "__main__":
-    print("=== FIT GaussianModel (DWARFS MKGF) ===")
-
     engine = make_engine_from_env()
-
-    try:
-        df_dwarfs = load_dwarfs_from_db(engine)
-    except Exception as exc:
-        print("\n[ОШИБКА] Не удалось")
-        print("прочитать данные из БД.")
-        print("Проверь DATABASE_URL или PG*")
-        print("переменные окружения.")
-        print("Текст ошибки:", repr(exc))
-        raise
-
-    print("Загружено DWARFS:", df_dwarfs.shape)
-
+    df_dwarfs = load_dwarfs_from_db(engine)
     model = fit_gaussian_model(
         df_dwarfs=df_dwarfs,
         use_m_subclasses=True,
         shrink_alpha=0.15,
     )
 
-    print("Классы в модели:", sorted(model["classes"].keys()))
-    for label, params in model["classes"].items():
-        print(f"[{label}] n={params['n']}")
-
     os.makedirs("data", exist_ok=True)
-    save_model(model, "data/model_gaussian_params.json")
-    print("Сохранено: data/model_gaussian_params.json")
+    output_path = "data/model_gaussian_params.json"
+    save_model(model, output_path)
+    print(f"Saved Gaussian model to {output_path}")

@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="980" viewBox="0 0 1600 980" role="img" aria-labelledby="title desc">
+  <title id="title">Академическая схема пайплайна Router и Host Similarity</title>
+  <desc id="desc">Строгая схема архитектуры проекта: reference data, router, host similarity, orchestrator и таблицы результатов.</desc>
+  <defs>
+    <linearGradient id="bgA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f5f1e8"/>
+      <stop offset="100%" stop-color="#eef4f7"/>
+    </linearGradient>
+    <linearGradient id="dbA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fff6cf"/>
+      <stop offset="100%" stop-color="#f9e8a8"/>
+    </linearGradient>
+    <linearGradient id="codeA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#dfeefe"/>
+      <stop offset="100%" stop-color="#cddff3"/>
+    </linearGradient>
+    <linearGradient id="pipeA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e2f5e6"/>
+      <stop offset="100%" stop-color="#cfeacc"/>
+    </linearGradient>
+    <linearGradient id="warnA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fde1de"/>
+      <stop offset="100%" stop-color="#f6c9c4"/>
+    </linearGradient>
+    <filter id="shadowA" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#4b5563" flood-opacity="0.12"/>
+    </filter>
+    <marker id="arrowA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4b5563"/>
+    </marker>
+    <style>
+      .title { font: 700 34px Georgia, 'Times New Roman', serif; fill: #17212b; }
+      .subtitle { font: 400 16px Georgia, 'Times New Roman', serif; fill: #495463; }
+      .box-title { font: 700 22px Georgia, 'Times New Roman', serif; fill: #17212b; }
+      .box-text { font: 400 15px Georgia, 'Times New Roman', serif; fill: #233142; }
+      .small { font: 400 13px Georgia, 'Times New Roman', serif; fill: #4b5563; }
+      .section { font: 700 18px Georgia, 'Times New Roman', serif; fill: #243447; letter-spacing: 1px; }
+      .arrow-label { font: 600 13px Georgia, 'Times New Roman', serif; fill: #374151; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1600" height="980" fill="url(#bgA)"/>
+  <rect x="42" y="38" width="1516" height="904" rx="30" fill="#ffffff" opacity="0.78"/>
+
+  <text x="74" y="94" class="title">Архитектура Пайплайна: Router + Host Similarity</text>
+  <text x="74" y="124" class="subtitle">Разделение физического распознавания звезды и оценки похожести на NASA host-stars</text>
+
+  <text x="92" y="178" class="section">REFERENCE-СЛОИ</text>
+  <text x="690" y="178" class="section">МОДЕЛИ И EDA</text>
+  <text x="1210" y="178" class="section">ПАЙПЛАЙН И РЕЗУЛЬТАТЫ</text>
+
+  <rect x="80" y="210" width="430" height="155" rx="24" fill="url(#dbA)" stroke="#b48b2c" stroke-width="2" filter="url(#shadowA)"/>
+  <text x="110" y="255" class="box-title">Router Reference Layer</text>
+  <text x="110" y="287" class="box-text">`lab.v_gaia_router_training`</text>
+  <text x="110" y="315" class="box-text">A/B/O/F/G/K/M × dwarf/evolved</text>
+  <text x="110" y="343" class="small">Единый физический reference-слой для router-модели</text>
+
+  <rect x="80" y="405" width="430" height="145" rx="24" fill="url(#dbA)" stroke="#b48b2c" stroke-width="2" filter="url(#shadowA)"/>
+  <text x="110" y="448" class="box-title">Host Training Layer</text>
+  <text x="110" y="480" class="box-text">`lab.v_nasa_gaia_train_dwarfs`</text>
+  <text x="110" y="508" class="box-text">NASA hosts + Gaia physics</text>
+  <text x="110" y="536" class="small">Обучающий слой только для host similarity</text>
+
+  <rect x="600" y="210" width="360" height="145" rx="24" fill="url(#codeA)" stroke="#6f8fb2" stroke-width="2" filter="url(#shadowA)"/>
+  <text x="630" y="252" class="box-title">Router EDA</text>
+  <text x="630" y="284" class="box-text">`src/router_eda.py`</text>
+  <text x="630" y="312" class="box-text">Проверка структуры, графики, cov, det(Σ), PD</text>
+
+  <rect x="600" y="388" width="360" height="162" rx="24" fill="url(#codeA)" stroke="#6f8fb2" stroke-width="2" filter="url(#shadowA)"/>
+  <text x="630" y="430" class="box-title">Gaussian Router</text>
+  <text x="630" y="462" class="box-text">`src/gaussian_router.py`</text>
+  <text x="630" y="490" class="box-text">Вход: teff, logg, radius</text>
+  <text x="630" y="518" class="box-text">Выход: `router_label`, `spec_class`, `evolution_stage`</text>
+
+  <rect x="600" y="585" width="360" height="145" rx="24" fill="url(#codeA)" stroke="#6f8fb2" stroke-width="2" filter="url(#shadowA)"/>
+  <text x="630" y="627" class="box-title">Host EDA + Gaussian</text>
+  <text x="630" y="659" class="box-text">`src/eda.py` + `src/model_gaussian.py`</text>
+  <text x="630" y="687" class="box-text">Работает только для M/K/G/F dwarf</text>
+
+  <rect x="1120" y="210" width="395" height="125" rx="24" fill="url(#dbA)" stroke="#b48b2c" stroke-width="2" filter="url(#shadowA)"/>
+  <text x="1150" y="252" class="box-title">Входные Gaia-кандидаты</text>
+  <text x="1150" y="284" class="box-text">`source_id`, `ra`, `dec`, физические признаки</text>
+
+  <rect x="1120" y="378" width="395" height="145" rx="24" fill="url(#pipeA)" stroke="#5f8b61" stroke-width="2" filter="url(#shadowA)"/>
+  <text x="1150" y="420" class="box-title">Star Orchestrator</text>
+  <text x="1150" y="452" class="box-text">`src/star_orchestrator.py`</text>
+  <text x="1150" y="480" class="box-text">Маршрутизация, сохранение, запуск scoring-веток</text>
+
+  <rect x="1120" y="570" width="395" height="115" rx="24" fill="url(#dbA)" stroke="#b48b2c" stroke-width="2" filter="url(#shadowA)"/>
+  <text x="1150" y="612" class="box-title">`lab.gaia_router_results`</text>
+  <text x="1150" y="644" class="box-text">Результаты физического распознавания</text>
+
+  <rect x="1120" y="725" width="395" height="115" rx="24" fill="url(#dbA)" stroke="#b48b2c" stroke-width="2" filter="url(#shadowA)"/>
+  <text x="1150" y="767" class="box-title">`lab.gaia_priority_results`</text>
+  <text x="1150" y="799" class="box-text">Итоговые приоритеты и reason_code</text>
+
+  <rect x="985" y="585" width="115" height="145" rx="24" fill="url(#warnA)" stroke="#b46b62" stroke-width="2" filter="url(#shadowA)"/>
+  <text x="1006" y="630" class="box-title" style="font-size:18px;">LOW</text>
+  <text x="1006" y="660" class="box-text" style="font-size:14px;">A/B/O</text>
+  <text x="1006" y="685" class="box-text" style="font-size:14px;">или</text>
+  <text x="1006" y="710" class="box-text" style="font-size:14px;">evolved</text>
+
+  <path d="M 510 290 C 555 290, 550 282, 600 282" fill="none" stroke="#4b5563" stroke-width="3.2" marker-end="url(#arrowA)"/>
+  <text x="536" y="272" class="arrow-label">EDA</text>
+
+  <path d="M 510 468 C 560 468, 555 468, 600 468" fill="none" stroke="#4b5563" stroke-width="3.2" marker-end="url(#arrowA)"/>
+  <text x="528" y="452" class="arrow-label">обучение similarity</text>
+
+  <path d="M 510 305 C 710 305, 885 305, 1120 305" fill="none" stroke="#7c8a97" stroke-width="2.6" stroke-dasharray="8 8" marker-end="url(#arrowA)"/>
+  <text x="804" y="286" class="arrow-label">reference-логика router</text>
+
+  <path d="M 1515 272 C 1468 272, 1485 450, 1515 450" fill="none" stroke="#4b5563" stroke-width="3.2" marker-end="url(#arrowA)"/>
+
+  <path d="M 1318 335 C 1318 350, 1318 356, 1318 378" fill="none" stroke="#4b5563" stroke-width="3.2" marker-end="url(#arrowA)"/>
+
+  <path d="M 960 469 C 1020 469, 1058 452, 1120 452" fill="none" stroke="#4b5563" stroke-width="3.2" marker-end="url(#arrowA)"/>
+  <text x="1006" y="438" class="arrow-label">router result</text>
+
+  <path d="M 1318 523 C 1318 540, 1318 548, 1318 570" fill="none" stroke="#4b5563" stroke-width="3.2" marker-end="url(#arrowA)"/>
+  <text x="1335" y="552" class="arrow-label">запись</text>
+
+  <path d="M 960 470 C 978 500, 985 548, 1042 585" fill="none" stroke="#4b5563" stroke-width="3.2" marker-end="url(#arrowA)"/>
+  <text x="980" y="544" class="arrow-label">неподходящая ветка</text>
+
+  <path d="M 960 658 C 1025 658, 1050 658, 1120 782" fill="none" stroke="#4b5563" stroke-width="3.2" marker-end="url(#arrowA)"/>
+  <text x="993" y="640" class="arrow-label">host similarity</text>
+
+  <path d="M 1100 658 C 1138 658, 1165 748, 1120 782" fill="none" stroke="#4b5563" stroke-width="3.2" marker-end="url(#arrowA)"/>
+  <text x="1092" y="688" class="arrow-label">stub priority</text>
+
+  <path d="M 1318 685 C 1318 704, 1318 707, 1318 725" fill="none" stroke="#4b5563" stroke-width="3.2" marker-end="url(#arrowA)"/>
+
+  <text x="78" y="904" class="small">Смысл: router определяет физическую популяцию звезды, а host-model оценивает только M/K/G/F dwarf по данным NASA hosts.</text>
+</svg>

@@ -1,0 +1,15 @@
+spec_class,evolution_stage,router_label,n_objects
+A,dwarf,A_dwarf,2097
+A,evolved,A_evolved,3000
+B,dwarf,B_dwarf,1975
+B,evolved,B_evolved,3000
+F,dwarf,F_dwarf,3000
+F,evolved,F_evolved,3000
+G,dwarf,G_dwarf,3000
+G,evolved,G_evolved,3000
+K,dwarf,K_dwarf,3000
+K,evolved,K_evolved,3000
+M,dwarf,M_dwarf,3000
+M,evolved,M_evolved,3000
+O,dwarf,O_dwarf,2341
+O,evolved,O_evolved,3000
