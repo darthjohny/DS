@@ -186,7 +186,7 @@ def load_input_candidates(
     source_name: str = DEFAULT_INPUT_SOURCE,
     limit: int | None = None,
 ) -> pd.DataFrame:
-    """Загрузить Gaia-кандидатов с полным набором полей для пайплайна."""
+    """Загрузить Gaia-кандидатов с детерминированным выбором строки."""
     if not relation_exists(engine, source_name):
         raise RuntimeError(f"Input source does not exist: {source_name}")
 
@@ -203,21 +203,54 @@ def load_input_candidates(
     schema, relation = split_relation_name(source_name)
     limit_sql = f"LIMIT {int(limit)}" if limit is not None else ""
 
+    # Выбор лучшей строки на source_id делаем в SQL,
+    # чтобы пайплайн оставался воспроизводимым и не зависел
+    # от произвольного порядка выдачи строк Postgres.
+    quality_order: List[str] = []
+    if "parallax_over_error" in available:
+        quality_order.append("base.parallax_over_error DESC NULLS LAST")
+    if "ruwe" in available:
+        quality_order.append("base.ruwe ASC NULLS LAST")
+    if "validation_factor" in available:
+        quality_order.append("base.validation_factor DESC NULLS LAST")
+
+    quality_order.extend(
+        [
+            "base.source_id ASC",
+            "base.ra ASC",
+            "base.dec ASC",
+            "base.teff_gspphot ASC",
+            "base.logg_gspphot ASC",
+            "base.radius_gspphot ASC",
+        ]
+    )
+    order_sql = ",\n                ".join(quality_order)
+
     query = f"""
+    WITH ranked AS (
+        SELECT
+            {", ".join(f"base.{column}" for column in selected)},
+            ROW_NUMBER() OVER (
+                PARTITION BY base.source_id
+                ORDER BY {order_sql}
+            ) AS rn
+        FROM {schema}.{relation} AS base
+        WHERE base.source_id IS NOT NULL
+          AND base.ra IS NOT NULL
+          AND base.dec IS NOT NULL
+          AND base.teff_gspphot IS NOT NULL
+          AND base.logg_gspphot IS NOT NULL
+          AND base.radius_gspphot IS NOT NULL
+    )
     SELECT
         {", ".join(selected)}
-    FROM {schema}.{relation}
-    WHERE source_id IS NOT NULL
-      AND ra IS NOT NULL
-      AND dec IS NOT NULL
-      AND teff_gspphot IS NOT NULL
-      AND logg_gspphot IS NOT NULL
-      AND radius_gspphot IS NOT NULL
+    FROM ranked
+    WHERE rn = 1
+    ORDER BY source_id ASC
     {limit_sql};
     """
     df = pd.read_sql(query, engine)
-    df = df.drop_duplicates(subset=["source_id"]).reset_index(drop=True)
-    return ensure_decision_columns(df)
+    return ensure_decision_columns(df.reset_index(drop=True))
 
 
 def ensure_decision_columns(df: pd.DataFrame) -> pd.DataFrame:
