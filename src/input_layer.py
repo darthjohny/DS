@@ -38,7 +38,7 @@ from enum import StrEnum
 import os
 from pathlib import Path
 import re
-from typing import Any, Iterable, Sequence
+from typing import Iterable, Mapping, Sequence, TypedDict
 
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
@@ -114,6 +114,30 @@ class DatasetValidationResult:
     errors: tuple[str, ...]
     warnings: tuple[str, ...]
     validated_at: datetime
+
+
+class RegistryPayload(TypedDict):
+    """Строго типизированный payload для записи в registry-таблицу."""
+
+    relation_name: str
+    source_name: str
+    status: str
+    row_count: int
+    n_source_id_null: int
+    n_coords_null: int
+    n_teff_null: int
+    n_logg_null: int
+    n_radius_null: int
+    n_mh_null: int
+    n_parallax_null: int
+    n_plx_err_null: int
+    n_ruwe_null: int
+    n_duplicate_source_ids: int
+    min_teff: float | None
+    min_radius: float | None
+    min_ruwe: float | None
+    validated_at: datetime
+    notes: str
 
 
 def load_dotenv_local(dotenv_path: str = ".env") -> None:
@@ -526,7 +550,7 @@ def register_dataset_result(
         """
     )
 
-    payload: dict[str, Any] = {
+    payload: RegistryPayload = {
         "relation_name": result.relation_name,
         "source_name": result.source_name,
         "status": result.status.value,
@@ -547,9 +571,10 @@ def register_dataset_result(
         "validated_at": result.validated_at,
         "notes": build_registry_notes(result),
     }
+    parameters: Mapping[str, object] = payload
 
     with engine.begin() as conn:
-        conn.execute(query, payload)
+        conn.execute(query, parameters)
 
 
 def print_validation_result(result: DatasetValidationResult) -> None:
