@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -15,60 +16,36 @@ from gaussian_router import (
     split_router_label,
 )
 
+ROUTER_TRAIN_COLUMNS = [
+    "source_id",
+    "spec_class",
+    "evolution_stage",
+    "teff_gspphot",
+    "logg_gspphot",
+    "radius_gspphot",
+]
+
+ROUTER_SCORE_COLUMNS = [
+    "teff_gspphot",
+    "logg_gspphot",
+    "radius_gspphot",
+]
+
+RouterTrainRow = tuple[int, str, str, float, float, float]
+RouterScoreRow = tuple[float, float, float]
+
 
 def build_router_training_df() -> pd.DataFrame:
     """Собрать синтетический reference-набор для router-модели."""
-    rows = [
-        {
-            "source_id": 1,
-            "spec_class": "M",
-            "evolution_stage": "dwarf",
-            "teff_gspphot": 3450.0,
-            "logg_gspphot": 4.85,
-            "radius_gspphot": 0.42,
-        },
-        {
-            "source_id": 2,
-            "spec_class": "M",
-            "evolution_stage": "dwarf",
-            "teff_gspphot": 3520.0,
-            "logg_gspphot": 4.78,
-            "radius_gspphot": 0.45,
-        },
-        {
-            "source_id": 3,
-            "spec_class": "M",
-            "evolution_stage": "dwarf",
-            "teff_gspphot": 3380.0,
-            "logg_gspphot": 4.92,
-            "radius_gspphot": 0.40,
-        },
-        {
-            "source_id": 4,
-            "spec_class": "A",
-            "evolution_stage": "evolved",
-            "teff_gspphot": 8600.0,
-            "logg_gspphot": 3.20,
-            "radius_gspphot": 3.80,
-        },
-        {
-            "source_id": 5,
-            "spec_class": "A",
-            "evolution_stage": "evolved",
-            "teff_gspphot": 8450.0,
-            "logg_gspphot": 3.05,
-            "radius_gspphot": 3.60,
-        },
-        {
-            "source_id": 6,
-            "spec_class": "A",
-            "evolution_stage": "evolved",
-            "teff_gspphot": 8750.0,
-            "logg_gspphot": 3.30,
-            "radius_gspphot": 4.00,
-        },
+    rows: list[RouterTrainRow] = [
+        (1, "M", "dwarf", 3450.0, 4.85, 0.42),
+        (2, "M", "dwarf", 3520.0, 4.78, 0.45),
+        (3, "M", "dwarf", 3380.0, 4.92, 0.40),
+        (4, "A", "evolved", 8600.0, 3.20, 3.80),
+        (5, "A", "evolved", 8450.0, 3.05, 3.60),
+        (6, "A", "evolved", 8750.0, 3.30, 4.00),
     ]
-    return pd.DataFrame(rows)
+    return pd.DataFrame.from_records(rows, columns=ROUTER_TRAIN_COLUMNS)
 
 
 def test_router_label_roundtrip() -> None:
@@ -83,20 +60,11 @@ def test_score_router_df_predicts_expected_clusters() -> None:
     """Router должен узнавать близкие кластеры на синтетическом наборе."""
     model = fit_router_model(build_router_training_df())
 
-    df = pd.DataFrame(
-        [
-            {
-                "teff_gspphot": 3490.0,
-                "logg_gspphot": 4.81,
-                "radius_gspphot": 0.43,
-            },
-            {
-                "teff_gspphot": 8520.0,
-                "logg_gspphot": 3.15,
-                "radius_gspphot": 3.75,
-            },
-        ]
-    )
+    rows: list[RouterScoreRow] = [
+        (3490.0, 4.81, 0.43),
+        (8520.0, 3.15, 3.75),
+    ]
+    df = pd.DataFrame.from_records(rows, columns=ROUTER_SCORE_COLUMNS)
 
     scored = score_router_df(model=model, df=df)
 
@@ -116,25 +84,24 @@ def test_router_model_save_load_roundtrip(tmp_path: Path) -> None:
     save_router_model(model, str(model_path))
     restored = load_router_model(str(model_path))
 
-    sample = pd.DataFrame(
-        [
-            {
-                "teff_gspphot": 3460.0,
-                "logg_gspphot": 4.88,
-                "radius_gspphot": 0.41,
-            }
-        ]
+    sample_rows: list[RouterScoreRow] = [
+        (3460.0, 4.88, 0.41),
+    ]
+    sample = pd.DataFrame.from_records(
+        sample_rows,
+        columns=ROUTER_SCORE_COLUMNS,
     )
 
     original_score = score_router_df(model=model, df=sample)
     restored_score = score_router_df(model=restored, df=sample)
 
-    assert restored["meta"]["model_version"] == model["meta"]["model_version"]
-    assert (
-        original_score.loc[0, "router_label"]
-        == restored_score.loc[0, "router_label"]
-    )
-    assert (
-        original_score.loc[0, "predicted_spec_class"]
-        == restored_score.loc[0, "predicted_spec_class"]
-    )
+    restored_meta: Any = restored["meta"]
+    model_meta: Any = model["meta"]
+    original_label: Any = original_score.at[0, "router_label"]
+    restored_label: Any = restored_score.at[0, "router_label"]
+    original_class: Any = original_score.at[0, "predicted_spec_class"]
+    restored_class: Any = restored_score.at[0, "predicted_spec_class"]
+
+    assert str(restored_meta["model_version"]) == str(model_meta["model_version"])
+    assert str(original_label) == str(restored_label)
+    assert str(original_class) == str(restored_class)
