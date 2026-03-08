@@ -1,0 +1,13 @@
+metric,value
+run_id,decision_calibration_20260307T222508Z
+relation_name,public.gaia_dr3_training
+source_name,Gaia DR3 random 20k sample
+input_rows,50
+router_rows,50
+host_rows,40
+low_rows,10
+final_score_min,0.0
+final_score_mean,0.2319760758011357
+final_score_max,0.7624654256187785
+top_n,5
+calibrator_version,decision_layer_calibrator_v1
