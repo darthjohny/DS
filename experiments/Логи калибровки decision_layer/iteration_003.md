@@ -1,10 +1,10 @@
 # iteration_003
 
 Дата: 2026-03-08 01:09:06 MSK
-Run ID: decision_calibration_20260307T220905Z
+Идентификатор запуска: decision_calibration_20260307T220905Z
 Статус: выполнено
 
-## Что меняли
+## Что меняем
 - class_prior
 - metallicity_factor
 - distance_factor
@@ -47,7 +47,7 @@ Run ID: decision_calibration_20260307T220905Z
 - parallax_over_error >= 3: 0.75
 - parallax_over_error < 3: 0.55
 
-## Короткая сводка
+## Фактический результат
 - relation: `public.gaia_dr3_training`
 - source_name: `Gaia DR3 random 20k sample`
 - input_rows: 200
@@ -58,10 +58,10 @@ Run ID: decision_calibration_20260307T220905Z
 - final_score_mean: 0.24025388352488114
 - final_score_max: 0.7624654256187785
 
-## Примечание к итерации
-- baseline preview
+## Итог
+- базовый preview-прогон
 
-## Распределение классов в top-10
+## Сводка по top-10
 ```text
 predicted_spec_class  count
                    K      4
@@ -69,7 +69,7 @@ predicted_spec_class  count
                    M      3
 ```
 
-## Top-10 кандидатов
+## Кандидаты top-10
 ```text
          source_id predicted_spec_class predicted_evolution_stage gauss_label  router_similarity similarity class_prior distance_factor quality_factor metallicity_factor  final_score priority_tier  reason_code        ra       dec  teff_gspphot  logg_gspphot  radius_gspphot  mh_gspphot  parallax  parallax_over_error     ruwe
  48883844590606720                    G                     dwarf           G           0.475317   0.756414        1.05            0.96            1.0                1.0     0.762465          HIGH HOST_SCORING 63.892180 20.133188     5566.4590        4.3652          1.0532      0.1828 11.011924           562.762630 1.048185

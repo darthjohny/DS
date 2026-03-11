@@ -1,0 +1,16 @@
+metric,value
+run_id,decision_calibration_20260311T091211Z
+relation_name,public.gaia_dr3_training
+source_name,Gaia DR3 random 20k sample
+input_rows,20000
+router_rows,20000
+host_rows,16407
+low_rows,3593
+router_score_mode,gaussian_log_posterior_v1
+host_score_mode,host_vs_field_log_lr_v1
+host_model_version,gaussian_host_field_v1_host_vs_field_log_lr_v1_msub_True_shrink_0.15
+final_score_min,0.0
+final_score_mean,0.32127253909873116
+final_score_max,1.0
+top_n,50
+calibrator_version,decision_layer_calibrator_v2

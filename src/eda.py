@@ -1,585 +1,164 @@
-# eda.py
-# ============================================================
-# Назначение
-# ------------------------------------------------------------
-# EDA для проекта ВКР (Gaia DR3 + NASA hosts).
-# Цель файла:
-# проверить данные
-# и подготовить статистику
-# для ML-этапа (Gaussian / Mahalanobis similarity).
-#
-# Важно: здесь разделяем 4 слоя данных:
-# (A) ALL MKGF  : все объекты M/K/G/F (включая evolved)
-# (B) DWARFS    : главная последовательность
-#                 (logg >= 4.0)
-# (C) EVOLVED   : субгиганты/гиганты (logg < 4.0)
-# (D) A/B/O REF : референс-популяция A/B/O (не хосты)
-# ============================================================
+"""Фасад совместимости для исследовательского host EDA.
 
-import os                                       # Ипорт пути для работы с файловой системой (создание папок, сохранение графиков)
-from functools import lru_cache
+Что делает модуль:
+    - реэкспортирует публичные функции, константы и CLI из
+      пакета `analysis.host_eda`;
+    - сохраняет старую точку входа `src/eda.py`;
+    - позволяет старому коду импортировать host EDA без
+      перехода на новый пакетный путь.
+
+Где находится основная логика:
+    - загрузка данных: `analysis.host_eda.data`;
+    - статистики и contrastive-readiness: `analysis.host_eda.stats`,
+      `analysis.host_eda.contrastive`;
+    - графики и экспорт артефактов: `analysis.host_eda.plots`,
+      `analysis.host_eda.exports`;
+    - сценарий запуска: `analysis.host_eda.cli`.
+
+Что модуль не делает:
+    - не содержит собственной EDA-логики;
+    - не является каноническим местом для новых исследований.
+"""
+# ruff: noqa: E402
+
+from __future__ import annotations
+
+import sys
 from pathlib import Path
-from typing import Any
 
-import matplotlib.pyplot as plt             # Библиотека для создания графиков и визуализаций
-import numpy as np                          # Библиотека для численных операций (расчет mu, cov, det, eigenvalues, cond)  
-import numpy.typing as npt
-import pandas as pd                         # Библиотека для работы с данными в виде DataFrame (загрузка данных из SQL, обработка данных)
-import seaborn as sns                       # Библиотека для статистической визуализации (гистограммы, boxplots, heatmaps)
-from matplotlib.axes import Axes
-from matplotlib.figure import Figure
-from sqlalchemy import create_engine        # Библиотека для подключения к базе данных и выполнения SQL-запросов (загрузка данных для EDA)
-from sqlalchemy.engine import Engine
-# ============================================================
-# 1. ПАРАМЕТРЫ ПОДКЛЮЧЕНИЯ К БД
-# ============================================================
-
-FloatArray = npt.NDArray[np.floating[Any]]
-
-sns.set_theme(style="whitegrid")                # Настройка темы для графиков seaborn (стиль с белой сеткой)
-
-CLASS_ORDER: list[str] = ["M", "K", "G", "F"]              # Порядок классов для визуализаций (M, K, G, F)
-FEATURES: list[str] = ["teff_gspphot", "logg_gspphot", "radius_gspphot"]   # Список признаков для анализа и визуализации (температура, логарифм гравитации, радиус)
-PLOTS_DIR: str = "data/eda/plots"                    # Директория для сохранения графиков EDA
-LOGG_DWARF_MIN: float = 4.0                            # Порог для отделения карликов от эволюционировавших (logg >= 4.0 для карликов)
-
-# Пороги подклассов M.
-# Верхняя граница M_EARLY
-# делается строгой (< 4000),
-# чтобы не пересекаться с K-областью.
-M_EARLY_MIN: float = 3500.0                # Нижняя граница для M_EARLY (3500K)
-M_EARLY_MAX: float = 4000.0                # Верхняя граница для M_EARLY (4000K, строго меньше, чтобы не пересекаться с K-областью)
-M_MID_MIN: float = 3200.0                  # Нижняя граница для M_MID (3200K)
-
-
-def _load_dotenv_local(path: str = ".env") -> None:
-    """Подгружает переменные из локального `.env`, не затирая уже заданные."""
-    dotenv_path = Path(path)
-    if not dotenv_path.exists():
-        return
-
-    for raw_line in dotenv_path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        key = key.strip()
-        value = value.strip().strip('"').strip("'")
-        os.environ.setdefault(key, value)
-
-
-def make_engine_from_env() -> Engine:
-    """Создаёт SQLAlchemy engine из `DATABASE_URL` или набора `PG*`."""
-    _load_dotenv_local(".env")
-
-    database_url = os.getenv("DATABASE_URL")
-    if database_url:
-        return create_engine(database_url)
-
-    host = os.getenv("PGHOST")
-    port = os.getenv("PGPORT", "5432")
-    dbname = os.getenv("PGDATABASE")
-    user = os.getenv("PGUSER")
-    password = os.getenv("PGPASSWORD")
-
-    if all([host, dbname, user, password]):
-        return create_engine(
-            f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
-        )
-
-    raise RuntimeError(
-        "Параметры подключения к БД не найдены. "
-        "Задай DATABASE_URL или набор PGHOST/PGPORT/PGDATABASE/PGUSER/PGPASSWORD."
-    )
-
-
-@lru_cache(maxsize=1)
-def get_engine() -> Engine:
-    """Лениво создаёт engine, чтобы импорт файла не ходил в БД."""
-    return make_engine_from_env()
-
-
-def read_sql_frame(query: str) -> pd.DataFrame:
-    """Typed wrapper around pandas.read_sql for local EDA queries."""
-    return pd.read_sql(query, get_engine())
-
-
-def feature_frame(df_part: pd.DataFrame) -> pd.DataFrame:
-    """Return the core feature subset with explicit DataFrame typing."""
-    return df_part[FEATURES]
-
-
-def make_figure_ax(figsize: tuple[float, float]) -> tuple[Figure, Axes]:
-    """Create a typed matplotlib figure and single axes."""
-    plt_any: Any = plt
-    figure, ax = plt_any.subplots(figsize=figsize)
-    return figure, ax
-
-
-def make_figure_axes(
-    ncols: int,
-    figsize: tuple[float, float],
-) -> tuple[Figure, list[Axes]]:
-    """Create a typed matplotlib figure and a flat list of axes."""
-    plt_any: Any = plt
-    figure, axes = plt_any.subplots(1, ncols, figsize=figsize)
-    axes_seq = np.atleast_1d(axes)
-    typed_axes: list[Axes] = []
-    for axis in axes_seq:
-        typed_axes.append(axis)
-    return figure, typed_axes
-
-
-def draw_countplot(**kwargs: Any) -> None:
-    """Typed adapter for seaborn.countplot."""
-    sns_any: Any = sns
-    sns_any.countplot(**kwargs)
-
-
-def draw_histplot(**kwargs: Any) -> None:
-    """Typed adapter for seaborn.histplot."""
-    sns_any: Any = sns
-    sns_any.histplot(**kwargs)
-
-
-def draw_boxplot(**kwargs: Any) -> None:
-    """Typed adapter for seaborn.boxplot."""
-    sns_any: Any = sns
-    sns_any.boxplot(**kwargs)
-
-
-def draw_scatterplot(**kwargs: Any) -> None:
-    """Typed adapter for seaborn.scatterplot."""
-    sns_any: Any = sns
-    sns_any.scatterplot(**kwargs)
-
-
-def draw_heatmap(**kwargs: Any) -> None:
-    """Typed adapter for seaborn.heatmap."""
-    sns_any: Any = sns
-    sns_any.heatmap(**kwargs)
-
-
-def set_axes_title(ax: Axes, title: str) -> None:
-    """Typed adapter for Axes.set_title."""
-    ax_any: Any = ax
-    ax_any.set_title(title)
-
-
-def set_axes_xlabel(ax: Axes, label: str) -> None:
-    """Typed adapter for Axes.set_xlabel."""
-    ax_any: Any = ax
-    ax_any.set_xlabel(label)
-
-
-def set_axes_ylabel(ax: Axes, label: str) -> None:
-    """Typed adapter for Axes.set_ylabel."""
-    ax_any: Any = ax
-    ax_any.set_ylabel(label)
-
-
-def draw_axes_scatter(
-    ax: Axes,
-    x: pd.Series,
-    y: pd.Series,
-    *,
-    s: float,
-    alpha: float,
-    label: str,
-) -> None:
-    """Typed adapter for Axes.scatter."""
-    ax_any: Any = ax
-    ax_any.scatter(x, y, s=s, alpha=alpha, label=label)
-
-
-def draw_axes_vline(
-    ax: Axes,
-    *,
-    x: float,
-    color: str,
-    linestyle: str,
-    linewidth: float,
-    label: str,
-) -> None:
-    """Typed adapter for Axes.axvline."""
-    ax_any: Any = ax
-    ax_any.axvline(
-        x=x,
-        color=color,
-        linestyle=linestyle,
-        linewidth=linewidth,
-        label=label,
-    )
-
-
-def draw_axes_legend(ax: Axes) -> None:
-    """Typed adapter for Axes.legend."""
-    ax_any: Any = ax
-    ax_any.legend()
-
-
-def save_plot(filename: str, figure: Figure) -> None:               # Функция для сохранения текущего графика matplotlib в указанную директорию с заданным именем файла                          
-    """Сохраняет текущий matplotlib-график."""                                                      
-    os.makedirs(PLOTS_DIR, exist_ok=True)           # Создание директории для графиков, если она не существует                                     
-    path = os.path.join(PLOTS_DIR, filename)        # Полный путь для сохранения графика
-    figure_any: Any = figure
-    plt_any: Any = plt
-    figure_any.tight_layout()                       # Улучшение компоновки графика перед сохранением (убирает лишние отступы)
-    figure_any.savefig(path, dpi=160)               # Сохранение графика в файл с разрешением 160 dpi
-    plt_any.close(figure)                           # Закрытие текущей фигуры, чтобы освободить память и избежать наложения графиков при следующем вызове save_plot 
-
-
-def plot_class_counts(          # Функция для построения графика количества объектов по классам (M/K/G/F) для заданного DataFrame, заголовка и имени файла для сохранения графика
-    df_part: pd.DataFrame,      # Часть DataFrame для анализа (например, ALL MKGF, DWARFS или EVOLVED)
-    title: str,                 # Заголовок для графика (например, "ALL MKGF: число объектов по классам")
-    filename: str,              # Имя файла для сохранения графика (например, "all_class_counts.png")
-) -> None:                     
-    """График количества объектов
-    по классам.
-    """
-    figure, ax = make_figure_ax((7, 4))            # Создание новой фигуры и оси для графика с размером 7x4 дюйма
-    draw_countplot(              # Построение графика количества объектов по классам с помощью seaborn countplot
-        data=df_part,           #Данные для графика (часть DataFrame)
-        x="spec_class",         # Ось X - спектральный класс (M/K/G/F)                           
-        hue="spec_class",       # Цвета для классов (hue) - тот же столбец "spec_class" для стабильного поведения seaborn при сохранении порядка классов
-        order=CLASS_ORDER,      #Порядок классов на оси X (M, K, G, F)
-        hue_order=CLASS_ORDER,  #Порядок классов для цветов (hue) - тот же порядок, что и для оси X
-        palette="viridis",      # Цветовая палитра для классов (viridis)
-        legend=False,           # Отключение легенды, так как цвет уже соответствует классу на оси X
-        ax=ax,                  # Указание оси для построения графика (ax)
-    )
-    set_axes_title(ax, title)          # Установка заголовка для графика
-    set_axes_xlabel(ax, "spec_class")  #Установка подписи для оси X
-    set_axes_ylabel(ax, "count")       # Установка подписи для оси Y
-    save_plot(filename, figure)          # Сохранение графика с помощью функции save_plot, передавая имя файла для сохранения (например, "all_class_counts.png")
-
-
-def plot_feature_histograms(    # Функция для построения гистограмм распределения признаков (teff_gspphot, logg_gspphot, radius_gspphot) по классам для заданного DataFrame и префикса для заголовков и имен файлов
-    df_part: pd.DataFrame,      # Часть DataFrame для анализа (например, ALL MKGF, DWARFS или EVOLVED)
-    prefix: str,                # Префикс для заголовков и имен файлов (например, "all" для ALL MKGF, "dwarfs" для DWARFS, "evolved" для EVOLVED)
-) -> None:
-    """Гистограммы признаков по классам."""
-    for feature in FEATURES:    # Проход по каждому признаку (teff_gspphot, logg_gspphot, radius_gspphot) для построения гистограмм
-        figure, ax = make_figure_ax((8, 5))           # Создание новой фигуры и оси для графика с размером 8x5 дюйма
-        draw_histplot(           # Построение гистограммы распределения признака по классам с помощью seaborn histplot
-            data=df_part,       # Данные для графика (часть DataFrame)
-            x=feature,          # Ось X - текущий признак (teff_gspphot, logg_gspphot или radius_gspphot)
-            hue="spec_class",   # Цвета для классов (hue) - столбец "spec_class" для раздел
-            hue_order=CLASS_ORDER,      # Порядок классов для цветов (hue) - тот же порядок, что и для оси X
-            bins=30,               # Количество бинов для гистограммы (30)
-            stat="density",        # Нормировка гистограммы по плотности (density), чтобы сравнивать распределения разных классов
-            common_norm=False,     # Отключение общей нормировки, чтобы каждый класс отображался по своей плотности, а не по общему количеству объектов
-            alpha=0.35,            # Прозрачность для гистограмм классов (0.35), чтобы видеть наложение распределений
-            kde=True,              # Добавление KDE (ядерной оценки плотности) для сглаживания распределения каждого класса
-            ax=ax,                 # Указание оси для построения графика (ax)
-        )
-        set_axes_title(ax, f"{prefix}: распределение {feature}")  # Установка заголовка для графика, включающего префикс (например, "all", "dwarfs" или "evolved") и название признака (teff_gspphot, logg_gspphot или radius_gspphot)
-        set_axes_xlabel(ax, feature)                 # Установка подписи для оси X, которая соответствует названию текущего признака
-        set_axes_ylabel(ax, "density")        # Установка подписи для оси Y, которая соответствует плотности распределения (density)
-        save_plot(f"{prefix}_{feature}_hist.png", figure)   # Сохранение графика с помощью функции save_plot, передавая имя файла для сохранения, которое включает префикс и название признака (например, "all_teff_gspphot_hist.png", "dwarfs_logg_gspphot_hist.png" и т.д.)
-
-
-def plot_boxplots_dwarfs(df_part: pd.DataFrame) -> None:     # Функция для построения boxplot'ов признаков (teff_gspphot, logg_gspphot, radius_gspphot) по классам для слоя карликов (DWARFS)
-    """Boxplot признаков для слоя карликов."""
-    for feature in FEATURES:        # Проход по каждому признаку (teff_gspphot, logg_gspphot, radius_gspphot) для построения boxplot'ов
-        figure, ax = make_figure_ax((8, 5)) # Создание новой фигуры и оси для графика с размером 8x5 дюйма
-        draw_boxplot(                 # Построение boxplot'ов для признака по классам с помощью seaborn boxplot
-            data=df_part,            # Данные для графика (часть DataFrame, которая соответствует слою карликов - DWARFS)
-            x="spec_class",          # Ось X - спектральный класс (M/K/G/F) для boxplot'ов
-            y=feature,               # Ось Y - текущий признак (teff_gspphot, logg_gspphot или radius_gspphot) для boxplot'ов
-            hue="spec_class",        # Цвета для классов (hue) - тот же столбец "spec_class" для стабильного поведения seaborn при сохранении порядка классов
-            order=CLASS_ORDER,       # Порядок классов на оси X (M, K, G, F)
-            hue_order=CLASS_ORDER,   # Порядок классов для цветов (hue) - тот же порядок, что и для оси X
-            palette="Set2",          # Цветовая палитра для классов (Set2)
-            dodge=False,             # Отключение раздвигания boxplot'ов по классам (dodge=False), чтобы все классы были на одной позиции по оси X и не было наложения boxplot'ов для разных классов
-            legend=False,            # Отключение легенды, так как цвет уже соответствует классу на оси X
-            ax=ax,                   # Указание оси для построения графика (ax)  
-        )
-        set_axes_title(ax, f"DWARFS: boxplot {feature}")  # Установка заголовка для графика, включающего название слоя (DWARFS) и название признака (teff_gspphot, logg_gspphot или radius_gspphot)
-        set_axes_xlabel(ax, "spec_class")         # Установка подписи для оси X, которая соответствует спектральному классу (M/K/G/F)
-        set_axes_ylabel(ax, feature)              #Установка подписи для оси Y, которая соответствует названию текущего признака (teff_gspphot, logg_gspphot или radius_gspphot)
-        save_plot(f"dwarfs_{feature}_boxplot.png", figure) # Сохранение графика с помощью функции save_plot, передавая имя файла для сохранения, которое включает название слоя (dwarfs) и название признака (например, "dwarfs_teff_gspphot_boxplot.png", "dwarfs_logg_gspphot_boxplot.png" и т.д.)
-
-
-def plot_scatter_layers(                # Функция для построения scatter-графика сравнения слоев DWARFS и EVOLVED по признакам teff_gspphot и radius_gspphot
-    df_dwarfs_part: pd.DataFrame,       # Часть DataFrame для слоя карликов (DWARFS)
-    df_evolved_part: pd.DataFrame,      # Часть DataFrame для слоя эволюционировавших (EVOLVED)
-) -> None:
-    """Scatter для сравнения слоёв DWARFS и EVOLVED."""
-    figure, ax = make_figure_ax((8, 5))    # Создание новой фигуры и оси для графика с размером 8x5 дюйма
-    draw_axes_scatter(                      # Построение scatter-графика для слоя карликов (DWARFS) по признакам teff_gspphot и radius_gspphot
-        ax,
-        df_dwarfs_part["teff_gspphot"],     #Ось X - температура для слоя карликов (DWARFS)
-        df_dwarfs_part["radius_gspphot"],   # Ось Y - радиус для слоя карликов (DWARFS)
-        s=12,                               # Размер точек для слоя карликов (DWARFS)
-        alpha=0.45,                         # Прозрачность точек для слоя карликов (DWARFS)
-        label="DWARFS",                     # Метка для слоя карликов (DWARFS) в легенде графика
-    )
-    draw_axes_scatter(                      # Построение scatter-графика для слоя эволюционировавших (EVOLVED) по признакам teff_gspphot и radius_gspphot
-        ax,
-        df_evolved_part["teff_gspphot"],    # Ось X - температура для слоя эволюционировавших (EVOLVED)
-        df_evolved_part["radius_gspphot"],  # Ось Y - радиус для слоя эволюционировавших (EVOLVED)
-        s=12,                               # Размер точек для слоя эволюционировавших (EVOLVED)
-        alpha=0.45,                         # Прозрачность точек для слоя эволюционировавших (EVOLVED)
-        label="EVOLVED",                    # Метка для слоя эволюционировавших (EVOLVED) в легенде графика
-    )
-    set_axes_title(ax, "Teff vs Radius: DWARFS и EVOLVED")    # Установка заголовка для графика, который описывает сравнение слоев DWARFS и EVOLVED по признакам teff_gspphot и radius_gspphot
-    set_axes_xlabel(ax, "teff_gspphot")               # Установка подписи для оси X, которая соответствует температуре (teff_gspphot)
-    set_axes_ylabel(ax, "radius_gspphot")             # Установка подписи для оси Y, которая соответствует радиусу (radius_gspphot)
-    draw_axes_legend(ax)                               # Установка легенды для графика, которая отображает метки для слоев DWARFS и EVOLVED
-    save_plot("layers_teff_vs_radius_scatter.png", figure)  # Сохранение графика с помощью функции save_plot, передавая имя файла для сохранения (например, "layers_teff_vs_radius_scatter.png")
-
-
-def plot_logg_radius_with_threshold(df_part: pd.DataFrame) -> None:     # Функция для построения scatter-графика logg_gspphot vs radius_gspphot для всех MKGF с выделением порога logg = 4.0, который отделяет карликов от эволюционировавших
-    """Scatter logg-radius и порог карликов logg = 4.0."""     # Этот график помогает визуально оценить, как объекты распределяются по признакам logg_gspphot и radius_gspphot, и насколько четко порог logg = 4.0 отделяет карликов от эволюционировавших. Если объекты с logg >= 4.0 (карлики) сгруппированы в одной области графика, а объекты с logg < 4.0 (эволюционировавшие) - в другой, это подтверждает правильность выбора порога для разделения слоев данных.
-    figure, ax = make_figure_ax((8, 5))    # Создание новой фигуры и оси для графика с размером 8x5 дюйма
-    draw_scatterplot(                        # Построение scatter-графика logg_gspphot vs radius_gspphot для всех MKGF с помощью seaborn scatterplot
-        data=df_part,                       # Данные для графика (часть DataFrame, которая соответствует всем MKGF)
-        x="logg_gspphot",                   # Ось X - логарифм гравитации (logg_gspphot) для всех MKGF
-        y="radius_gspphot",                 # Ось Y - радиус (radius_gspphot) для всех MKGF
-        hue="spec_class",                   # Цвета для классов (hue) - столбец "spec_class" для раздел классов (M/K/G/F)
-        hue_order=CLASS_ORDER,              # Порядок классов для цветов (hue) - тот же порядок, что и для оси X
-        alpha=0.55,                         # Прозрачность точек для всех MKGF (0.55), чтобы видеть наложение объектов и общую структуру распределения по признакам logg_gspphot и radius_gspphot
-        s=18,                               # Размер точек для всех MKGF (18), чтобы объекты были хорошо видны на графике
-        ax=ax,                              # Указание оси для построения графика (ax)
-    )
-    draw_axes_vline(                        # Добавление вертикальной линии на график, которая соответствует порогу logg = 4.0, отделяющему карликов от эволюционировавших
-        ax,
-        x=LOGG_DWARF_MIN,                   # Порог для отделения карликов от эволюционировавших (logg = 4.0)
-        color="red",                        # Цвет линии для порога (красный)
-        linestyle="--",                     # Стиль линии для порога (штриховая линия)
-        linewidth=1.4,                      # Толщина линии для порога (1.4)
-        label=f"logg = {LOGG_DWARF_MIN}",   # Метка для линии порога в легенде графика (например, "logg = 4.0")
-    )
-    set_axes_title(ax, "ALL MKGF: logg vs radius")    # Установка заголовка для графика, который описывает сравнение всех MKGF по признакам logg_gspphot и radius_gspphot с выделением порога logg = 4.0
-    set_axes_xlabel(ax, "logg_gspphot")               # Установка подписи для оси X, которая соответствует логарифму гравитации (logg_gspphot)
-    set_axes_ylabel(ax, "radius_gspphot")             # Установка подписи для оси Y, которая соответствует радиусу (radius_gspphot)
-    draw_axes_legend(ax)                               # Установка легенды для графика, которая отображает метки для классов (M/K/G/F) и порога logg = 4.0
-    save_plot("all_logg_vs_radius_with_threshold.png", figure) # Сохранение графика с помощью функции save_plot, передавая имя файла для сохранения (например, "all_logg_vs_radius_with_threshold.png")
-
-
-def plot_correlation_heatmaps(                  # Функция для построения тепловых карт корреляций между признаками teff_gspphot, logg_gspphot и radius_gspphot для всех MKGF, слоя карликов (DWARFS) и слоя эволюционировавших (EVOLVED)
-    df_all: pd.DataFrame,                       # Часть DataFrame для всех MKGF (ALL MKGF)
-    df_dwarfs_part: pd.DataFrame,               # Часть DataFrame для слоя карликов (DWARFS)
-    df_evolved_part: pd.DataFrame,              # Часть DataFrame для слоя эволюционировавших (EVOLVED)
-) -> None:
-    """Heatmap корреляций для ALL / DWARFS / EVOLVED."""
-    figure, axes = make_figure_axes(3, (15, 4))       # Создание новой фигуры и массива осей для графиков с размером 15x4 дюйма и 1 строкой, 3 столбцами (для ALL MKGF, DWARFS и EVOLVED)
-    layers: list[tuple[str, pd.DataFrame]] = [          # Список слоев данных для построения тепловых карт корреляций, который включает кортежи с названием слоя и соответствующей частью DataFrame
-        ("ALL", df_all),                        # Слой для всех MKGF (ALL MKGF) с соответствующей частью DataFrame (df_all)
-        ("DWARFS", df_dwarfs_part),             # Слой для карликов (DWARFS) с соответствующей частью DataFrame (df_dwarfs_part)
-        ("EVOLVED", df_evolved_part),           # Слой для эволюционировавших (EVOLVED) с соответствующей частью DataFrame (df_evolved_part)
-    ]
-    for idx, (name, layer_df) in enumerate(layers):     # Проход по каждому слою данных (ALL MKGF, DWARFS, EVOLVED) с помощью enumerate для получения индекса и кортежа с названием слоя и соответствующей частью DataFrame
-        corr: pd.DataFrame = feature_frame(layer_df).corr()    # Вычисление матрицы корреляций между признаками teff_gspphot, logg_gspphot и radius_gspphot для текущего слоя данных (layer_df) с помощью метода corr() для DataFrame, который возвращает матрицу корреляций
-        ax = axes[idx]
-        draw_heatmap(                # Построение тепловой карты корреляций для текущего слоя данных (layer_df) с помощью seaborn heatmap
-            data=corr,              # Матрица корреляций между признаками для текущего слоя данных (layer_df)
-            vmin=-1.0,              # Минимальное значение для цветовой шкалы (vmin=-1.0), чтобы отображать отрицательные корреляции красным цветом
-            vmax=1.0,               # Максимальное значение для цветовой шкалы (vmax=1.0), чтобы отображать положительные корреляции синим цветом
-            center=0.0,             # Центр цветовой шкалы (center=0.0), чтобы нейтральные корреляции (около 0) отображались белым цветом
-            cmap="coolwarm",        #Цветовая палитра для тепловой карты (coolwarm), которая отображает отрицательные корреляции красным цветом, положительные - синим цветом, а нейтральные - белым цветом
-            annot=True,             # Включение отображения числовых значений корреляций на тепловой карте (annot=True)
-            fmt=".2f",              # Формат отображения числовых значений корреляций с двумя десятичными знаками (fmt=".2f")
-            square=True,            # Отображение тепловой карты в виде квадратов (square=True) для лучшей визуализации корреляций между признаками
-            cbar=idx == 2,          # Отображение цветовой шкалы только для последнего графика (EVOLVED) для экономии места и улучшения визуального восприятия (cbar=idx == 2)
-            ax=ax,           # Указание соответствующей оси для построения тепловой карты корреляций для текущего слоя данных (layer_df) (ax=axes[idx] - выбор оси по индексу)
-        )
-        set_axes_title(ax, name)   # Установка заголовка для тепловой карты корреляций, который соответствует названию слоя данных (name) (например, "ALL", "DWARFS" или "EVOLVED")
-    save_plot("corr_heatmaps_all_dwarfs_evolved.png", figure)   # Сохранение графика с помощью функции save_plot, передавая имя файла для сохранения (например, "corr_heatmaps_all_dwarfs_evolved.png")
-
-
-# ============================================================
-# 2. ЗАГРУЗКА ДАННЫХ ДЛЯ EDA
-# ============================================================
-
-# Источники:
-# - lab.v_nasa_gaia_train_classified : MKGF хосты с spec_class
-# - lab.v_nasa_gaia_train_dwarfs     : MKGF, только logg >= 4
-# - lab.v_nasa_gaia_train_evolved    : MKGF, только logg < 4
-
-# Базовая обучающая выборка
-# (все MKGF, включая evolved)
-QUERY_ALL_MKGF: str = """
-SELECT
-    spec_class,
-    teff_gspphot,
-    logg_gspphot,
-    radius_gspphot
-FROM lab.v_nasa_gaia_train_classified
-WHERE spec_class IN ('M','K','G','F');
-"""
-
-# Карлики для обучения гауссовской модели
-QUERY_DWARFS_MKGF: str = """
-SELECT
-    spec_class,
-    teff_gspphot,
-    logg_gspphot,
-    radius_gspphot
-FROM lab.v_nasa_gaia_train_dwarfs
-WHERE spec_class IN ('M','K','G','F');
-"""
-
-# Эволюционировавшие
-# (отдельный аналитический слой)
-QUERY_EVOLVED_MKGF: str = """
-SELECT
-    spec_class,
-    teff_gspphot,
-    logg_gspphot,
-    radius_gspphot
-FROM lab.v_nasa_gaia_train_evolved
-WHERE spec_class IN ('M','K','G','F');
-"""
-
-# Reference-layer для A/B/O.
-QUERY_ABO_REF: str = """
-SELECT
-    spec_class,
-    teff_gspphot,
-    logg_gspphot,
-    radius_gspphot
-FROM lab.v_gaia_ref_abo_training;
-"""
-
-
-def calc_gauss_stats(df_part: pd.DataFrame, label: str) -> None:
-    """Печатает mu/cov и базовые QA-метрики для выбранного слоя."""
-    x: FloatArray = feature_frame(df_part).to_numpy(dtype=float)
-    n = x.shape[0]
-
-    if n < 5:
-        print(f"\n[{label}] Слишком мало объектов для устойчивой cov: n={n}")
-        return
-
-    mu: FloatArray = x.mean(axis=0)
-    sigma: FloatArray = np.cov(x, rowvar=False, ddof=1)
-
-    det_sigma = float(np.linalg.det(sigma))
-    eigvals: FloatArray = np.linalg.eigvalsh(sigma)
-    cond = float(np.linalg.cond(sigma))
-
-    print(f"\n[{label}] n={n}")
-    print("mu =", mu)
-    print("cov =\n", sigma)
-    print("det(cov) =", det_sigma)
-    print("eigenvalues(cov) =", eigvals)
-    print("cond(cov) =", cond)
-    print("PD (все eigenvalues > 0):", bool(np.all(eigvals > 0)))
-
-
-def main() -> None:
-    """Основной offline-запуск EDA для host-слоя MKGF и A/B/O reference."""
-    df: pd.DataFrame = read_sql_frame(QUERY_ALL_MKGF)
-    df_dwarfs: pd.DataFrame = read_sql_frame(QUERY_DWARFS_MKGF)
-    df_evolved: pd.DataFrame = read_sql_frame(QUERY_EVOLVED_MKGF)
-
-    print("\n=== ДАННЫЕ ЗАГРУЖЕНЫ ===")
-    print("Размер ALL MKGF:", df.shape)
-    print("Размер DWARFS (logg>=4.0):", df_dwarfs.shape)
-    print("Размер EVOLVED (logg<4.0):", df_evolved.shape)
-
-    print("\n=== ПРОВЕРКА NULL ===")
-    print("NULL по столбцам (ALL MKGF):\n", df.isnull().sum())
-
-    print("\n=== ОБЩАЯ СТАТИСТИКА (describe) ===")
-    print(df.describe())
-
-    print("\n=== КОРРЕЛЯЦИИ МЕЖДУ ПРИЗНАКАМИ ===")
-    print(feature_frame(df).corr())
-
-    print("\n=== СТАТИСТИКА ПО СПЕКТРАЛЬНЫМ КЛАССАМ ===")
-    group_stats: pd.DataFrame = (
-        df.groupby("spec_class")[FEATURES].agg(["mean", "std", "min", "max"])
-    )
-    print(group_stats)
-
-    print("\n=== ALL MKGF: ТОП-20 ПО РАДИУСУ (быстрая проверка EVOLVED/гигантов) ===")
-    top_radius: pd.DataFrame = df.sort_values(
-        "radius_gspphot", ascending=False
-    ).head(20)
-    print(top_radius)
-
-    print("\n=== ТОЛЬКО ГЛАВНАЯ ПОСЛЕДОВАТЕЛЬНОСТЬ (из view: v_nasa_gaia_train_dwarfs) ===")
-    print("Размер выборки:", df_dwarfs.shape)
-
-    print("\n=== СТАТИСТИКА ПОСЛЕ ФИЛЬТРА ===")
-    print(df_dwarfs.describe())
-
-    print("\n=== КОРРЕЛЯЦИИ ПОСЛЕ ФИЛЬТРА ===")
-    print(feature_frame(df_dwarfs).corr())
-
-    print("\n=== ТОП-20 ЭВОЛЮЦИОНИРОВАВШИХ ЗВЕЗД ПО РАДИУСУ ===")
-    print(
-        df_evolved.sort_values("radius_gspphot", ascending=False).head(20)
-    )
-
-    df_evolved.to_csv("data/eda/evolved_stars_snapshot.csv", index=False)
-
-    print("\n=== A/B/O REFERENCE LAYER ===")
-    df_abo: pd.DataFrame = read_sql_frame(QUERY_ABO_REF)
-    print("Размер A/B/O reference:", df_abo.shape)
-    print(df_abo.groupby("spec_class").size())
-    print("\n=== A/B/O describe ===")
-    print(df_abo.describe())
-
-    abo_stats: pd.DataFrame = (
-        df_abo.groupby("spec_class")[FEATURES].agg([
-            "count", "mean", "std", "min", "max"
-        ])
-    )
-    print("\n=== A/B/O stats by class ===")
-    print(abo_stats)
-
-    df_abo.sort_values("teff_gspphot", ascending=False).head(20).to_csv(
-        "data/eda/abo_top20_by_teff.csv",
-        index=False,
-    )
-
-    plot_class_counts(
-        df,
-        title="ALL MKGF: количество объектов по классам",
-        filename="all_class_counts.png",
-    )
-    plot_class_counts(
-        df_dwarfs,
-        title="DWARFS (logg>=4.0): количество объектов по классам",
-        filename="dwarfs_class_counts.png",
-    )
-    plot_class_counts(
-        df_evolved,
-        title="EVOLVED (logg<4.0): количество объектов по классам",
-        filename="evolved_class_counts.png",
-    )
-    plot_feature_histograms(df, prefix="all")
-    plot_feature_histograms(df_dwarfs, prefix="dwarfs")
-    plot_boxplots_dwarfs(df_dwarfs)
-    plot_scatter_layers(df_dwarfs, df_evolved)
-    plot_logg_radius_with_threshold(df)
-    plot_correlation_heatmaps(df, df_dwarfs, df_evolved)
-
-    print("\n=== DWARFS: mu и cov по классам M/K/G/F ===")
-    for cls in ["M", "K", "G", "F"]:
-        part: pd.DataFrame = df_dwarfs[df_dwarfs["spec_class"] == cls]
-        calc_gauss_stats(part, f"CLASS {cls}")
-
-    print("\n=== DWARFS: mu и cov для подклассов M (Early/Mid/Late) ===")
-    df_m: pd.DataFrame = df_dwarfs[df_dwarfs["spec_class"] == "M"].copy()
-
-    m_early: pd.DataFrame = df_m[
-        (df_m["teff_gspphot"] >= M_EARLY_MIN)
-        & (df_m["teff_gspphot"] < M_EARLY_MAX)
-    ]
-    m_mid: pd.DataFrame = df_m[
-        (df_m["teff_gspphot"] >= M_MID_MIN)
-        & (df_m["teff_gspphot"] < M_EARLY_MIN)
-    ]
-    m_late: pd.DataFrame = df_m[df_m["teff_gspphot"] < M_MID_MIN]
-
-    calc_gauss_stats(m_early, "M_EARLY [3500, 4000)")
-    calc_gauss_stats(m_mid, "M_MID (3200-3500K)")
-    calc_gauss_stats(m_late, "M_LATE (<3200K)")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from analysis.host_eda.cli import main
+from analysis.host_eda.constants import (
+    ABO_TOP20_PATH,
+    CLASS_ORDER,
+    CONTRASTIVE_GAUSS_STATS_PATH,
+    CONTRASTIVE_MIN_POPULATION_SIZE,
+    CONTRASTIVE_MODEL_VERSION,
+    CONTRASTIVE_SCORE_MODE,
+    CONTRASTIVE_SHRINK_ALPHA,
+    CONTRASTIVE_VIEW_ENV,
+    EVOLVED_SNAPSHOT_PATH,
+    FEATURES,
+    LOGG_DWARF_MIN,
+    M_EARLY_MAX,
+    M_EARLY_MIN,
+    M_MID_MIN,
+    OUTPUT_DIR,
+    PLOTS_DIR,
+    QUERY_ABO_REF,
+    QUERY_ALL_MKGF,
+    QUERY_DWARFS_MKGF,
+    QUERY_EVOLVED_MKGF,
+    FloatArray,
+)
+from analysis.host_eda.contrastive import (
+    calc_contrastive_gauss_stats,
+    print_contrastive_gauss_stats,
+)
+from analysis.host_eda.data import (
+    feature_frame,
+    get_engine,
+    load_abo_ref,
+    load_all_mkgf,
+    load_dwarfs_mkgf,
+    load_evolved_mkgf,
+    make_engine_from_env,
+    read_sql_frame,
+)
+from analysis.host_eda.exports import save_frame, save_plot
+from analysis.host_eda.plots import (
+    draw_axes_legend,
+    draw_axes_scatter,
+    draw_axes_vline,
+    draw_boxplot,
+    draw_countplot,
+    draw_heatmap,
+    draw_histplot,
+    draw_scatterplot,
+    make_figure_ax,
+    make_figure_axes,
+    plot_boxplots_dwarfs,
+    plot_class_counts,
+    plot_correlation_heatmaps,
+    plot_feature_histograms,
+    plot_logg_radius_with_threshold,
+    plot_scatter_layers,
+    set_axes_title,
+    set_axes_xlabel,
+    set_axes_ylabel,
+    set_default_theme,
+)
+from analysis.host_eda.stats import (
+    build_group_stats,
+    calc_gauss_stats,
+    top_by_radius,
+    top_by_teff,
+)
+
+__all__ = [
+    "ABO_TOP20_PATH",
+    "CLASS_ORDER",
+    "CONTRASTIVE_GAUSS_STATS_PATH",
+    "CONTRASTIVE_MIN_POPULATION_SIZE",
+    "CONTRASTIVE_MODEL_VERSION",
+    "CONTRASTIVE_SCORE_MODE",
+    "CONTRASTIVE_SHRINK_ALPHA",
+    "CONTRASTIVE_VIEW_ENV",
+    "EVOLVED_SNAPSHOT_PATH",
+    "FEATURES",
+    "FloatArray",
+    "LOGG_DWARF_MIN",
+    "M_EARLY_MAX",
+    "M_EARLY_MIN",
+    "M_MID_MIN",
+    "OUTPUT_DIR",
+    "PLOTS_DIR",
+    "QUERY_ABO_REF",
+    "QUERY_ALL_MKGF",
+    "QUERY_DWARFS_MKGF",
+    "QUERY_EVOLVED_MKGF",
+    "build_group_stats",
+    "calc_contrastive_gauss_stats",
+    "calc_gauss_stats",
+    "draw_axes_legend",
+    "draw_axes_scatter",
+    "draw_axes_vline",
+    "draw_boxplot",
+    "draw_countplot",
+    "draw_heatmap",
+    "draw_histplot",
+    "draw_scatterplot",
+    "feature_frame",
+    "get_engine",
+    "load_abo_ref",
+    "load_all_mkgf",
+    "load_dwarfs_mkgf",
+    "load_evolved_mkgf",
+    "main",
+    "make_engine_from_env",
+    "make_figure_ax",
+    "make_figure_axes",
+    "plot_boxplots_dwarfs",
+    "plot_class_counts",
+    "plot_correlation_heatmaps",
+    "plot_feature_histograms",
+    "plot_logg_radius_with_threshold",
+    "plot_scatter_layers",
+    "print_contrastive_gauss_stats",
+    "read_sql_frame",
+    "save_frame",
+    "save_plot",
+    "set_axes_title",
+    "set_axes_xlabel",
+    "set_axes_ylabel",
+    "set_default_theme",
+    "top_by_radius",
+    "top_by_teff",
+]
 
 
 if __name__ == "__main__":

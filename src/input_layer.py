@@ -32,17 +32,30 @@
 from __future__ import annotations
 
 from argparse import ArgumentParser, Namespace
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
-import os
-from pathlib import Path
-import re
-from typing import Iterable, Mapping, Sequence, TypedDict
+from typing import TypedDict
 
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
-from sqlalchemy import create_engine
+
+from infra.db import (
+    load_dotenv_local as _load_dotenv_local,
+)
+from infra.db import (
+    make_engine_from_env as _make_engine_from_env,
+)
+from infra.relations import (
+    relation_columns as _relation_columns,
+)
+from infra.relations import (
+    relation_exists as _relation_exists,
+)
+from infra.relations import (
+    split_relation_name as _split_relation_name,
+)
 
 DEFAULT_INPUT_RELATION = "public.gaia_dr3_training"
 REGISTRY_TABLE = "lab.input_dataset_registry"
@@ -68,8 +81,6 @@ OPTIONAL_COLUMNS: tuple[str, ...] = (
     "validation_factor",
 )
 
-IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
-
 
 class DatasetStatus(StrEnum):
     """Поддерживаемые статусы входного датасета."""
@@ -82,7 +93,12 @@ class DatasetStatus(StrEnum):
 
 @dataclass(frozen=True)
 class DatasetSummary:
-    """Сводка по входному датасету."""
+    """Агрегированная сводка по входному relation перед запуском pipeline.
+
+    Хранит SQL-агрегаты, которые нужны для принятия verdict по датасету:
+    размер набора, число NULL в обязательных колонках, количество дублей
+    `source_id` и минимальные sanity-check значения по ключевым полям.
+    """
 
     relation_name: str
     row_count: int
@@ -103,7 +119,12 @@ class DatasetSummary:
 
 @dataclass(frozen=True)
 class DatasetValidationResult:
-    """Результат проверки входного датасета."""
+    """Полный результат валидации входного датасета.
+
+    Объединяет вычисленную сводку, итоговый статус, списки ошибок и
+    предупреждений, а также метку времени, с которой результат будет
+    записан в registry-таблицу.
+    """
 
     relation_name: str
     source_name: str
@@ -117,7 +138,11 @@ class DatasetValidationResult:
 
 
 class RegistryPayload(TypedDict):
-    """Строго типизированный payload для записи в registry-таблицу."""
+    """Типизированный payload для upsert в `lab.input_dataset_registry`.
+
+    Структура повторяет схему registry-таблицы и используется перед
+    записью результата валидации через параметризованный SQL-запрос.
+    """
 
     relation_name: str
     source_name: str
@@ -141,114 +166,72 @@ class RegistryPayload(TypedDict):
 
 
 def load_dotenv_local(dotenv_path: str = ".env") -> None:
-    """Загрузить `.env` без внешних зависимостей."""
-    path = Path(dotenv_path)
-    if not path.exists():
-        return
+    """Загрузить `.env` через общий helper из `infra.db`.
 
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        cleaned = value.strip().strip('"').strip("'")
-        os.environ.setdefault(key.strip(), cleaned)
+    Функция сохранена в `input_layer` как совместимая точка доступа,
+    чтобы CLI-слой валидации не зависел от деталей внутреннего импорта.
+    """
+    _load_dotenv_local(dotenv_path)
 
 
 def make_engine_from_env() -> Engine:
-    """Создать SQLAlchemy engine из `.env` или PG-переменных."""
-    load_dotenv_local()
+    """Создать SQLAlchemy engine для сценария входной валидации.
 
-    database_url = os.getenv("DATABASE_URL")
-    if database_url:
-        return create_engine(database_url)
-
-    host = os.getenv("PGHOST")
-    port = os.getenv("PGPORT", "5432")
-    dbname = os.getenv("PGDATABASE")
-    user = os.getenv("PGUSER")
-    password = os.getenv("PGPASSWORD")
-
-    if all([host, dbname, user, password]):
-        return create_engine(
-            f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
-        )
-
-    raise RuntimeError(
-        "Database connection is missing. "
-        "Set DATABASE_URL or PG* variables."
+    Источник подключения
+    --------------------
+    Использует общий bootstrap из `infra.db` и читает `DATABASE_URL`
+    либо набор переменных `PG*` с fallback на локальный `.env`.
+    """
+    return _make_engine_from_env(
+        missing_message=(
+            "Database connection is missing. "
+            "Set DATABASE_URL or PG* variables."
+        ),
     )
 
 
 def parse_relation_name(relation_name: str) -> tuple[str, str]:
-    """Разделить relation на schema и table и проверить идентификаторы."""
-    parts = relation_name.split(".", 1)
-    if len(parts) == 2:
-        schema_name, table_name = parts
-    else:
-        schema_name, table_name = "public", relation_name
+    """Разделить relation на `schema.table` с валидацией идентификаторов.
 
-    if not IDENTIFIER_PATTERN.match(schema_name):
-        raise ValueError(f"Invalid schema name: {schema_name}")
-    if not IDENTIFIER_PATTERN.match(table_name):
-        raise ValueError(f"Invalid table name: {table_name}")
-
-    return schema_name, table_name
+    Функция делегирует разбор в `infra.relations`, но включает строгую
+    проверку идентификаторов, потому что имя relation далее подставляется
+    в SQL-текст валидационных запросов.
+    """
+    return _split_relation_name(
+        relation_name,
+        validate_identifiers=True,
+    )
 
 
 def relation_exists(engine: Engine, relation_name: str) -> bool:
-    """Проверить, что relation существует в БД."""
-    schema_name, table_name = parse_relation_name(relation_name)
-    query = text(
-        """
-        SELECT EXISTS (
-            SELECT 1
-            FROM information_schema.tables
-            WHERE table_schema = :schema_name
-              AND table_name = :table_name
-        );
-        """
+    """Проверить, что входной relation существует именно как таблица.
+
+    Для input-layer view не считаются допустимым источником, поэтому
+    вызов к `infra.relations.relation_exists()` делается с
+    `include_views=False`.
+    """
+    return _relation_exists(
+        engine,
+        relation_name,
+        include_views=False,
+        validate_identifiers=True,
     )
-    with engine.connect() as conn:
-        return bool(
-            conn.execute(
-                query,
-                {
-                    "schema_name": schema_name,
-                    "table_name": table_name,
-                },
-            ).scalar_one()
-        )
 
 
 def relation_columns(engine: Engine, relation_name: str) -> tuple[str, ...]:
-    """Получить список колонок relation."""
-    schema_name, table_name = parse_relation_name(relation_name)
-    query = text(
-        """
-        SELECT column_name
-        FROM information_schema.columns
-        WHERE table_schema = :schema_name
-          AND table_name = :table_name
-        ORDER BY ordinal_position;
-        """
+    """Получить список колонок входного relation через `infra.relations`."""
+    return _relation_columns(
+        engine,
+        relation_name,
+        validate_identifiers=True,
     )
-    with engine.connect() as conn:
-        rows = conn.execute(
-            query,
-            {
-                "schema_name": schema_name,
-                "table_name": table_name,
-            },
-        ).fetchall()
-    return tuple(str(row.column_name) for row in rows)
 
 
 def missing_columns(
     available_columns: Sequence[str],
     required_columns: Iterable[str],
 ) -> tuple[str, ...]:
-    """Вернуть список отсутствующих колонок."""
+    """Вернуть обязательные или опциональные колонки, которых нет во входе."""
     available = set(available_columns)
     return tuple(
         column for column in required_columns if column not in available
@@ -258,43 +241,69 @@ def missing_columns(
 def collect_dataset_summary(
     engine: Engine,
     relation_name: str,
+    available_columns: Sequence[str] | None = None,
 ) -> DatasetSummary:
-    """Собрать базовую статистику по входному набору."""
+    """Собрать агрегированную SQL-сводку по входному датасету.
+
+    Источник данных
+    ---------------
+    Читает только агрегаты из указанного relation в Postgres: число
+    строк, число NULL по обязательным колонкам, количество дублей
+    `source_id` и минимальные значения для простых sanity-check.
+
+    Если часть обязательных колонок уже отсутствует в схеме relation,
+    функция не падает на SQL, а подставляет для таких полей нейтральные
+    агрегаты. Сам факт отсутствия колонок обрабатывается отдельно на
+    уровне `validate_dataset()`.
+    """
     schema_name, table_name = parse_relation_name(relation_name)
+    columns = set(available_columns or relation_columns(engine, relation_name))
+
+    def count_null_expr(column_name: str, alias: str) -> str:
+        if column_name in columns:
+            return (
+                "COUNT(*) FILTER ("
+                f" WHERE {column_name} IS NULL"
+                f") AS {alias}"
+            )
+        return f"0 AS {alias}"
+
+    def min_expr(column_name: str, alias: str) -> str:
+        if column_name in columns:
+            return f"MIN({column_name}) AS {alias}"
+        return f"NULL AS {alias}"
+
+    if {"ra", "dec"}.issubset(columns):
+        coords_expr = (
+            "COUNT(*) FILTER ("
+            " WHERE ra IS NULL OR dec IS NULL"
+            ") AS n_coords_null"
+        )
+    else:
+        coords_expr = "0 AS n_coords_null"
+
+    duplicate_expr = (
+        "COUNT(*) - COUNT(DISTINCT source_id) AS n_duplicate_source_ids"
+        if "source_id" in columns
+        else "0 AS n_duplicate_source_ids"
+    )
+
     query = f"""
     SELECT
         COUNT(*) AS row_count,
-        COUNT(*) FILTER (
-            WHERE source_id IS NULL
-        ) AS n_source_id_null,
-        COUNT(*) FILTER (
-            WHERE ra IS NULL OR dec IS NULL
-        ) AS n_coords_null,
-        COUNT(*) FILTER (
-            WHERE teff_gspphot IS NULL
-        ) AS n_teff_null,
-        COUNT(*) FILTER (
-            WHERE logg_gspphot IS NULL
-        ) AS n_logg_null,
-        COUNT(*) FILTER (
-            WHERE radius_gspphot IS NULL
-        ) AS n_radius_null,
-        COUNT(*) FILTER (
-            WHERE mh_gspphot IS NULL
-        ) AS n_mh_null,
-        COUNT(*) FILTER (
-            WHERE parallax IS NULL
-        ) AS n_parallax_null,
-        COUNT(*) FILTER (
-            WHERE parallax_over_error IS NULL
-        ) AS n_plx_err_null,
-        COUNT(*) FILTER (
-            WHERE ruwe IS NULL
-        ) AS n_ruwe_null,
-        COUNT(*) - COUNT(DISTINCT source_id) AS n_duplicate_source_ids,
-        MIN(teff_gspphot) AS min_teff,
-        MIN(radius_gspphot) AS min_radius,
-        MIN(ruwe) AS min_ruwe
+        {count_null_expr("source_id", "n_source_id_null")},
+        {coords_expr},
+        {count_null_expr("teff_gspphot", "n_teff_null")},
+        {count_null_expr("logg_gspphot", "n_logg_null")},
+        {count_null_expr("radius_gspphot", "n_radius_null")},
+        {count_null_expr("mh_gspphot", "n_mh_null")},
+        {count_null_expr("parallax", "n_parallax_null")},
+        {count_null_expr("parallax_over_error", "n_plx_err_null")},
+        {count_null_expr("ruwe", "n_ruwe_null")},
+        {duplicate_expr},
+        {min_expr("teff_gspphot", "min_teff")},
+        {min_expr("radius_gspphot", "min_radius")},
+        {min_expr("ruwe", "min_ruwe")}
     FROM {schema_name}.{table_name};
     """
     with engine.connect() as conn:
@@ -331,7 +340,22 @@ def validate_dataset(
     source_name: str,
     mark_ready: bool = True,
 ) -> DatasetValidationResult:
-    """Проверить входной набор и вернуть verdict."""
+    """Проверить входной relation и вернуть итоговый verdict.
+
+    Что проверяется
+    ---------------
+    - существование relation;
+    - наличие всех обязательных колонок;
+    - базовые агрегатные проблемы качества данных;
+    - предупреждения по дублям `source_id` и отсутствующим optional fields.
+
+    Возвращает
+    ----------
+    DatasetValidationResult
+        Полный результат проверки, который затем можно записать
+        в registry-таблицу и использовать в decision о статусе
+        `VALIDATED` или `READY`.
+    """
     if not relation_exists(engine, relation_name):
         empty_summary = DatasetSummary(
             relation_name=relation_name,
@@ -359,14 +383,18 @@ def validate_dataset(
             missing_optional_columns=OPTIONAL_COLUMNS,
             errors=(f"Relation does not exist: {relation_name}",),
             warnings=(),
-            validated_at=datetime.now(timezone.utc),
+            validated_at=datetime.now(UTC),
         )
 
     columns = relation_columns(engine, relation_name)
     missing_required = missing_columns(columns, REQUIRED_COLUMNS)
     missing_optional = missing_columns(columns, OPTIONAL_COLUMNS)
 
-    summary = collect_dataset_summary(engine, relation_name)
+    summary = collect_dataset_summary(
+        engine,
+        relation_name,
+        available_columns=columns,
+    )
     errors: list[str] = []
     warnings: list[str] = []
 
@@ -424,12 +452,20 @@ def validate_dataset(
         missing_optional_columns=missing_optional,
         errors=tuple(errors),
         warnings=tuple(warnings),
-        validated_at=datetime.now(timezone.utc),
+        validated_at=datetime.now(UTC),
     )
 
 
 def ensure_registry_table(engine: Engine) -> None:
-    """Создать registry-таблицу для входных датасетов."""
+    """Создать schema и registry-таблицу для статусов входных датасетов.
+
+    Побочные эффекты
+    ----------------
+    Выполняет DDL в Postgres:
+    - создаёт схему `lab`, если её ещё нет;
+    - создаёт таблицу `lab.input_dataset_registry`;
+    - создаёт индексы по статусу и времени валидации.
+    """
     ddl = f"""
     CREATE SCHEMA IF NOT EXISTS lab;
 
@@ -468,7 +504,11 @@ def ensure_registry_table(engine: Engine) -> None:
 
 
 def build_registry_notes(result: DatasetValidationResult) -> str:
-    """Собрать короткий текст notes для registry-таблицы."""
+    """Собрать текстовое поле `notes` для registry-таблицы.
+
+    В одну строковую сводку упаковываются ошибки и предупреждения,
+    чтобы их можно было просматривать без повторного запуска валидации.
+    """
     parts: list[str] = []
     if result.errors:
         parts.append("errors: " + " | ".join(result.errors))
@@ -481,7 +521,14 @@ def register_dataset_result(
     engine: Engine,
     result: DatasetValidationResult,
 ) -> None:
-    """Записать verdict входного датасета в registry-таблицу."""
+    """Записать результат валидации в `lab.input_dataset_registry`.
+
+    Побочные эффекты
+    ----------------
+    - при необходимости создаёт registry-таблицу;
+    - выполняет `INSERT ... ON CONFLICT DO UPDATE`;
+    - обновляет последнюю известную запись по `relation_name`.
+    """
     ensure_registry_table(engine)
 
     query = text(
@@ -578,7 +625,7 @@ def register_dataset_result(
 
 
 def print_validation_result(result: DatasetValidationResult) -> None:
-    """Печатает короткий отчёт по проверке входного набора."""
+    """Напечатать короткий CLI-отчёт по результату валидации."""
     print("=== INPUT DATASET VALIDATION ===")
     print(f"Relation: {result.relation_name}")
     print(f"Source name: {result.source_name}")
@@ -601,7 +648,7 @@ def print_validation_result(result: DatasetValidationResult) -> None:
 
 
 def parse_args() -> Namespace:
-    """Разобрать аргументы CLI."""
+    """Разобрать аргументы CLI для сценария валидации входного датасета."""
     parser = ArgumentParser(
         description="Валидирует входной датасет и регистрирует его статус."
     )
@@ -624,7 +671,11 @@ def parse_args() -> Namespace:
 
 
 def main() -> None:
-    """CLI-точка входа для валидации и регистрации датасета."""
+    """Запустить полный CLI-сценарий валидации и регистрации датасета.
+
+    Сценарий выполняет bootstrap подключения к БД, проверяет relation,
+    записывает verdict в registry и печатает короткую сводку в stdout.
+    """
     args = parse_args()
     engine = make_engine_from_env()
     result = validate_dataset(

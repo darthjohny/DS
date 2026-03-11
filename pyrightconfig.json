@@ -1,0 +1,14 @@
+{
+  "include": [
+    "src",
+    "tests",
+    "analysis"
+  ],
+  "extraPaths": [
+    "src",
+    "."
+  ],
+  "venvPath": ".",
+  "venv": "venv",
+  "typeCheckingMode": "basic"
+}
