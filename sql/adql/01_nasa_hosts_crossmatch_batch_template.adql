@@ -1,0 +1,42 @@
+-- Batch crossmatch NASA host stars against Gaia DR3.
+--
+-- Что делает запрос:
+--   - берёт пачку NASA host-stars из пользовательской таблицы;
+--   - ищет кандидатов в Gaia DR3 в радиусе 1 угловой секунды;
+--   - считает угловое расстояние `dist_arcsec`;
+--   - сортирует результаты по `id` и близости матча.
+--
+-- Зачем batching:
+--   - полный crossmatch выполнялся слишком долго;
+--   - практический режим работы был разбит на пачки по 100 звёзд;
+--   - одна такая пачка занимала примерно 15 минут и была удобна для контроля.
+--
+-- Как использовать:
+--   - менять диапазон `u.id BETWEEN ... AND ...`;
+--   - сохранять результаты в промежуточную пользовательскую таблицу;
+--   - после этого выполнять локальную дедупликацию и валидацию.
+
+SELECT TOP 200000
+    u.id,
+    u.hostname,
+    u.ra AS ra_nasa,
+    u.dec AS dec_nasa,
+    g.source_id,
+    g.ra AS ra_gaia,
+    g.dec AS dec_gaia,
+    DISTANCE(
+        POINT('ICRS', g.ra, g.dec),
+        POINT('ICRS', u.ra, u.dec)
+    ) * 3600.0 AS dist_arcsec
+FROM user_ekuzneco.nasa_hosts_for_gaia_xmatch AS u
+JOIN gaiadr3.gaia_source_lite AS g
+    ON 1 = CONTAINS(
+        POINT('ICRS', g.ra, g.dec),
+        CIRCLE('ICRS', u.ra, u.dec, 1.0 / 3600.0)
+    )
+WHERE u.id BETWEEN 4001 AND 4100
+ORDER BY u.id, dist_arcsec ASC;
+
+-- Пример другого батча:
+--
+-- WHERE u.id BETWEEN 3801 AND 3900
