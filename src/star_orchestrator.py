@@ -31,8 +31,12 @@ from priority_pipeline import (
     DEFAULT_INPUT_SOURCE,
     DEFAULT_PRIORITY_RESULTS_TABLE,
     DEFAULT_ROUTER_RESULTS_TABLE,
+    EVOLVED_STAR_REASON,
+    FILTERED_OUT_REASON,
     HOST_MODEL_PATH,
     HOST_MODEL_VERSION,
+    HOST_SCORING_REASON,
+    HOT_STAR_REASON,
     INPUT_COLUMNS,
     MKGF_CLASSES,
     PRIORITY_REQUIRED_DB_COLUMNS,
@@ -41,17 +45,23 @@ from priority_pipeline import (
     ROUTER_MODEL_PATH,
     ROUTER_REQUIRED_DB_COLUMNS,
     ROUTER_RESULTS_COLUMNS,
+    ROUTER_UNKNOWN_REASON,
     PipelineRunResult,
+    RouterBranchFrames,
     apply_common_factors,
     build_low_priority_stub,
     build_persist_payload,
+    build_unknown_priority_stub,
     class_prior,
     clip_unit_interval,
     color_factor,
     distance_factor,
     ensure_decision_columns,
     host_model_version,
+    is_host_candidate,
+    is_unknown_router_output,
     iter_triplets,
+    known_low_reason_code,
     load_input_candidates,
     load_models,
     main,
@@ -72,7 +82,7 @@ from priority_pipeline import (
     save_router_results,
     split_branches,
     split_relation_name,
-    stub_reason_code,
+    split_router_branches,
 )
 
 __all__ = [
@@ -80,19 +90,26 @@ __all__ = [
     "DEFAULT_INPUT_SOURCE",
     "DEFAULT_PRIORITY_RESULTS_TABLE",
     "DEFAULT_ROUTER_RESULTS_TABLE",
+    "EVOLVED_STAR_REASON",
+    "FILTERED_OUT_REASON",
     "HOST_MODEL_PATH",
     "HOST_MODEL_VERSION",
+    "HOST_SCORING_REASON",
+    "HOT_STAR_REASON",
     "INPUT_COLUMNS",
     "MKGF_CLASSES",
     "PRIORITY_REQUIRED_DB_COLUMNS",
     "PRIORITY_RESULTS_COLUMNS",
     "PROJECT_ROOT",
     "PipelineRunResult",
+    "ROUTER_UNKNOWN_REASON",
     "ROUTER_MODEL_PATH",
     "ROUTER_REQUIRED_DB_COLUMNS",
     "ROUTER_RESULTS_COLUMNS",
+    "RouterBranchFrames",
     "apply_common_factors",
     "build_low_priority_stub",
+    "build_unknown_priority_stub",
     "build_persist_payload",
     "class_prior",
     "clip_unit_interval",
@@ -114,6 +131,9 @@ __all__ = [
     "quality_factor",
     "relation_columns",
     "relation_exists",
+    "is_host_candidate",
+    "is_unknown_router_output",
+    "known_low_reason_code",
     "run_host_similarity",
     "run_pipeline",
     "run_router",
@@ -121,8 +141,8 @@ __all__ = [
     "save_priority_results",
     "save_router_results",
     "split_branches",
+    "split_router_branches",
     "split_relation_name",
-    "stub_reason_code",
     "score_host_df",
 ]
 
@@ -182,7 +202,7 @@ def run_host_similarity(
         priority_tier_from_score(float(score))
         for score in scored["final_score"]
     ]
-    scored["reason_code"] = "HOST_SCORING"
+    scored["reason_code"] = HOST_SCORING_REASON
     scored["host_model_version"] = host_model_version(host_model)
     return scored
 

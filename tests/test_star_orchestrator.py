@@ -14,7 +14,7 @@ import star_orchestrator as orchestrator
 
 
 def test_split_branches_only_mkgf_dwarfs_go_to_host() -> None:
-    """В host-ветку должны попадать только MKGF dwarf."""
+    """Legacy split должен сохранять порядок low-ветки из router output."""
     df_router = pd.DataFrame(
         [
             {
@@ -26,11 +26,19 @@ def test_split_branches_only_mkgf_dwarfs_go_to_host() -> None:
                 "source_id": 2,
                 "predicted_spec_class": "A",
                 "predicted_evolution_stage": "dwarf",
+                "router_label": "A_dwarf",
             },
             {
                 "source_id": 3,
+                "predicted_spec_class": "UNKNOWN",
+                "predicted_evolution_stage": "unknown",
+                "router_label": "UNKNOWN",
+            },
+            {
+                "source_id": 4,
                 "predicted_spec_class": "K",
                 "predicted_evolution_stage": "evolved",
+                "router_label": "K_evolved",
             },
         ]
     )
@@ -38,7 +46,7 @@ def test_split_branches_only_mkgf_dwarfs_go_to_host() -> None:
     df_host, df_low = orchestrator.split_branches(df_router)
 
     assert list(df_host["source_id"]) == [1]
-    assert list(df_low["source_id"]) == [2, 3]
+    assert list(df_low["source_id"]) == [2, 3, 4]
 
 
 def test_build_low_priority_stub_sets_reason_codes() -> None:

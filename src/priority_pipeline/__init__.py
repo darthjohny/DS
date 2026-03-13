@@ -10,13 +10,25 @@
 
 from __future__ import annotations
 
+from priority_pipeline.branching import (
+    RouterBranchFrames,
+    is_host_candidate,
+    is_unknown_router_output,
+    known_low_reason_code,
+    split_branches,
+    split_router_branches,
+)
 from priority_pipeline.constants import (
     DATA_DIR,
     DEFAULT_INPUT_SOURCE,
     DEFAULT_PRIORITY_RESULTS_TABLE,
     DEFAULT_ROUTER_RESULTS_TABLE,
+    EVOLVED_STAR_REASON,
+    FILTERED_OUT_REASON,
     HOST_MODEL_PATH,
     HOST_MODEL_VERSION,
+    HOST_SCORING_REASON,
+    HOT_STAR_REASON,
     INPUT_COLUMNS,
     MKGF_CLASSES,
     PRIORITY_REQUIRED_DB_COLUMNS,
@@ -25,11 +37,13 @@ from priority_pipeline.constants import (
     ROUTER_MODEL_PATH,
     ROUTER_REQUIRED_DB_COLUMNS,
     ROUTER_RESULTS_COLUMNS,
+    ROUTER_UNKNOWN_REASON,
 )
 from priority_pipeline.contracts import PipelineRunResult
 from priority_pipeline.decision import (
     apply_common_factors,
     build_low_priority_stub,
+    build_unknown_priority_stub,
     class_prior,
     clip_unit_interval,
     color_factor,
@@ -44,11 +58,9 @@ from priority_pipeline.decision import (
     quality_factor,
     run_host_similarity,
     ruwe_factor,
-    split_branches,
-    stub_reason_code,
 )
+from priority_pipeline.frame_contract import ensure_decision_columns
 from priority_pipeline.input_data import (
-    ensure_decision_columns,
     load_input_candidates,
     load_models,
     make_run_id,
@@ -70,19 +82,26 @@ __all__ = [
     "DEFAULT_INPUT_SOURCE",
     "DEFAULT_PRIORITY_RESULTS_TABLE",
     "DEFAULT_ROUTER_RESULTS_TABLE",
+    "EVOLVED_STAR_REASON",
+    "FILTERED_OUT_REASON",
     "HOST_MODEL_PATH",
     "HOST_MODEL_VERSION",
+    "HOST_SCORING_REASON",
+    "HOT_STAR_REASON",
     "INPUT_COLUMNS",
     "MKGF_CLASSES",
     "PRIORITY_REQUIRED_DB_COLUMNS",
     "PRIORITY_RESULTS_COLUMNS",
     "PROJECT_ROOT",
     "PipelineRunResult",
+    "ROUTER_UNKNOWN_REASON",
     "ROUTER_MODEL_PATH",
     "ROUTER_REQUIRED_DB_COLUMNS",
     "ROUTER_RESULTS_COLUMNS",
+    "RouterBranchFrames",
     "apply_common_factors",
     "build_low_priority_stub",
+    "build_unknown_priority_stub",
     "build_persist_payload",
     "class_prior",
     "clip_unit_interval",
@@ -110,7 +129,10 @@ __all__ = [
     "ruwe_factor",
     "save_priority_results",
     "save_router_results",
+    "is_host_candidate",
+    "is_unknown_router_output",
+    "known_low_reason_code",
     "split_branches",
+    "split_router_branches",
     "split_relation_name",
-    "stub_reason_code",
 ]

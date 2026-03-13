@@ -47,6 +47,7 @@ from decision_calibration.runtime import (
 from decision_calibration.scoring import (
     apply_calibration_config,
     build_low_priority_preview,
+    build_unknown_preview,
     class_prior,
     distance_factor,
     distance_pc_from_parallax,
@@ -73,6 +74,7 @@ __all__ = [
     "build_iteration_markdown",
     "build_iteration_summary",
     "build_low_priority_preview",
+    "build_unknown_preview",
     "class_distribution_frame",
     "class_prior",
     "distance_factor",

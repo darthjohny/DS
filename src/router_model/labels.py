@@ -10,6 +10,9 @@ import pandas as pd
 
 SPEC_CLASSES: list[str] = ["A", "B", "F", "G", "K", "M", "O"]
 EVOLUTION_STAGES: list[str] = ["dwarf", "evolved"]
+UNKNOWN_SPEC_CLASS = "UNKNOWN"
+UNKNOWN_EVOLUTION_STAGE = "unknown"
+UNKNOWN_ROUTER_LABEL = "UNKNOWN"
 
 
 def is_missing_scalar(value: Any) -> bool:
@@ -63,6 +66,9 @@ def split_router_label(router_label: str) -> tuple[str, str]:
 __all__ = [
     "EVOLUTION_STAGES",
     "SPEC_CLASSES",
+    "UNKNOWN_EVOLUTION_STAGE",
+    "UNKNOWN_ROUTER_LABEL",
+    "UNKNOWN_SPEC_CLASS",
     "has_missing_values",
     "is_missing_scalar",
     "make_router_label",

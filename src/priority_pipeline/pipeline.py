@@ -9,6 +9,7 @@ from sqlalchemy.engine import Engine
 
 from gaussian_router import RouterModel, make_engine_from_env, score_router_df
 from host_model import ContrastiveGaussianModel
+from priority_pipeline.branching import split_router_branches
 from priority_pipeline.constants import (
     DEFAULT_INPUT_SOURCE,
     DEFAULT_PRIORITY_RESULTS_TABLE,
@@ -20,9 +21,9 @@ from priority_pipeline.constants import (
 from priority_pipeline.contracts import PipelineRunResult
 from priority_pipeline.decision import (
     build_low_priority_stub,
+    build_unknown_priority_stub,
     order_priority_results,
     run_host_similarity,
-    split_branches,
 )
 from priority_pipeline.input_data import (
     load_input_candidates,
@@ -59,7 +60,7 @@ def run_pipeline(
     1. Загрузить входной batch из Postgres.
     2. Загрузить router и host artifacts с диска.
     3. Выполнить router scoring.
-    4. Разделить поток на host-ветку и low-priority ветку.
+    4. Разделить поток на host, low-known и unknown ветки.
     5. Применить contrastive host-scoring к MKGF dwarf.
     6. Собрать итоговый ranking DataFrame.
     7. При `persist=True` записать router и priority результаты в БД.
@@ -85,11 +86,21 @@ def run_pipeline(
             table_name=router_results_table,
         )
 
-    df_host, df_low = split_branches(df_router)
-    host_results = run_host_similarity(df_host=df_host, host_model=host_model)
-    low_results = build_low_priority_stub(df_low=df_low)
+    branches = split_router_branches(df_router)
+    host_results = run_host_similarity(
+        df_host=branches.host_df,
+        host_model=host_model,
+    )
+    low_results = build_low_priority_stub(df_low=branches.low_known_df)
+    unknown_results = build_unknown_priority_stub(
+        df_unknown=branches.unknown_df
+    )
 
-    parts = [frame for frame in (host_results, low_results) if not frame.empty]
+    parts = [
+        frame
+        for frame in (host_results, low_results, unknown_results)
+        if not frame.empty
+    ]
     if parts:
         df_priority = pd.concat(parts, ignore_index=True, sort=False)
         df_priority = order_priority_results(df_priority)

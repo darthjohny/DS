@@ -8,6 +8,65 @@ import pandas as pd
 from sqlalchemy.engine import Engine
 
 import priority_pipeline.pipeline as pipeline
+from priority_pipeline.branching import split_router_branches
+from priority_pipeline.frame_contract import ensure_decision_columns
+
+
+def test_split_router_branches_separates_unknown_from_known_low() -> None:
+    """Branching должен разводить host, low_known и unknown отдельно."""
+    df_router = pd.DataFrame(
+        [
+            {
+                "source_id": 1,
+                "predicted_spec_class": "K",
+                "predicted_evolution_stage": "dwarf",
+                "router_label": "K_dwarf",
+            },
+            {
+                "source_id": 2,
+                "predicted_spec_class": "A",
+                "predicted_evolution_stage": "dwarf",
+                "router_label": "A_dwarf",
+            },
+            {
+                "source_id": 3,
+                "predicted_spec_class": "UNKNOWN",
+                "predicted_evolution_stage": "unknown",
+                "router_label": "UNKNOWN",
+            },
+        ]
+    )
+
+    branches = split_router_branches(df_router)
+
+    assert branches.host_df["source_id"].tolist() == [1]
+    assert branches.low_known_df["source_id"].tolist() == [2]
+    assert branches.unknown_df["source_id"].tolist() == [3]
+
+
+def test_ensure_decision_columns_adds_neutral_defaults() -> None:
+    """Frame contract должен добавлять мягкие decision defaults без перезаписи данных."""
+    df = pd.DataFrame(
+        [
+            {
+                "source_id": 1,
+                "predicted_spec_class": "K",
+                "bp_rp": 1.2,
+                "validation_factor": 0.9,
+            }
+        ]
+    )
+
+    normalized = ensure_decision_columns(df)
+
+    assert normalized["source_id"].tolist() == [1]
+    assert normalized["predicted_spec_class"].tolist() == ["K"]
+    assert normalized["bp_rp"].tolist() == [1.2]
+    assert normalized["validation_factor"].tolist() == [0.9]
+    assert normalized["parallax"].isna().all()
+    assert normalized["parallax_over_error"].isna().all()
+    assert normalized["ruwe"].isna().all()
+    assert normalized["mh_gspphot"].isna().all()
 
 
 def test_run_pipeline_mini_batch_end_to_end(
@@ -58,6 +117,20 @@ def test_run_pipeline_mini_batch_end_to_end(
                 "mh_gspphot": 0.0,
                 "validation_factor": 1.0,
             },
+            {
+                "source_id": 4,
+                "ra": 40.0,
+                "dec": 7.0,
+                "teff_gspphot": None,
+                "logg_gspphot": None,
+                "radius_gspphot": None,
+                "ruwe": 1.4,
+                "parallax_over_error": None,
+                "parallax": None,
+                "bp_rp": None,
+                "mh_gspphot": None,
+                "validation_factor": 1.0,
+            },
         ]
     )
 
@@ -67,7 +140,7 @@ def test_run_pipeline_mini_batch_end_to_end(
         limit: int | None = None,
     ) -> pd.DataFrame:
         assert source_name == "qa.synthetic_batch"
-        assert limit == 3
+        assert limit == 4
         return df_input.copy()
 
     def fake_load_models(
@@ -91,16 +164,31 @@ def test_run_pipeline_mini_batch_end_to_end(
         router_model: dict[str, Any],
     ) -> pd.DataFrame:
         result = df.copy()
-        result["predicted_spec_class"] = ["K", "A", "K"]
-        result["predicted_evolution_stage"] = ["dwarf", "dwarf", "evolved"]
-        result["router_label"] = ["K_dwarf", "A_dwarf", "K_evolved"]
-        result["second_best_label"] = ["M_dwarf", "F_dwarf", "G_evolved"]
-        result["d_mahal_router"] = [0.2, 0.8, 0.7]
-        result["router_similarity"] = [0.95, 0.35, 0.40]
-        result["router_log_likelihood"] = [-0.10, -1.50, -1.00]
-        result["router_log_posterior"] = [-0.10, -1.50, -1.00]
-        result["margin"] = [0.40, 0.10, 0.20]
-        result["posterior_margin"] = [0.60, 0.20, 0.30]
+        result["predicted_spec_class"] = ["K", "A", "K", "UNKNOWN"]
+        result["predicted_evolution_stage"] = [
+            "dwarf",
+            "dwarf",
+            "evolved",
+            "unknown",
+        ]
+        result["router_label"] = [
+            "K_dwarf",
+            "A_dwarf",
+            "K_evolved",
+            "UNKNOWN",
+        ]
+        result["second_best_label"] = [
+            "M_dwarf",
+            "F_dwarf",
+            "G_evolved",
+            "UNKNOWN",
+        ]
+        result["d_mahal_router"] = [0.2, 0.8, 0.7, float("nan")]
+        result["router_similarity"] = [0.95, 0.35, 0.40, 0.0]
+        result["router_log_likelihood"] = [-0.10, -1.50, -1.00, float("nan")]
+        result["router_log_posterior"] = [-0.10, -1.50, -1.00, float("nan")]
+        result["margin"] = [0.40, 0.10, 0.20, float("nan")]
+        result["posterior_margin"] = [0.60, 0.20, 0.30, float("nan")]
         result["router_model_version"] = "gaussian_router_v1"
         return result
 
@@ -149,18 +237,19 @@ def test_run_pipeline_mini_batch_end_to_end(
     result = pipeline.run_pipeline(
         engine=cast(Engine, object()),
         input_source="qa.synthetic_batch",
-        limit=3,
+        limit=4,
         persist=False,
     )
 
     assert result.run_id == "run_test_1"
-    assert len(result.router_results) == 3
-    assert len(result.priority_results) == 3
-    assert result.router_results["run_id"].tolist() == ["run_test_1"] * 3
-    assert result.priority_results["run_id"].tolist() == ["run_test_1"] * 3
-    assert result.priority_results["source_id"].tolist() == [1, 3, 2]
+    assert len(result.router_results) == 4
+    assert len(result.priority_results) == 4
+    assert result.router_results["run_id"].tolist() == ["run_test_1"] * 4
+    assert result.priority_results["run_id"].tolist() == ["run_test_1"] * 4
+    assert result.priority_results["source_id"].tolist() == [1, 3, 2, 4]
     assert result.priority_results["priority_tier"].tolist() == [
         "HIGH",
+        "LOW",
         "LOW",
         "LOW",
     ]
@@ -168,6 +257,12 @@ def test_run_pipeline_mini_batch_end_to_end(
         "HOST_SCORING",
         "EVOLVED_STAR",
         "HOT_STAR",
+        "ROUTER_UNKNOWN",
     ]
-    assert result.priority_results["final_score"].tolist() == [0.72, 0.0, 0.0]
+    assert result.priority_results["final_score"].tolist() == [
+        0.72,
+        0.0,
+        0.0,
+        0.0,
+    ]
     assert result.priority_results["host_posterior"].notna().sum() == 1

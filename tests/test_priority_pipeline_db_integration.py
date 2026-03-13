@@ -12,50 +12,156 @@ from sqlalchemy.engine import Engine
 import priority_pipeline.pipeline as pipeline
 from priority_pipeline.constants import PRIORITY_RESULTS_COLUMNS, ROUTER_RESULTS_COLUMNS
 
-STRING_RESULT_COLUMNS = {
-    "run_id",
-    "predicted_spec_class",
-    "predicted_evolution_stage",
-    "router_label",
-    "second_best_label",
-    "router_model_version",
-    "gauss_label",
-    "priority_tier",
-    "reason_code",
-    "host_model_version",
-}
 
-
-def _bootstrap_contract_row(columns: tuple[str, ...]) -> dict[str, object]:
-    """Собрать одну строку-заглушку для создания persist-таблицы по контракту."""
-    row: dict[str, object] = {}
-    for column in columns:
-        if column == "source_id":
-            row[column] = 0
-        elif column in STRING_RESULT_COLUMNS:
-            row[column] = "bootstrap"
-        else:
-            row[column] = 0.0
-    return row
-
-
-def _prepare_result_table(
+def _prepare_result_tables_with_constraints(
     engine: Engine,
     schema_name: str,
-    table_name: str,
-    columns: tuple[str, ...],
+    router_table_name: str,
+    priority_table_name: str,
 ) -> None:
-    """Создать пустую result-таблицу в нужном порядке колонок."""
-    pd.DataFrame([_bootstrap_contract_row(columns)]).to_sql(
-        name=table_name,
-        schema=schema_name,
-        con=engine,
-        if_exists="replace",
-        index=False,
-        method="multi",
-    )
+    """Создать result-таблицы с CHECK constraints, близкими к production."""
     with engine.begin() as conn:
-        conn.execute(text(f"DELETE FROM {schema_name}.{table_name}"))
+        conn.execute(text(f"DROP TABLE IF EXISTS {schema_name}.{priority_table_name}"))
+        conn.execute(text(f"DROP TABLE IF EXISTS {schema_name}.{router_table_name}"))
+        conn.execute(
+            text(
+                f"""
+                CREATE TABLE {schema_name}.{router_table_name} (
+                    run_id text NOT NULL,
+                    source_id bigint NOT NULL,
+                    ra double precision NOT NULL,
+                    dec double precision NOT NULL,
+                    teff_gspphot double precision,
+                    logg_gspphot double precision,
+                    radius_gspphot double precision,
+                    predicted_spec_class text NOT NULL,
+                    predicted_evolution_stage text NOT NULL,
+                    router_label text NOT NULL,
+                    d_mahal_router double precision,
+                    router_similarity double precision,
+                    router_log_likelihood double precision,
+                    router_log_posterior double precision,
+                    second_best_label text,
+                    margin double precision,
+                    posterior_margin double precision,
+                    router_model_version text NOT NULL,
+                    CONSTRAINT pk_{router_table_name}
+                        PRIMARY KEY (run_id, source_id),
+                    CONSTRAINT chk_{router_table_name}_spec_class
+                        CHECK (
+                            predicted_spec_class IN (
+                                'A', 'B', 'F', 'G', 'K', 'M', 'O', 'UNKNOWN'
+                            )
+                        ),
+                    CONSTRAINT chk_{router_table_name}_evolution_stage
+                        CHECK (
+                            predicted_evolution_stage IN (
+                                'dwarf', 'evolved', 'unknown'
+                            )
+                        ),
+                    CONSTRAINT chk_{router_table_name}_similarity
+                        CHECK (
+                            router_similarity IS NULL
+                            OR (
+                                router_similarity >= 0.0
+                                AND router_similarity <= 1.0
+                            )
+                        ),
+                    CONSTRAINT chk_{router_table_name}_posterior_margin
+                        CHECK (
+                            posterior_margin IS NULL
+                            OR posterior_margin >= 0.0
+                        )
+                )
+                """
+            )
+        )
+        conn.execute(
+            text(
+                f"""
+                CREATE TABLE {schema_name}.{priority_table_name} (
+                    run_id text NOT NULL,
+                    source_id bigint NOT NULL,
+                    ra double precision NOT NULL,
+                    dec double precision NOT NULL,
+                    predicted_spec_class text NOT NULL,
+                    predicted_evolution_stage text NOT NULL,
+                    router_label text NOT NULL,
+                    d_mahal_router double precision,
+                    router_similarity double precision,
+                    router_log_likelihood double precision,
+                    router_log_posterior double precision,
+                    gauss_label text,
+                    host_log_likelihood double precision,
+                    field_log_likelihood double precision,
+                    host_log_lr double precision,
+                    host_posterior double precision,
+                    d_mahal double precision,
+                    similarity double precision,
+                    class_prior double precision,
+                    quality_factor double precision,
+                    metallicity_factor double precision,
+                    color_factor double precision,
+                    validation_factor double precision,
+                    final_score double precision,
+                    priority_tier text NOT NULL,
+                    reason_code text NOT NULL,
+                    posterior_margin double precision,
+                    router_model_version text NOT NULL,
+                    host_model_version text,
+                    CONSTRAINT pk_{priority_table_name}
+                        PRIMARY KEY (run_id, source_id),
+                    CONSTRAINT chk_{priority_table_name}_spec_class
+                        CHECK (
+                            predicted_spec_class IN (
+                                'A', 'B', 'F', 'G', 'K', 'M', 'O', 'UNKNOWN'
+                            )
+                        ),
+                    CONSTRAINT chk_{priority_table_name}_evolution_stage
+                        CHECK (
+                            predicted_evolution_stage IN (
+                                'dwarf', 'evolved', 'unknown'
+                            )
+                        ),
+                    CONSTRAINT chk_{priority_table_name}_tier
+                        CHECK (
+                            priority_tier IN ('HIGH', 'MEDIUM', 'LOW')
+                        ),
+                    CONSTRAINT chk_{priority_table_name}_similarity
+                        CHECK (
+                            similarity IS NULL
+                            OR (similarity >= 0.0 AND similarity <= 1.0)
+                        ),
+                    CONSTRAINT chk_{priority_table_name}_router_similarity
+                        CHECK (
+                            router_similarity IS NULL
+                            OR (
+                                router_similarity >= 0.0
+                                AND router_similarity <= 1.0
+                            )
+                        ),
+                    CONSTRAINT chk_{priority_table_name}_final_score
+                        CHECK (
+                            final_score IS NULL
+                            OR (final_score >= 0.0 AND final_score <= 1.0)
+                        ),
+                    CONSTRAINT chk_{priority_table_name}_posterior_margin
+                        CHECK (
+                            posterior_margin IS NULL
+                            OR posterior_margin >= 0.0
+                        ),
+                    CONSTRAINT chk_{priority_table_name}_host_posterior
+                        CHECK (
+                            host_posterior IS NULL
+                            OR (
+                                host_posterior >= 0.0
+                                AND host_posterior <= 1.0
+                            )
+                        )
+                )
+                """
+            )
+        )
 
 
 @pytest.mark.db_integration
@@ -130,6 +236,20 @@ def test_run_pipeline_persists_into_temporary_schema(
                 "mh_gspphot": 0.00,
                 "validation_factor": 1.00,
             },
+            {
+                "source_id": 404,
+                "ra": 40.0,
+                "dec": 7.5,
+                "parallax": 6.0,
+                "parallax_over_error": 5.5,
+                "ruwe": 1.40,
+                "bp_rp": 0.85,
+                "teff_gspphot": 6100.0,
+                "logg_gspphot": 4.05,
+                "radius_gspphot": 1.25,
+                "mh_gspphot": -0.05,
+                "validation_factor": 1.00,
+            },
         ]
     )
     df_input.to_sql(
@@ -140,17 +260,11 @@ def test_run_pipeline_persists_into_temporary_schema(
         index=False,
         method="multi",
     )
-    _prepare_result_table(
+    _prepare_result_tables_with_constraints(
         engine=postgres_test_engine,
         schema_name=temp_pg_schema,
-        table_name=router_table,
-        columns=ROUTER_RESULTS_COLUMNS,
-    )
-    _prepare_result_table(
-        engine=postgres_test_engine,
-        schema_name=temp_pg_schema,
-        table_name=priority_table,
-        columns=PRIORITY_RESULTS_COLUMNS,
+        router_table_name=router_table,
+        priority_table_name=priority_table,
     )
 
     def fake_load_models(
@@ -173,7 +287,7 @@ def test_run_pipeline_persists_into_temporary_schema(
         df: pd.DataFrame,
         router_model: dict[str, Any],
     ) -> pd.DataFrame:
-        assert df["source_id"].tolist() == [101, 202, 303]
+        assert df["source_id"].tolist() == [101, 202, 303, 404]
 
         selected = df.loc[df["source_id"] == 101].iloc[0]
         assert float(selected["ra"]) == 10.5
@@ -181,16 +295,31 @@ def test_run_pipeline_persists_into_temporary_schema(
         assert float(selected["ruwe"]) == 0.95
 
         result = df.copy()
-        result["predicted_spec_class"] = ["K", "A", "G"]
-        result["predicted_evolution_stage"] = ["dwarf", "dwarf", "evolved"]
-        result["router_label"] = ["K_dwarf", "A_dwarf", "G_evolved"]
-        result["second_best_label"] = ["G_dwarf", "F_dwarf", "K_dwarf"]
-        result["d_mahal_router"] = [0.20, 0.90, 0.70]
-        result["router_similarity"] = [0.95, 0.10, 0.20]
-        result["router_log_likelihood"] = [-0.10, -1.90, -1.10]
-        result["router_log_posterior"] = [-0.10, -1.90, -1.10]
-        result["margin"] = [0.50, 0.10, 0.20]
-        result["posterior_margin"] = [0.60, 0.15, 0.25]
+        result["predicted_spec_class"] = ["K", "A", "G", "UNKNOWN"]
+        result["predicted_evolution_stage"] = [
+            "dwarf",
+            "dwarf",
+            "evolved",
+            "unknown",
+        ]
+        result["router_label"] = [
+            "K_dwarf",
+            "A_dwarf",
+            "G_evolved",
+            "UNKNOWN",
+        ]
+        result["second_best_label"] = [
+            "G_dwarf",
+            "F_dwarf",
+            "K_dwarf",
+            "UNKNOWN",
+        ]
+        result["d_mahal_router"] = [0.20, 0.90, 0.70, float("nan")]
+        result["router_similarity"] = [0.95, 0.10, 0.20, 0.0]
+        result["router_log_likelihood"] = [-0.10, -1.90, -1.10, float("nan")]
+        result["router_log_posterior"] = [-0.10, -1.90, -1.10, float("nan")]
+        result["margin"] = [0.50, 0.10, 0.20, float("nan")]
+        result["posterior_margin"] = [0.60, 0.15, 0.25, float("nan")]
         result["router_model_version"] = router_model["meta"]["model_version"]
         return result
 
@@ -238,8 +367,8 @@ def test_run_pipeline_persists_into_temporary_schema(
     )
 
     assert result.run_id == "db_it_run_1"
-    assert len(result.router_results) == 3
-    assert len(result.priority_results) == 3
+    assert len(result.router_results) == 4
+    assert len(result.priority_results) == 4
 
     persisted_router = pd.read_sql(
         (
@@ -259,18 +388,26 @@ def test_run_pipeline_persists_into_temporary_schema(
     assert list(persisted_router.columns) == list(ROUTER_RESULTS_COLUMNS)
     assert list(persisted_priority.columns) == list(PRIORITY_RESULTS_COLUMNS)
 
-    assert persisted_router["run_id"].tolist() == ["db_it_run_1"] * 3
-    assert persisted_router["source_id"].tolist() == [101, 202, 303]
+    assert persisted_router["run_id"].tolist() == ["db_it_run_1"] * 4
+    assert persisted_router["source_id"].tolist() == [101, 202, 303, 404]
     assert persisted_router["router_label"].tolist() == [
         "K_dwarf",
         "A_dwarf",
         "G_evolved",
+        "UNKNOWN",
+    ]
+    assert persisted_router["predicted_spec_class"].tolist() == [
+        "K",
+        "A",
+        "G",
+        "UNKNOWN",
     ]
 
-    assert persisted_priority["run_id"].tolist() == ["db_it_run_1"] * 3
-    assert persisted_priority["source_id"].tolist() == [101, 303, 202]
+    assert persisted_priority["run_id"].tolist() == ["db_it_run_1"] * 4
+    assert persisted_priority["source_id"].tolist() == [101, 303, 202, 404]
     assert persisted_priority["priority_tier"].tolist() == [
         "HIGH",
+        "LOW",
         "LOW",
         "LOW",
     ]
@@ -278,11 +415,14 @@ def test_run_pipeline_persists_into_temporary_schema(
         "HOST_SCORING",
         "EVOLVED_STAR",
         "HOT_STAR",
+        "ROUTER_UNKNOWN",
     ]
     host_posterior_high: Any = persisted_priority.loc[0, "host_posterior"]
     host_posterior_low_evolved: Any = persisted_priority.loc[1, "host_posterior"]
     host_posterior_low_hot: Any = persisted_priority.loc[2, "host_posterior"]
+    host_posterior_unknown: Any = persisted_priority.loc[3, "host_posterior"]
 
     assert float(host_posterior_high) == 0.82
     assert pd.isna(host_posterior_low_evolved)
     assert pd.isna(host_posterior_low_hot)
+    assert pd.isna(host_posterior_unknown)

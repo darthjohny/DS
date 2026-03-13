@@ -22,6 +22,7 @@ from decision_calibration.runtime import (
 from decision_calibration.scoring import (
     apply_calibration_config,
     build_low_priority_preview,
+    build_unknown_preview,
 )
 from input_layer import make_engine_from_env
 from logbooks.decision_layer import ensure_logbook_dir, next_iteration_number
@@ -67,8 +68,15 @@ def main() -> None:
         config=config,
         host_model_version_value=host_version,
     )
-    low_preview = build_low_priority_preview(base_result.low_input_df)
-    combined = pd.concat([scored, low_preview], ignore_index=True, sort=False)
+    low_known_preview = build_low_priority_preview(
+        base_result.low_known_input_df
+    )
+    unknown_preview = build_unknown_preview(base_result.unknown_input_df)
+    combined = pd.concat(
+        [scored, low_known_preview, unknown_preview],
+        ignore_index=True,
+        sort=False,
+    )
     ordered_results = order_priority_results(combined)
 
     summary = build_iteration_summary(

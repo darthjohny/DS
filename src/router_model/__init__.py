@@ -9,11 +9,17 @@
 """
 
 from router_model.artifacts import (
+    DEFAULT_OOD_POLICY_VERSION,
+    DISABLED_OOD_POLICY_VERSION,
     RouterClassParams,
     RouterMeta,
     RouterModel,
+    RouterOODMeta,
     RouterScoreResult,
+    build_router_meta,
     load_router_model,
+    normalize_router_meta,
+    normalize_router_model,
     save_router_model,
 )
 from router_model.cli import main
@@ -45,7 +51,17 @@ from router_model.math import (
     zscore_apply,
     zscore_fit,
 )
+from router_model.ood import (
+    RouterOODDecision,
+    RouterOODPolicy,
+    apply_ood_policy,
+    build_unknown_router_score,
+    evaluate_router_ood,
+    load_ood_policy,
+)
 from router_model.score import (
+    build_raw_router_score,
+    rank_router_candidates,
     score_router_df,
     score_router_one,
 )
@@ -54,7 +70,10 @@ __all__ = [
     "RouterClassParams",
     "RouterMeta",
     "RouterModel",
+    "RouterOODMeta",
     "RouterScoreResult",
+    "DEFAULT_OOD_POLICY_VERSION",
+    "DISABLED_OOD_POLICY_VERSION",
     "FEATURES",
     "SPEC_CLASSES",
     "EVOLUTION_STAGES",
@@ -77,7 +96,18 @@ __all__ = [
     "normalize_evolution_stage",
     "make_router_label",
     "split_router_label",
+    "RouterOODDecision",
+    "RouterOODPolicy",
+    "load_ood_policy",
+    "evaluate_router_ood",
+    "apply_ood_policy",
+    "build_unknown_router_score",
     "fit_router_model",
+    "build_router_meta",
+    "normalize_router_meta",
+    "normalize_router_model",
+    "rank_router_candidates",
+    "build_raw_router_score",
     "score_router_one",
     "score_router_df",
     "save_router_model",

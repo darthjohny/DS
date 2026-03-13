@@ -24,7 +24,7 @@ from host_model.constants import (
     FEATURES,
     LOGG_DWARF_MIN,
 )
-from host_model.fit import prepare_contrastive_training_df
+from host_model.training_data import prepare_contrastive_training_df
 from infra.db import make_engine_from_env as _make_engine_from_env
 
 

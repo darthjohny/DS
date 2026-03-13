@@ -16,7 +16,7 @@ from input_layer import REGISTRY_TABLE
 from priority_pipeline import (
     load_input_candidates,
     run_router,
-    split_branches,
+    split_router_branches,
 )
 
 
@@ -42,6 +42,8 @@ class BaseScoringResult:
     input_df: pd.DataFrame
     router_df: pd.DataFrame
     host_input_df: pd.DataFrame
+    low_known_input_df: pd.DataFrame
+    unknown_input_df: pd.DataFrame
     low_input_df: pd.DataFrame
     host_scored_df: pd.DataFrame
 
@@ -130,7 +132,15 @@ def run_base_scoring(
     offline `final_score`.
     """
     router_df = run_router(df_input, router_model)
-    host_input_df, low_input_df = split_branches(router_df)
+    branches = split_router_branches(router_df)
+    host_input_df = branches.host_df
+    low_known_input_df = branches.low_known_df
+    unknown_input_df = branches.unknown_df
+    # `low_input_df` сохраняем как legacy combined low-ветку в исходном
+    # порядке router output, чтобы старые отчёты и notebook-ячейки не
+    # меняли интерпретацию после выделения unknown в отдельный подслой.
+    low_mask = ~router_df.index.isin(host_input_df.index)
+    low_input_df = router_df.loc[low_mask].copy()
 
     if host_input_df.empty:
         host_scored_df = host_input_df.copy()
@@ -145,6 +155,8 @@ def run_base_scoring(
         input_df=df_input,
         router_df=router_df,
         host_input_df=host_input_df,
+        low_known_input_df=low_known_input_df,
+        unknown_input_df=unknown_input_df,
         low_input_df=low_input_df,
         host_scored_df=host_scored_df,
     )

@@ -63,8 +63,6 @@ from host_model.fit import (
     fit_contrastive_gaussian_model,
     fit_gaussian_model,
     fit_population_gaussian,
-    normalize_host_flag,
-    prepare_contrastive_training_df,
     split_m_subclasses,
 )
 from host_model.gaussian_math import (
@@ -83,6 +81,10 @@ from host_model.gaussian_math import (
     zscore_fit,
 )
 from host_model.legacy_score import score_df, score_df_all_classes, score_one, score_one_all_classes
+from host_model.training_data import (
+    normalize_host_flag,
+    prepare_contrastive_training_df,
+)
 
 __all__ = [
     "CONTRASTIVE_POPULATION_COLUMN",

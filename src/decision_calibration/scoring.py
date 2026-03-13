@@ -8,9 +8,11 @@ import pandas as pd
 
 from decision_calibration.config import CalibrationConfig
 from priority_pipeline import (
+    HOST_SCORING_REASON,
+    ROUTER_UNKNOWN_REASON,
     clip_unit_interval,
+    known_low_reason_code,
     priority_tier_from_score,
-    stub_reason_code,
 )
 
 
@@ -139,11 +141,35 @@ def build_low_priority_preview(df_low: pd.DataFrame) -> pd.DataFrame:
     result["final_score"] = 0.0
     result["priority_tier"] = "LOW"
     result["reason_code"] = [
-        stub_reason_code(spec_class, stage)
+        known_low_reason_code(spec_class, stage)
         for spec_class, stage in result[
             ["predicted_spec_class", "predicted_evolution_stage"]
         ].itertuples(index=False, name=None)
     ]
+    result["host_model_version"] = None
+    return result
+
+
+def build_unknown_preview(df_unknown: pd.DataFrame) -> pd.DataFrame:
+    """Собрать preview-ветку для canonical `UNKNOWN` объектов."""
+    if df_unknown.empty:
+        return df_unknown.copy()
+
+    result = df_unknown.copy()
+    result["gauss_label"] = None
+    result["host_log_likelihood"] = None
+    result["field_log_likelihood"] = None
+    result["host_log_lr"] = None
+    result["host_posterior"] = None
+    result["d_mahal"] = None
+    result["similarity"] = None
+    result["class_prior"] = None
+    result["distance_factor"] = None
+    result["quality_factor"] = None
+    result["metallicity_factor"] = None
+    result["final_score"] = 0.0
+    result["priority_tier"] = "LOW"
+    result["reason_code"] = ROUTER_UNKNOWN_REASON
     result["host_model_version"] = None
     return result
 
@@ -213,7 +239,7 @@ def apply_calibration_config(
         priority_tier_from_score(float(score))
         for score in result["final_score"]
     ]
-    result["reason_code"] = "HOST_SCORING"
+    result["reason_code"] = HOST_SCORING_REASON
     result["host_model_version"] = host_model_version_value
     return result
 
@@ -221,6 +247,7 @@ def apply_calibration_config(
 __all__ = [
     "apply_calibration_config",
     "build_low_priority_preview",
+    "build_unknown_preview",
     "class_prior",
     "distance_factor",
     "distance_pc_from_parallax",

@@ -31,6 +31,7 @@ from router_model.math import (
     uniform_log_prior,
     zscore_apply,
 )
+from router_model.ood import apply_ood_policy, build_unknown_router_score
 
 
 def unpack_router_covariance(
@@ -57,19 +58,98 @@ def unpack_router_covariance(
     return stabilize_covariance(cov_matrix)
 
 
-def _empty_router_score(model_version: str) -> RouterScoreResult:
-    """Вернуть нейтральный результат для неполной или неподдерживаемой строки."""
+RouterRankedCandidate = tuple[str, float, float, float]
+
+
+def rank_router_candidates(
+    model: RouterModel,
+    xz: np.ndarray,
+) -> list[RouterRankedCandidate]:
+    """Посчитать raw ranking по всем router-классам для одной строки."""
+    classes = model.get("classes", {})
+    if not classes:
+        return []
+
+    ranked: list[RouterRankedCandidate] = []
+    log_prior = uniform_log_prior(len(classes))
+    n_features = len(FEATURES)
+    for router_label, params in classes.items():
+        mu = np.array(params["mu"], dtype=float)
+        _, inv_cov, log_det_cov = unpack_router_covariance(params)
+        distance = mahalanobis_distance(xz, mu, inv_cov)
+        log_likelihood = router_log_likelihood(
+            distance=distance,
+            log_det_cov=log_det_cov,
+            n_features=n_features,
+        )
+        ranked.append(
+            (
+                router_label,
+                distance,
+                log_likelihood,
+                log_likelihood + log_prior,
+            )
+        )
+    return ranked
+
+
+def build_raw_router_score(
+    ranked: list[RouterRankedCandidate],
+    model_version: str,
+) -> RouterScoreResult:
+    """Собрать raw router result до применения OOD policy."""
+    if not ranked:
+        return build_unknown_router_score(model_version=model_version)
+
+    ranked_by_distance = sorted(ranked, key=lambda item: item[1])
+    ranked_by_posterior = sorted(ranked, key=lambda item: item[3], reverse=True)
+
+    (
+        best_label,
+        best_distance,
+        best_log_likelihood,
+        best_log_posterior,
+    ) = ranked_by_posterior[0]
+    second_label = ranked_by_posterior[1][0] if len(ranked) > 1 else best_label
+    margin = float("nan")
+    posterior_margin = float("nan")
+    if len(ranked) > 1:
+        margin = float(ranked_by_distance[1][1] - ranked_by_distance[0][1])
+        posterior_margin = float(
+            ranked_by_posterior[0][3] - ranked_by_posterior[1][3]
+        )
+
+    d_mahal_router = float(best_distance)
+    router_similarity = float(similarity_from_distance(best_distance))
+    router_log_likelihood = float(best_log_likelihood)
+    router_log_posterior = float(best_log_posterior)
+    try:
+        spec_class, evolution_stage = split_router_label(best_label)
+    except ValueError:
+        return build_unknown_router_score(
+            model_version=model_version,
+            diagnostics={
+                "d_mahal_router": d_mahal_router,
+                "router_similarity": router_similarity,
+                "router_log_likelihood": router_log_likelihood,
+                "router_log_posterior": router_log_posterior,
+                "second_best_label": second_label,
+                "margin": margin,
+                "posterior_margin": posterior_margin,
+            },
+        )
+
     return {
-        "predicted_spec_class": "UNKNOWN",
-        "predicted_evolution_stage": "unknown",
-        "router_label": "UNKNOWN",
-        "d_mahal_router": float("nan"),
-        "router_similarity": 0.0,
-        "router_log_likelihood": float("nan"),
-        "router_log_posterior": float("nan"),
-        "second_best_label": "UNKNOWN",
-        "margin": float("nan"),
-        "posterior_margin": float("nan"),
+        "predicted_spec_class": spec_class,
+        "predicted_evolution_stage": evolution_stage,
+        "router_label": best_label,
+        "d_mahal_router": d_mahal_router,
+        "router_similarity": router_similarity,
+        "router_log_likelihood": router_log_likelihood,
+        "router_log_posterior": router_log_posterior,
+        "second_best_label": second_label,
+        "margin": margin,
+        "posterior_margin": posterior_margin,
         "model_version": model_version,
     }
 
@@ -89,72 +169,19 @@ def score_router_one(
     """
     model_version = model["meta"]["model_version"]
     if has_missing_values([teff, logg, radius]):
-        return _empty_router_score(model_version=model_version)
+        return build_unknown_router_score(model_version=model_version)
 
     classes = model.get("classes", {})
     if not classes:
-        return _empty_router_score(model_version=model_version)
+        return build_unknown_router_score(model_version=model_version)
 
     z_mu = np.array(model["global_mu"], dtype=float)
     z_sigma = np.array(model["global_sigma"], dtype=float)
     x = np.array([float(teff), float(logg), float(radius)], dtype=float)
     xz = zscore_apply(x, z_mu, z_sigma)
-
-    ranked: list[tuple[str, float, float, float]] = []
-    n_classes = len(classes)
-    log_prior = uniform_log_prior(n_classes)
-    n_features = len(FEATURES)
-    for router_label, params in classes.items():
-        mu = np.array(params["mu"], dtype=float)
-        _, inv_cov, log_det_cov = unpack_router_covariance(params)
-        distance = mahalanobis_distance(xz, mu, inv_cov)
-        log_likelihood = router_log_likelihood(
-            distance=distance,
-            log_det_cov=log_det_cov,
-            n_features=n_features,
-        )
-        ranked.append(
-            (
-                router_label,
-                distance,
-                log_likelihood,
-                log_likelihood + log_prior,
-            )
-        )
-
-    ranked_by_distance = sorted(ranked, key=lambda item: item[1])
-    ranked_by_posterior = sorted(ranked, key=lambda item: item[3], reverse=True)
-
-    (
-        best_label,
-        best_distance,
-        best_log_likelihood,
-        best_log_posterior,
-    ) = ranked_by_posterior[0]
-    second_label = "UNKNOWN"
-    margin = float("nan")
-    posterior_margin = float("nan")
-    if len(ranked) > 1:
-        second_label = ranked_by_posterior[1][0]
-        margin = float(ranked_by_distance[1][1] - ranked_by_distance[0][1])
-        posterior_margin = float(
-            ranked_by_posterior[0][3] - ranked_by_posterior[1][3]
-        )
-
-    spec_class, evolution_stage = split_router_label(best_label)
-    return {
-        "predicted_spec_class": spec_class,
-        "predicted_evolution_stage": evolution_stage,
-        "router_label": best_label,
-        "d_mahal_router": float(best_distance),
-        "router_similarity": float(similarity_from_distance(best_distance)),
-        "router_log_likelihood": float(best_log_likelihood),
-        "router_log_posterior": float(best_log_posterior),
-        "second_best_label": second_label,
-        "margin": margin,
-        "posterior_margin": posterior_margin,
-        "model_version": model_version,
-    }
+    ranked = rank_router_candidates(model=model, xz=xz)
+    raw_result = build_raw_router_score(ranked=ranked, model_version=model_version)
+    return apply_ood_policy(result=raw_result, meta=model["meta"])
 
 
 def score_router_df(
@@ -209,6 +236,8 @@ def score_router_df(
 
 
 __all__ = [
+    "build_raw_router_score",
+    "rank_router_candidates",
     "score_router_df",
     "score_router_one",
     "unpack_router_covariance",

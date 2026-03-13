@@ -20,6 +20,7 @@ import pandas as pd
 from decision_calibration.config import CalibrationConfig
 from decision_calibration.constants import CALIBRATOR_VERSION
 from decision_calibration.runtime import BaseScoringResult, ReadyDatasetRecord
+from router_model.labels import UNKNOWN_SPEC_CLASS
 
 type SummaryRecord = tuple[str, object]
 
@@ -34,7 +35,10 @@ class IterationSummary:
     input_rows: int
     router_rows: int
     host_rows: int
+    low_known_rows: int
+    unknown_rows: int
     low_rows: int
+    unknown_share: float
     router_score_mode: str
     host_score_mode: str
     host_model_version: str
@@ -66,14 +70,23 @@ def build_iteration_summary(
         mean_score = float(scores.mean())
         max_score = float(scores.max())
 
+    router_rows = int(len(base_result.router_df))
+    unknown_rows = int(len(base_result.unknown_input_df))
+    unknown_share = (
+        float(unknown_rows / router_rows) if router_rows > 0 else 0.0
+    )
+
     return IterationSummary(
         run_id=run_id,
         relation_name=dataset.relation_name,
         source_name=dataset.source_name,
         input_rows=int(len(base_result.input_df)),
-        router_rows=int(len(base_result.router_df)),
+        router_rows=router_rows,
         host_rows=int(len(base_result.host_input_df)),
+        low_known_rows=int(len(base_result.low_known_input_df)),
+        unknown_rows=unknown_rows,
         low_rows=int(len(base_result.low_input_df)),
+        unknown_share=unknown_share,
         router_score_mode=str(router_score_mode),
         host_score_mode=str(host_score_mode),
         host_model_version=str(host_model_version_value),
@@ -88,7 +101,7 @@ def top_candidates_frame(
     ordered_results: pd.DataFrame,
     top_n: int,
 ) -> pd.DataFrame:
-    """Собрать таблицу top-N кандидатов с ключевыми диагностическими полями."""
+    """Собрать таблицу top-N кандидатов, исключая `UNKNOWN` строки."""
     columns = [
         "source_id",
         "predicted_spec_class",
@@ -117,7 +130,12 @@ def top_candidates_frame(
         "ruwe",
     ]
     existing = [column for column in columns if column in ordered_results.columns]
-    return ordered_results.loc[:, existing].head(top_n).copy()
+    filtered = ordered_results
+    if "predicted_spec_class" in filtered.columns:
+        filtered = filtered.loc[
+            filtered["predicted_spec_class"].astype(str) != UNKNOWN_SPEC_CLASS
+        ]
+    return filtered.loc[:, existing].head(top_n).copy()
 
 
 def class_distribution_frame(
@@ -147,7 +165,10 @@ def score_summary_frame(summary: IterationSummary) -> pd.DataFrame:
         ("input_rows", summary.input_rows),
         ("router_rows", summary.router_rows),
         ("host_rows", summary.host_rows),
+        ("low_known_rows", summary.low_known_rows),
+        ("unknown_rows", summary.unknown_rows),
         ("low_rows", summary.low_rows),
+        ("unknown_share", summary.unknown_share),
         ("router_score_mode", summary.router_score_mode),
         ("host_score_mode", summary.host_score_mode),
         ("host_model_version", summary.host_model_version),
@@ -239,7 +260,10 @@ def build_iteration_markdown(
 - input_rows: {summary.input_rows}
 - router_rows: {summary.router_rows}
 - host_rows: {summary.host_rows}
+- low_known_rows: {summary.low_known_rows}
+- unknown_rows: {summary.unknown_rows}
 - low_rows: {summary.low_rows}
+- unknown_share: {summary.unknown_share:.4f}
 - router_score_mode: {summary.router_score_mode}
 - host_score_mode: {summary.host_score_mode}
 - host_model_version: {summary.host_model_version}
@@ -250,12 +274,12 @@ def build_iteration_markdown(
 ## Итог
 - {note}
 
-## Сводка по top-{summary.top_n}
+## Сводка по top-{summary.top_n} без `UNKNOWN`
 ```text
 {frame_to_text(class_distribution)}
 ```
 
-## Кандидаты top-{summary.top_n}
+## Кандидаты top-{summary.top_n} без `UNKNOWN`
 ```text
 {frame_to_text(top_candidates)}
 ```
@@ -339,7 +363,10 @@ def print_summary(
     print(f"Источник: {summary.source_name}")
     print(f"Входных строк: {summary.input_rows}")
     print(f"Строк host-ветки: {summary.host_rows}")
+    print(f"Строк low-known ветки: {summary.low_known_rows}")
+    print(f"Строк unknown-ветки: {summary.unknown_rows}")
     print(f"Строк low-ветки: {summary.low_rows}")
+    print(f"Доля unknown: {summary.unknown_share:.4f}")
     print(f"Режим router-score: {summary.router_score_mode}")
     print(f"Режим host-score: {summary.host_score_mode}")
     print(f"Версия host-модели: {summary.host_model_version}")

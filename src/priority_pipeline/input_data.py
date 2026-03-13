@@ -23,6 +23,7 @@ from priority_pipeline.constants import (
     INPUT_COLUMNS,
     ROUTER_MODEL_PATH,
 )
+from priority_pipeline.frame_contract import ensure_decision_columns
 from priority_pipeline.relations import (
     relation_columns,
     relation_exists,
@@ -35,28 +36,6 @@ def make_run_id(prefix: str = "gaia_pipeline") -> str:
     timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     suffix = uuid4().hex[:8]
     return f"{prefix}_{timestamp}_{suffix}"
-
-
-def ensure_decision_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Добавить отсутствующие decision-layer колонки с нейтральными значениями.
-
-    Функция готовит входной DataFrame к общему контракту боевого
-    pipeline, даже если часть soft-factor колонок отсутствует в исходной
-    relation.
-    """
-    result = df.copy()
-    defaults: dict[str, float] = {
-        "parallax": float("nan"),
-        "parallax_over_error": float("nan"),
-        "ruwe": float("nan"),
-        "bp_rp": float("nan"),
-        "mh_gspphot": float("nan"),
-        "validation_factor": 1.0,
-    }
-    for column, default in defaults.items():
-        if column not in result.columns:
-            result[column] = default
-    return result
 
 
 def load_input_candidates(

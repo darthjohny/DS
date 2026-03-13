@@ -890,6 +890,11 @@
     "shrink_alpha": 0.15,
     "min_class_size": 3,
     "score_mode": "gaussian_log_posterior_v1",
-    "prior_mode": "uniform"
+    "prior_mode": "uniform",
+    "allow_unknown": true,
+    "ood_policy_version": "posterior_reject_v1",
+    "min_router_log_posterior": -6.0,
+    "min_posterior_margin": 0.2,
+    "min_router_similarity": 0.25
   }
 }

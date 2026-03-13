@@ -2,10 +2,9 @@
 
 Модуль отвечает за:
 
-- разделение потока на host- и low-priority ветки;
 - расчёт физических и quality-based soft factors;
 - применение contrastive host-score к допустимой ветке MKGF dwarf;
-- сборку итогового `final_score` и operational ranking order.
+- сборку итогового `final_score` и low-priority stub-веток.
 """
 
 from __future__ import annotations
@@ -16,23 +15,13 @@ from typing import Any, cast
 import pandas as pd
 
 from host_model import score_df_contrastive as score_host_df
-from priority_pipeline.constants import HOST_MODEL_VERSION, MKGF_CLASSES
-from priority_pipeline.input_data import ensure_decision_columns
-
-
-def split_branches(df_router: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Разделить router output на host-ветку и low-priority ветку.
-
-    В host-ветку проходят только объекты класса `M/K/G/F` со стадией
-    `dwarf`. Остальные звёзды сразу уходят в low-priority сценарий.
-    """
-    host_mask = (
-        df_router["predicted_spec_class"].isin(MKGF_CLASSES)
-        & (df_router["predicted_evolution_stage"] == "dwarf")
-    )
-    df_host = df_router.loc[host_mask].copy()
-    df_low = df_router.loc[~host_mask].copy()
-    return df_host, df_low
+from priority_pipeline.branching import known_low_reason_code
+from priority_pipeline.constants import (
+    HOST_MODEL_VERSION,
+    HOST_SCORING_REASON,
+    ROUTER_UNKNOWN_REASON,
+)
+from priority_pipeline.frame_contract import ensure_decision_columns
 
 
 def clip_unit_interval(value: float) -> float:
@@ -158,17 +147,6 @@ def priority_tier_from_score(score: float) -> str:
     return "LOW"
 
 
-def stub_reason_code(spec_class: Any, evolution_stage: Any) -> str:
-    """Вернуть причину, по которой объект ушёл в low-priority ветку."""
-    spec = str(spec_class)
-    stage = str(evolution_stage)
-    if spec in {"A", "B", "O"}:
-        return "HOT_STAR"
-    if stage == "evolved":
-        return "EVOLVED_STAR"
-    return "FILTERED_OUT"
-
-
 def iter_triplets(
     rows: Iterable[tuple[Any, Any, Any]],
 ) -> Iterable[tuple[Any, Any, Any]]:
@@ -282,16 +260,16 @@ def run_host_similarity(
         priority_tier_from_score(float(score))
         for score in scored["final_score"]
     ]
-    scored["reason_code"] = "HOST_SCORING"
+    scored["reason_code"] = HOST_SCORING_REASON
     scored["host_model_version"] = host_model_version(host_model)
     return scored
 
 
 def build_low_priority_stub(df_low: pd.DataFrame) -> pd.DataFrame:
-    """Собрать low-priority результат для A/B/O и evolved stars.
+    """Собрать low-priority результат для known non-host объектов.
 
-    В ветке-заглушке host diagnostics и legacy similarity поля
-    заполняются `None`, а `final_score` принудительно ставится в `0.0`.
+    Эта ветка предназначена для известных, но нецелевых объектов:
+    горячих звёзд, evolved-объектов и других filtered known cases.
     """
     if df_low.empty:
         return df_low.copy()
@@ -307,11 +285,31 @@ def build_low_priority_stub(df_low: pd.DataFrame) -> pd.DataFrame:
     result["final_score"] = 0.0
     result["priority_tier"] = "LOW"
     result["reason_code"] = [
-        stub_reason_code(spec_class, stage)
+        known_low_reason_code(spec_class, stage)
         for spec_class, stage in result[
             ["predicted_spec_class", "predicted_evolution_stage"]
         ].itertuples(index=False, name=None)
     ]
+    result["host_model_version"] = None
+    return result
+
+
+def build_unknown_priority_stub(df_unknown: pd.DataFrame) -> pd.DataFrame:
+    """Собрать low-priority результат для canonical `UNKNOWN` ветки."""
+    if df_unknown.empty:
+        return df_unknown.copy()
+
+    result = apply_common_factors(df_unknown)
+    result["gauss_label"] = None
+    result["host_log_likelihood"] = None
+    result["field_log_likelihood"] = None
+    result["host_log_lr"] = None
+    result["host_posterior"] = None
+    result["d_mahal"] = None
+    result["similarity"] = None
+    result["final_score"] = 0.0
+    result["priority_tier"] = "LOW"
+    result["reason_code"] = ROUTER_UNKNOWN_REASON
     result["host_model_version"] = None
     return result
 
@@ -328,6 +326,7 @@ def order_priority_results(df: pd.DataFrame) -> pd.DataFrame:
 __all__ = [
     "apply_common_factors",
     "build_low_priority_stub",
+    "build_unknown_priority_stub",
     "class_prior",
     "clip_unit_interval",
     "color_factor",
@@ -342,6 +341,4 @@ __all__ = [
     "quality_factor",
     "ruwe_factor",
     "run_host_similarity",
-    "split_branches",
-    "stub_reason_code",
 ]

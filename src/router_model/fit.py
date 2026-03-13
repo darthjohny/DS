@@ -12,7 +12,11 @@ from __future__ import annotations
 
 import pandas as pd
 
-from router_model.artifacts import RouterClassParams, RouterModel
+from router_model.artifacts import (
+    RouterClassParams,
+    RouterModel,
+    build_router_meta,
+)
 from router_model.db import FEATURES, ROUTER_VIEW
 from router_model.labels import make_router_label, split_router_label
 from router_model.math import (
@@ -31,6 +35,11 @@ def fit_router_model(
     shrink_alpha: float = 0.15,
     min_class_size: int = 3,
     source_view: str = ROUTER_VIEW,
+    allow_unknown: bool = False,
+    ood_policy_version: str | None = None,
+    min_router_log_posterior: float | None = None,
+    min_posterior_margin: float | None = None,
+    min_router_similarity: float | None = None,
 ) -> RouterModel:
     """Обучить Gaussian router по меткам `spec_class + evolution_stage`.
 
@@ -46,6 +55,16 @@ def fit_router_model(
         в итоговый artifact.
     source_view
         Имя relation, из которой была получена обучающая выборка.
+    allow_unknown
+        Разрешить open-set reject-option поверх raw router scoring.
+    ood_policy_version
+        Идентификатор версии OOD policy, записываемый в artifact metadata.
+    min_router_log_posterior
+        Нижний порог по `router_log_posterior` для reject-option.
+    min_posterior_margin
+        Нижний порог по `posterior_margin` для reject-option.
+    min_router_similarity
+        Нижний порог по `router_similarity` для reject-option.
 
     Возвращает
     ----------
@@ -115,14 +134,19 @@ def fit_router_model(
         "global_sigma": z_sigma.tolist(),
         "classes": classes,
         "features": FEATURES,
-        "meta": {
-            "model_version": ROUTER_MODEL_VERSION,
-            "source_view": source_view,
-            "shrink_alpha": float(shrink_alpha),
-            "min_class_size": int(min_class_size),
-            "score_mode": "gaussian_log_posterior_v1",
-            "prior_mode": "uniform",
-        },
+        "meta": build_router_meta(
+            model_version=ROUTER_MODEL_VERSION,
+            source_view=source_view,
+            shrink_alpha=shrink_alpha,
+            min_class_size=min_class_size,
+            score_mode="gaussian_log_posterior_v1",
+            prior_mode="uniform",
+            allow_unknown=allow_unknown,
+            ood_policy_version=ood_policy_version,
+            min_router_log_posterior=min_router_log_posterior,
+            min_posterior_margin=min_posterior_margin,
+            min_router_similarity=min_router_similarity,
+        ),
     }
 
 
