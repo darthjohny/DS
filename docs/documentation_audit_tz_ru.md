@@ -2,6 +2,19 @@
 
 Дата: 11 марта 2026 года
 
+Статус документа:
+- historical audit and planning document;
+- фиксирует исходную волну унификации документации;
+- полезен как история решений, но не как главный current-state
+  reference.
+
+Где смотреть текущее состояние:
+- `docs/documentation_style_ru.md` — текущий стандарт оформления;
+- `README.md` и актуальные module docstring-и — текущая живая реализация
+  этого стандарта;
+- `docs/repository_state_policy_ru.md` — policy того, какие docs и
+  generated files считаются canonical current state.
+
 ## 1. Цель
 
 Привести документацию проекта к единому русскоязычному формату:
