@@ -3,6 +3,9 @@ venv/
 .venv/
 __pycache__/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyright/
 *.pyc
 
 # Environment
@@ -11,13 +14,24 @@ __pycache__/
 # OS / notebooks
 .DS_Store
 .ipynb_checkpoints/
+notebooks/eda/data/
 Pandas_1 -1-.ipynb
 Untitled*.ipynb
 Untitled Folder/
+docs/assets/Снимок экрана *.png
 
 # Generated data
 data/processed/
 *.session.sql
+experiments/Логи калибровки decision_layer/iteration_*.md
+experiments/Логи калибровки decision_layer/iteration_*_class_distribution.csv
+experiments/Логи калибровки decision_layer/iteration_*_config.json
+experiments/Логи калибровки decision_layer/iteration_*_score_summary.csv
+experiments/Логи калибровки decision_layer/iteration_*_top_candidates.csv
+experiments/Логи работы программы/run_*.md
+experiments/model_comparison/baseline_comparison_2026-03-13.md
+experiments/model_comparison/baseline_comparison_2026-03-13_*
+!experiments/model_comparison/baseline_comparison_2026-03-13_vkr30_cv10*
 
 # Local duplicate copies of the project
 DS/
