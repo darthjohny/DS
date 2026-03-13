@@ -15,15 +15,20 @@
 - [Gaia Archive](https://gea.esac.esa.int/archive/) — архив Gaia ESA;
 - [NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/) — архив подтверждённых экзопланет и звёзд-хостов NASA.
 
-## Что важно про V1
+## Текущий статус
 
-- `router` в текущей версии решает задачу грубой физической маршрутизации, а не окончательной научной классификации.
-- Для класса `M` введена дополнительная подклассовая детализация, потому что внутри него высокая физическая неоднородность.
-- Текущая версия — промежуточная рабочая форма модели, а не финальная научная схема.
-- В следующих версиях планируется переход:
-  - к более полной подклассовой схеме;
-  - либо к `GMM/router mixture`-подходу;
-  - либо к иерархическому `router`.
+- production-контур уже использует posterior-aware `router`, contrastive `host vs field` и decision layer с quality-факторами;
+- comparison-layer доведён до формального ВКР-контракта: `test_size = 0.30`, `10-fold` CV и compact hyperparameter search;
+- текущая версия проекта — рабочая научная MVP, а не финальная астрофизическая теория или окончательная публикационная модель;
+- latest full QA wave зафиксирована в `experiments/QA/` и подтверждает, что у проекта сейчас нет красных флагов по базовой математике и архитектуре.
+
+## Где смотреть сначала
+
+- если нужен production-контур: `src/router_model`, `src/host_model`, `src/priority_pipeline`, `src/decision_calibration`;
+- если нужен research-layer: `analysis/model_comparison`, `analysis/host_eda`, `analysis/router_eda`;
+- если нужен current state policy: `docs/repository_state_policy_ru.md`;
+- если нужны канонические comparison-артефакты: `experiments/model_comparison/README.md`;
+- если нужны QA findings и backlog: `experiments/QA/README.md`.
 
 ## Актуальная архитектура
 
@@ -86,26 +91,42 @@ src/
 analysis/
   host_eda/                     # исследовательский host EDA
   router_eda/                   # исследовательский router EDA
+  model_comparison/             # comparative benchmark основной модели и baseline
 
 notebooks/
   eda/
 
 data/
+  README.md                    # policy по model artifacts, samples и EDA-data
   router_gaussian_params.json   # production artifact router-модели
   model_gaussian_params.json    # production artifact host-модели
   eda/                          # сохранённые EDA-артефакты
 
 docs/
   documentation_style_ru.md     # принятый стандарт документации
-  documentation_audit_tz_ru.md  # аудит и исходное ТЗ по унификации
+  repository_state_policy_ru.md # policy текущего versioned state
+  vkr_requirements_traceability_ru.md
+  preprocessing_pipeline_ru.md
+  model_comparison_protocol_ru.md
+  model_comparison_findings_ru.md
+  presentation/
 
 experiments/
   Логи работы программы/
   Логи калибровки decision_layer/
   QA/
+  model_comparison/
+
+sql/
+  adql/                         # ADQL-запросы Gaia Archive
+  preprocessing/                # канонические SQL-артефакты preprocessing
 ```
 
-## Основные сценарии
+Верхнеуровневые файлы `src/*.py` сохранены как фасады совместимости для
+старых импортов и CLI-точек входа. Каноническая логика при этом живёт в
+пакетах, а не в фасадах.
+
+## Быстрый старт и основные сценарии
 
 Подготовка окружения:
 
@@ -114,6 +135,8 @@ python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
+
+Целевой runtime для проекта: `Python 3.13.x`.
 
 Запуск тестов:
 
@@ -171,6 +194,50 @@ python src/star_orchestrator.py
 python src/decision_layer_calibrator.py --relation public.gaia_dr3_training
 ```
 
+Сравнение основной модели и baseline:
+
+```bash
+python src/model_comparison.py
+```
+
+По умолчанию команда делает два артефактных контура:
+
+- supervised benchmark на `host vs field`;
+- live snapshot на `public.gaia_dr3_training` после общего `router + OOD`.
+
+Canonical benchmark-режим теперь соответствует формальному протоколу ВКР:
+
+- `test_size = 0.30`;
+- `10-fold` stratified CV внутри train split;
+- compact search для всех четырёх моделей;
+- отдельный `search_summary.csv` с best params и best CV score.
+
+В benchmark сейчас участвуют четыре model head:
+
+- `main_contrastive_v1`
+- `baseline_legacy_gaussian`
+- `baseline_random_forest`
+- `baseline_mlp_small`
+
+Полезные overrides:
+
+```bash
+python src/model_comparison.py --snapshot-limit 5000 --snapshot-top-k 25
+python src/model_comparison.py --skip-snapshot
+python src/model_comparison.py --cv-folds 5 --search-refit-metric pr_auc
+```
+
+Каноническое поколение comparison-артефактов для ВКР:
+
+- benchmark: `baseline_comparison_2026-03-13_vkr30_cv10`
+- snapshot preview: `baseline_comparison_2026-03-13_vkr30_cv10_limit5000`
+
+Исторические волны этого же дня сохранены в
+`experiments/model_comparison/`, но текущим источником истины считаются
+только файлы поколения `vkr30_cv10`. Это отдельно зафиксировано в:
+
+- `experiments/model_comparison/README.md`
+
 Создание файла журнала прогона:
 
 ```bash
@@ -197,6 +264,46 @@ Lint:
 ./venv/bin/python -m mypy src tests analysis
 ```
 
+`pyrightconfig.json` в репозитории сохранён как editor-facing конфиг для
+Pylance/Pyright-совместимых IDE. Канонический CLI-набор проверок проекта
+сейчас: `ruff + mypy + pytest`. Отдельный `pyright` пока не считается
+обязательной частью регулярного QA-прогона.
+
+## Канонические документы и артефакты
+
+Current state и policy:
+
+- `docs/repository_state_policy_ru.md` — что считать versioned current state;
+- `data/README.md` — policy по model artifacts, samples и EDA-data;
+- `experiments/QA/README.md` — current QA wave и related artifacts;
+- `experiments/model_comparison/README.md` — каноническая и historical policy для comparison-артефактов.
+
+ВКР и narrative:
+
+- `docs/vkr_requirements_traceability_ru.md`;
+- `docs/preprocessing_pipeline_ru.md`;
+- `docs/model_comparison_protocol_ru.md`;
+- `docs/model_comparison_findings_ru.md`;
+- `docs/presentation/vkr_slides_draft_ru.md`;
+- `notebooks/eda/00_data_extraction_and_preprocessing.ipynb`;
+- `notebooks/eda/04_model_comparison_summary.ipynb`.
+
+Полный QA-аудит:
+
+- `experiments/QA/qa_full_audit_log_2026-03-13_ru.md`;
+- `experiments/QA/qa_backlog_and_decision_map_2026-03-13_ru.md`;
+- `experiments/QA/qa_runbook_2026-03-13_ru.md`.
+
+## Исторические planning docs
+
+Эти документы сохранены как история решений и ТЗ, но не должны читаться
+как главный current state:
+
+- `docs/documentation_audit_tz_ru.md`;
+- `docs/preprocessing_and_comparison_tz_ru.md`;
+- `docs/ood_unknown_tz_ru.md`;
+- `docs/ood_unknown_baselines_tz_ru.md`.
+
 ## Стандарт документации
 
 В проекте принят единый русскоязычный стандарт документации:
@@ -209,39 +316,16 @@ Lint:
 
 - `docs/documentation_style_ru.md`
 
-Аудит и исходное ТЗ, по которому проводилась унификация:
-
-- `docs/documentation_audit_tz_ru.md`
-
-## Важные замечания
+## Важные замечания по совместимости
 
 - Поля `similarity` и `d_mahal` сохранены только для обратной совместимости со старым legacy-контуром скоринга.
 - Production host-ветка уже использует contrastive поля:
   `host_log_likelihood`, `field_log_likelihood`, `host_log_lr`, `host_posterior`.
 - Если включать `persist=True`, целевые DB-таблицы должны содержать новые host-поля.
 
-## Статус MVP и QA
+## Ближайшие прикладные хвосты
 
-Текущая версия проекта является первой научной MVP-итерацией. Её задача — проверить жизнеспособность связки:
-
-- physical Gaussian router;
-- contrastive `host-vs-field` model;
-- decision layer с коэффициентами качества.
-
-QA-прогон на 500 звёздах показал, что:
-
-- pipeline стабильно выполняется end-to-end;
-- численный контракт модели остаётся корректным;
-- физические sanity-checks дают правдоподобную картину;
-- кодовая база и тесты находятся в воспроизводимом состоянии.
-
-Подробный QA-отчёт:
-
-- `experiments/QA/qa_mvp_report_2026-03-11.md`
-
-## Ближайшие этапы
-
-- обновить persist-schema под новые host-поля;
-- пересобрать боевые артефакты после retrain;
-- выполнить новую итерацию калибровки;
-- добавить OOD / `unknown` слой поверх router posterior.
+- консолидация tracked current state в git без потери канонических материалов;
+- финальная упаковка пояснительной записки и презентации;
+- точечный cleanup residue-файлов и generated noise;
+- необязательные future refactor-пункты вроде `snapshot.py` только если они начнут реально мешать.

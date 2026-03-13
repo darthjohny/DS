@@ -1,0 +1,11 @@
+Модель,Масштаб,Spec class,Refit metric,CV folds,Кандидатов,Лучший CV score,Best params
+Contrastive V1,model,all,roc_auc,10,8,0.8754,"{""min_population_size"": 2, ""shrink_alpha"": 0.05, ""use_m_subclasses"": false}"
+RandomForest,class,F,roc_auc,10,6,0.8614,"{""min_samples_leaf"": 4, ""n_estimators"": 300}"
+RandomForest,class,G,roc_auc,10,6,0.9025,"{""min_samples_leaf"": 1, ""n_estimators"": 300}"
+RandomForest,class,K,roc_auc,10,6,0.9612,"{""min_samples_leaf"": 4, ""n_estimators"": 100}"
+RandomForest,class,M,roc_auc,10,6,0.9232,"{""min_samples_leaf"": 4, ""n_estimators"": 300}"
+MLP small,class,F,roc_auc,10,6,0.7378,"{""alpha"": 0.01, ""hidden_layer_sizes"": [16, 8]}"
+MLP small,class,G,roc_auc,10,6,0.9041,"{""alpha"": 0.0001, ""hidden_layer_sizes"": [16, 8]}"
+MLP small,class,K,roc_auc,10,6,0.9602,"{""alpha"": 0.0001, ""hidden_layer_sizes"": [8, 4]}"
+MLP small,class,M,roc_auc,10,6,0.9048,"{""alpha"": 0.0001, ""hidden_layer_sizes"": [16, 8]}"
+Legacy Gaussian,model,all,roc_auc,10,6,0.8437,"{""shrink_alpha"": 0.15, ""use_m_subclasses"": true}"
