@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from gaussian_router import (
+from router_model import (
     DISABLED_OOD_POLICY_VERSION,
     RouterScoreResult,
     apply_ood_policy,

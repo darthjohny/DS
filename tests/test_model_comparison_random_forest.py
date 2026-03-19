@@ -110,6 +110,9 @@ def test_run_random_forest_baseline_returns_common_score_contract() -> None:
         assert search_summary.n_field > 0
         assert search_summary.candidate_count == 6
         assert 0.0 <= search_summary.best_cv_score <= 1.0
+        assert search_summary.cv_score_std >= 0.0
+        assert search_summary.cv_score_min <= search_summary.best_cv_score
+        assert search_summary.cv_score_max >= search_summary.best_cv_score
         assert sorted(search_summary.best_params.keys()) == [
             "min_samples_leaf",
             "n_estimators",

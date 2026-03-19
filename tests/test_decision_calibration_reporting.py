@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from decision_layer_calibrator import (
+from decision_calibration import (
     BaseScoringResult,
     CalibrationConfig,
     ReadyDatasetRecord,

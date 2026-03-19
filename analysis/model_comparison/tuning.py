@@ -135,6 +135,45 @@ def normalize_search_score(
     return float(score_value)
 
 
+def extract_best_cv_score_stats(search: Any, *, metric: SearchRefitMetric) -> tuple[float, float, float, float]:
+    """Достать mean/std/min/max fold-score для лучшей search-конфигурации."""
+    if not hasattr(search, "best_index_") or not hasattr(search, "cv_results_"):
+        raise TypeError("Search object must expose best_index_ and cv_results_.")
+
+    best_index = int(search.best_index_)
+    cv_results = search.cv_results_
+    score_key = f"mean_test_{metric}"
+    std_key = f"std_test_{metric}"
+    split_prefix = "_test_"
+
+    if score_key not in cv_results or std_key not in cv_results:
+        raise KeyError(f"Search results are missing keys: {score_key}, {std_key}.")
+
+    mean_score = normalize_search_score(float(cv_results[score_key][best_index]), metric=metric)
+    std_score = float(cv_results[std_key][best_index])
+
+    fold_scores: list[float] = []
+    split_keys = sorted(
+        key
+        for key in cv_results
+        if key.startswith("split") and split_prefix + metric in key
+    )
+    for key in split_keys:
+        fold_scores.append(
+            normalize_search_score(float(cv_results[key][best_index]), metric=metric)
+        )
+
+    if not fold_scores:
+        raise ValueError("Search results did not expose per-fold test scores.")
+
+    return (
+        mean_score,
+        std_score,
+        float(min(fold_scores)),
+        float(max(fold_scores)),
+    )
+
+
 def validate_cross_validation_inputs(
     df_benchmark: pd.DataFrame,
     *,
@@ -172,6 +211,7 @@ def validate_cross_validation_inputs(
 
 __all__ = [
     "brier_score_from_proba",
+    "extract_best_cv_score_stats",
     "build_stratified_kfold",
     "build_stratify_labels",
     "build_sklearn_search_scoring",

@@ -13,6 +13,7 @@ benchmark-контракт ВКР:
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from statistics import pstdev
 
 import pandas as pd
 from sklearn.model_selection import ParameterGrid
@@ -93,6 +94,7 @@ def run_manual_model_search[ModelT](
     best_params: dict[str, object] | None = None
     best_raw_score: float | None = None
     best_rank_score: float | None = None
+    best_fold_scores: list[float] | None = None
     last_error: ValueError | None = None
 
     for candidate_params in candidates:
@@ -131,8 +133,9 @@ def run_manual_model_search[ModelT](
             best_params = {str(key): value for key, value in candidate_params.items()}
             best_raw_score = mean_score
             best_rank_score = rank_score
+            best_fold_scores = list(fold_scores)
 
-    if best_params is None or best_raw_score is None:
+    if best_params is None or best_raw_score is None or best_fold_scores is None:
         message = "Manual search found no valid candidate."
         if last_error is not None:
             message += f" Last error: {last_error}"
@@ -149,6 +152,9 @@ def run_manual_model_search[ModelT](
         n_field=int((~validated[sources.population_col].astype(bool)).sum()),
         candidate_count=len(candidates),
         best_cv_score=float(best_raw_score),
+        cv_score_std=float(pstdev(best_fold_scores)),
+        cv_score_min=float(min(best_fold_scores)),
+        cv_score_max=float(max(best_fold_scores)),
         best_params=best_params,
     )
     return best_model, search_summary

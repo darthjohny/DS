@@ -7,6 +7,7 @@ __pycache__/
 .ruff_cache/
 .pyright/
 *.pyc
+*.egg-info/
 
 # Environment
 .env

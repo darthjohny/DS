@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from model_gaussian import (
+from host_model import (
     build_contrastive_subsets,
     choose_m_subclass_label,
     fit_contrastive_gaussian_model,

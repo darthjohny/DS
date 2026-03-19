@@ -18,7 +18,7 @@ from analysis.router_eda.constants import (
     FloatArray,
 )
 from analysis.router_eda.data import feature_frame
-from gaussian_router import (
+from router_model import (
     mahalanobis_distance,
     router_log_likelihood,
     shrink_covariance,

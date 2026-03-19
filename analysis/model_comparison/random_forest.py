@@ -31,7 +31,7 @@ from analysis.model_comparison.data import BenchmarkSplit, prepare_benchmark_dat
 from analysis.model_comparison.tuning import (
     build_sklearn_search_scoring,
     build_stratified_kfold,
-    normalize_search_score,
+    extract_best_cv_score_stats,
 )
 
 RANDOM_FOREST_MODEL_NAME = "baseline_random_forest"
@@ -146,6 +146,10 @@ def search_random_forest_for_class(
             "to be RandomForestClassifier."
         )
 
+    best_cv_score, cv_score_std, cv_score_min, cv_score_max = extract_best_cv_score_stats(
+        search,
+        metric=search_config.refit_metric,
+    )
     search_summary = ClassSearchSummary(
         model_name=RANDOM_FOREST_MODEL_NAME,
         spec_class=str(spec_class),
@@ -156,10 +160,10 @@ def search_random_forest_for_class(
         n_host=int(class_df[sources.population_col].astype(bool).sum()),
         n_field=int((~class_df[sources.population_col].astype(bool)).sum()),
         candidate_count=len(ParameterGrid(param_grid)),
-        best_cv_score=normalize_search_score(
-            float(search.best_score_),
-            metric=search_config.refit_metric,
-        ),
+        best_cv_score=best_cv_score,
+        cv_score_std=cv_score_std,
+        cv_score_min=cv_score_min,
+        cv_score_max=cv_score_max,
         best_params={str(key): value for key, value in search.best_params_.items()},
     )
     return best_model, search_summary

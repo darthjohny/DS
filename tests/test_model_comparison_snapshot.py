@@ -12,6 +12,7 @@ from analysis.model_comparison.snapshot import (
     save_snapshot_artifacts,
 )
 
+from priority_pipeline import priority_tier_from_score
 from priority_pipeline.branching import RouterBranchFrames
 
 
@@ -26,7 +27,7 @@ def make_priority_frame(model_name: str, final_scores: list[float]) -> pd.DataFr
                 "predicted_evolution_stage": "dwarf",
                 "router_label": "K_dwarf",
                 "final_score": score,
-                "priority_tier": "HIGH" if score >= 0.55 else "LOW",
+                "priority_tier": priority_tier_from_score(score),
                 "reason_code": "HOST_SCORING" if score > 0 else "HOT_STAR",
             }
             for index, score in enumerate(final_scores)

@@ -11,6 +11,7 @@ from analysis.model_comparison import (
     build_sklearn_search_scoring,
     build_stratified_kfold,
     build_stratify_labels,
+    extract_best_cv_score_stats,
     normalize_search_score,
     precision_at_k_from_proba,
     validate_cross_validation_inputs,
@@ -144,3 +145,27 @@ def test_precision_at_k_from_proba_uses_positive_class_column() -> None:
 def test_normalize_search_score_inverts_negative_brier() -> None:
     """User-facing best score для Brier должен возвращаться в обычной шкале."""
     assert normalize_search_score(-0.125, metric="brier") == 0.125
+
+
+def test_extract_best_cv_score_stats_returns_mean_std_and_fold_bounds() -> None:
+    """Helper должен возвращать mean/std/min/max для лучшей CV-конфигурации."""
+
+    class DummySearch:
+        best_index_ = 1
+        cv_results_ = {
+            "mean_test_roc_auc": [0.61, 0.83],
+            "std_test_roc_auc": [0.09, 0.05],
+            "split0_test_roc_auc": [0.50, 0.79],
+            "split1_test_roc_auc": [0.60, 0.84],
+            "split2_test_roc_auc": [0.73, 0.86],
+        }
+
+    mean_score, std_score, min_score, max_score = extract_best_cv_score_stats(
+        DummySearch(),
+        metric="roc_auc",
+    )
+
+    assert mean_score == 0.83
+    assert std_score == 0.05
+    assert min_score == 0.79
+    assert max_score == 0.86

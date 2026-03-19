@@ -15,7 +15,7 @@ from analysis.host_eda.constants import (
     CONTRASTIVE_SHRINK_ALPHA,
 )
 from analysis.host_eda.data import feature_frame
-from model_gaussian import (
+from host_model import (
     CONTRASTIVE_POPULATION_COLUMN,
     build_contrastive_subsets,
     contrastive_host_posterior,
@@ -36,7 +36,7 @@ def calc_contrastive_gauss_stats(
 ) -> pd.DataFrame:
     """Посчитать readiness и separability для `host-vs-field` scoring.
 
-    Функция использует контракты и численные helpers из `model_gaussian`,
+    Функция использует контракты и численные helpers из `host_model`,
     чтобы оценить, насколько устойчиво разделяются популяции `host` и
     `field` внутри каждого class label.
     """

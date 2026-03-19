@@ -44,7 +44,7 @@ from analysis.host_eda.stats import (
     top_by_radius,
     top_by_teff,
 )
-from model_gaussian import (
+from host_model import (
     CONTRASTIVE_POPULATION_COLUMN,
     load_contrastive_training_from_db,
 )

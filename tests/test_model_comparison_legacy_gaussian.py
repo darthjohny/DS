@@ -102,6 +102,9 @@ def test_run_legacy_gaussian_baseline_returns_common_score_contract() -> None:
     assert run.search_summary.n_field > 0
     assert run.search_summary.candidate_count == 6
     assert 0.0 <= run.search_summary.best_cv_score <= 1.0
+    assert run.search_summary.cv_score_std >= 0.0
+    assert run.search_summary.cv_score_min <= run.search_summary.best_cv_score
+    assert run.search_summary.cv_score_max >= run.search_summary.best_cv_score
     assert sorted(run.search_summary.best_params.keys()) == [
         "shrink_alpha",
         "use_m_subclasses",

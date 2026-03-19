@@ -17,6 +17,7 @@ from analysis.model_comparison.contracts import (
 )
 from analysis.model_comparison.data import BenchmarkSplit
 from analysis.model_comparison.snapshot import SnapshotComparisonResult
+from analysis.model_comparison.validation import BenchmarkValidationResult
 
 from priority_pipeline.branching import RouterBranchFrames
 
@@ -86,6 +87,13 @@ def test_run_model_comparison_orchestrates_four_model_runs(
         train_df=pd.DataFrame(),
         test_df=pd.DataFrame(),
     )
+    validation_result = BenchmarkValidationResult(
+        summary_df=pd.DataFrame([{"error_count": 0, "warning_count": 0}]),
+        stratify_df=pd.DataFrame(),
+        feature_drift_df=pd.DataFrame(),
+        errors=(),
+        warnings=(),
+    )
     calls: list[str] = []
 
     def fake_load_and_split_benchmark_dataset(
@@ -125,6 +133,9 @@ def test_run_model_comparison_orchestrates_four_model_runs(
                 n_field=2,
                 candidate_count=2,
                 best_cv_score=0.9,
+                cv_score_std=0.03,
+                cv_score_min=0.86,
+                cv_score_max=0.92,
                 best_params={"shrink_alpha": 0.15},
             )
 
@@ -143,6 +154,9 @@ def test_run_model_comparison_orchestrates_four_model_runs(
                     n_field=2,
                     candidate_count=2,
                     best_cv_score=0.9,
+                    cv_score_std=0.03,
+                    cv_score_min=0.86,
+                    cv_score_max=0.92,
                     best_params={"alpha": 0.001},
                 )
                 for spec_class in protocol.sources.allowed_classes
@@ -208,6 +222,31 @@ def test_run_model_comparison_orchestrates_four_model_runs(
         assert search_config == protocol.search
         return DummyClassRun("baseline_random_forest")
 
+    def fake_validate_benchmark_split(
+        split_arg: BenchmarkSplit,
+        *,
+        protocol: ComparisonProtocol,
+    ) -> BenchmarkValidationResult:
+        assert split_arg is split
+        calls.append("validate")
+        assert protocol == protocol
+        return validation_result
+
+    def fake_save_benchmark_validation_artifacts(
+        run_name: str,
+        result: BenchmarkValidationResult,
+        *,
+        output_dir: Path,
+        protocol: ComparisonProtocol,
+        note: str,
+    ) -> Path:
+        calls.append("save_validation")
+        assert run_name == "smoke_run"
+        assert result is validation_result
+        assert output_dir == tmp_path
+        assert note == "cli smoke"
+        return tmp_path / "smoke_run_dataset_validation.md"
+
     def fake_save(
         run_name: str,
         scored_splits: list[ModelScoreFrames],
@@ -270,6 +309,12 @@ def test_run_model_comparison_orchestrates_four_model_runs(
     monkeypatch.setattr(cli, "run_legacy_gaussian_baseline", fake_legacy)
     monkeypatch.setattr(cli, "run_mlp_baseline", fake_mlp)
     monkeypatch.setattr(cli, "run_random_forest_baseline", fake_rf)
+    monkeypatch.setattr(cli, "validate_benchmark_split", fake_validate_benchmark_split)
+    monkeypatch.setattr(
+        cli,
+        "save_benchmark_validation_artifacts",
+        fake_save_benchmark_validation_artifacts,
+    )
     monkeypatch.setattr(cli, "save_comparison_artifacts", fake_save)
     monkeypatch.setattr(cli, "run_snapshot_comparison", fake_run_snapshot_comparison)
     monkeypatch.setattr(cli, "save_snapshot_artifacts", fake_save_snapshot_artifacts)
@@ -284,10 +329,16 @@ def test_run_model_comparison_orchestrates_four_model_runs(
     )
 
     assert result.markdown_path == tmp_path / "smoke_run.md"
+    assert result.validation_markdown_path == (
+        tmp_path / "smoke_run_dataset_validation.md"
+    )
+    assert result.validation_result is validation_result
     assert result.snapshot_markdown_path == tmp_path / "smoke_run_snapshot.md"
     assert result.snapshot_result is snapshot_result
     assert calls == [
         "load",
+        "validate",
+        "save_validation",
         "main",
         "legacy",
         "mlp",
@@ -311,6 +362,13 @@ def test_run_model_comparison_can_skip_snapshot(
         full_df=pd.DataFrame(),
         train_df=pd.DataFrame(),
         test_df=pd.DataFrame(),
+    )
+    validation_result = BenchmarkValidationResult(
+        summary_df=pd.DataFrame([{"error_count": 0, "warning_count": 0}]),
+        stratify_df=pd.DataFrame(),
+        feature_drift_df=pd.DataFrame(),
+        errors=(),
+        warnings=(),
     )
     frame = pd.DataFrame(
         [
@@ -342,6 +400,9 @@ def test_run_model_comparison_can_skip_snapshot(
                 n_field=0,
                 candidate_count=1,
                 best_cv_score=1.0,
+                cv_score_std=0.0,
+                cv_score_min=1.0,
+                cv_score_max=1.0,
                 best_params={},
             )
 
@@ -360,6 +421,9 @@ def test_run_model_comparison_can_skip_snapshot(
                     n_field=0,
                     candidate_count=1,
                     best_cv_score=1.0,
+                    cv_score_std=0.0,
+                    cv_score_min=1.0,
+                    cv_score_max=1.0,
                     best_params={},
                 )
                 for spec_class in ("M", "K", "G", "F")
@@ -369,6 +433,16 @@ def test_run_model_comparison_can_skip_snapshot(
         cli,
         "load_and_split_benchmark_dataset",
         lambda protocol: split,
+    )
+    monkeypatch.setattr(
+        cli,
+        "validate_benchmark_split",
+        lambda split, protocol: validation_result,
+    )
+    monkeypatch.setattr(
+        cli,
+        "save_benchmark_validation_artifacts",
+        lambda *args, **kwargs: tmp_path / "skip_snapshot_dataset_validation.md",
     )
     monkeypatch.setattr(
         cli,
@@ -405,5 +479,57 @@ def test_run_model_comparison_can_skip_snapshot(
     )
 
     assert result.markdown_path == tmp_path / "skip_snapshot.md"
+    assert result.validation_markdown_path == (
+        tmp_path / "skip_snapshot_dataset_validation.md"
+    )
+    assert result.validation_result is validation_result
     assert result.snapshot_markdown_path is None
     assert result.snapshot_result is None
+
+
+def test_print_summary_includes_quality_sections(capsys) -> None:
+    """CLI summary должна показывать thresholds и test-quality."""
+    protocol = ComparisonProtocol(
+        sources=BenchmarkSources(),
+        split=SplitConfig(),
+    )
+    frame = pd.DataFrame(
+        [
+            {
+                "source_id": 1,
+                "spec_class": "K",
+                "is_host": True,
+                "model_name": "dummy_model",
+                "model_score": 0.95,
+            },
+            {
+                "source_id": 2,
+                "spec_class": "K",
+                "is_host": False,
+                "model_name": "dummy_model",
+                "model_score": 0.10,
+            },
+        ]
+    )
+    result = cli.ComparisonRunResult(
+        markdown_path=Path("/tmp/dummy.md"),
+        scored_splits=[
+            ModelScoreFrames(
+                model_name="dummy_model",
+                train_scored_df=frame,
+                test_scored_df=frame,
+            )
+        ],
+    )
+
+    cli.print_summary(
+        result=result,
+        protocol=protocol,
+        precision_k=10,
+    )
+
+    captured = capsys.readouterr().out
+    assert "=== MODEL COMPARISON ===" in captured
+    assert "=== QUALITY THRESHOLDS ===" in captured
+    assert "=== TEST QUALITY ===" in captured
+    assert "dummy_model" in captured

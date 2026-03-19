@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from gaussian_router import load_router_model
-from model_gaussian import load_model, validate_host_model_artifact
+from host_model import load_model, validate_host_model_artifact
+from router_model import load_router_model
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 ROUTER_ARTIFACT = PROJECT_ROOT / "data" / "router_gaussian_params.json"

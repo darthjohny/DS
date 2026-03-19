@@ -29,7 +29,9 @@ from analysis.model_comparison.mlp_baseline import run_mlp_baseline
 from analysis.model_comparison.random_forest import run_random_forest_baseline
 from analysis.model_comparison.reporting import (
     DEFAULT_MODEL_COMPARISON_OUTPUT_DIR,
+    build_comparison_quality_summary_frame,
     build_comparison_summary_frame,
+    build_comparison_thresholds_frame,
     save_comparison_artifacts,
 )
 from analysis.model_comparison.snapshot import (
@@ -39,6 +41,11 @@ from analysis.model_comparison.snapshot import (
     run_snapshot_comparison,
     save_snapshot_artifacts,
 )
+from analysis.model_comparison.validation import (
+    BenchmarkValidationResult,
+    save_benchmark_validation_artifacts,
+    validate_benchmark_split,
+)
 
 
 @dataclass(slots=True)
@@ -47,6 +54,8 @@ class ComparisonRunResult:
 
     markdown_path: Path
     scored_splits: list[ModelScoreFrames]
+    validation_markdown_path: Path | None = None
+    validation_result: BenchmarkValidationResult | None = None
     snapshot_markdown_path: Path | None = None
     snapshot_result: SnapshotComparisonResult | None = None
 
@@ -189,6 +198,20 @@ def run_model_comparison(
 ) -> ComparisonRunResult:
     """Запустить весь comparative benchmark и сохранить артефакты."""
     split = load_and_split_benchmark_dataset(protocol=protocol)
+    validation_result = validate_benchmark_split(
+        split,
+        protocol=protocol,
+    )
+    if validation_result.has_errors:
+        joined_errors = "; ".join(validation_result.errors)
+        raise ValueError(f"Benchmark dataset validation failed: {joined_errors}")
+    validation_markdown_path = save_benchmark_validation_artifacts(
+        run_name,
+        validation_result,
+        output_dir=output_dir,
+        protocol=protocol,
+        note=note,
+    )
 
     main_run = run_main_contrastive_model(
         split,
@@ -256,6 +279,8 @@ def run_model_comparison(
     return ComparisonRunResult(
         markdown_path=markdown_path,
         scored_splits=scored_splits,
+        validation_markdown_path=validation_markdown_path,
+        validation_result=validation_result,
         snapshot_markdown_path=snapshot_markdown_path,
         snapshot_result=snapshot_result,
     )
@@ -272,13 +297,34 @@ def print_summary(
         precision_k=precision_k,
         protocol=protocol,
     )
+    thresholds_df = build_comparison_thresholds_frame(
+        result.scored_splits,
+        protocol=protocol,
+    )
+    quality_summary_df = build_comparison_quality_summary_frame(
+        result.scored_splits,
+        protocol=protocol,
+    )
     print("\n=== MODEL COMPARISON ===")
     print("Protocol:", protocol.name)
     print("Host view:", protocol.sources.host_view)
     print("Field view:", protocol.sources.field_view)
     print("Markdown report:", result.markdown_path)
+    if result.validation_markdown_path is not None:
+        print("Validation report:", result.validation_markdown_path)
     if not summary_df.empty:
         print(summary_df.to_string(index=False))
+    if not thresholds_df.empty:
+        print("\n=== QUALITY THRESHOLDS ===")
+        print("Threshold metric:", protocol.quality.refit_metric)
+        print(thresholds_df.to_string(index=False))
+    if not quality_summary_df.empty:
+        print("\n=== TEST QUALITY ===")
+        print(
+            quality_summary_df.loc[
+                quality_summary_df["split_name"] == "test"
+            ].to_string(index=False)
+        )
     if result.snapshot_markdown_path is not None:
         print("Snapshot report:", result.snapshot_markdown_path)
     if result.snapshot_result is not None:

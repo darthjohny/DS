@@ -138,7 +138,7 @@ def validate_host_model_artifact(model: Mapping[str, Any]) -> None:
         raise ValueError(
             "Host model artifact is legacy and incompatible with the current "
             "pipeline. Rebuild data/model_gaussian_params.json with "
-            "python src/model_gaussian.py --mode contrastive --view <host_field_view>."
+            "python -m host_model --mode contrastive --view <host_field_view>."
         )
 
     classes_raw = model.get("classes", {})

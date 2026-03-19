@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-
-from eda import calc_contrastive_gauss_stats
+from analysis.host_eda.contrastive import calc_contrastive_gauss_stats
 
 EDA_COLUMNS = [
     "spec_class",
@@ -74,4 +73,3 @@ def test_calc_contrastive_gauss_stats_adds_host_field_metrics() -> None:
     assert stats["field_pd_cov"].all()
     assert stats["ready_for_contrastive_model"].all()
     assert np.isfinite(stats["contrastive_accuracy"]).all()
-

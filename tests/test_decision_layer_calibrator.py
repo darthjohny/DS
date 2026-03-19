@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 
 import decision_calibration.runtime as calibration_runtime
-from decision_layer_calibrator import (
+from decision_calibration import (
     CalibrationConfig,
     apply_calibration_config,
     build_low_priority_preview,

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-
-from router_eda import calc_router_gauss_stats, ensure_router_labels
+from analysis.router_eda.data import ensure_router_labels
+from analysis.router_eda.readiness import calc_router_gauss_stats
 
 ROUTER_EDA_COLUMNS = [
     "source_id",
