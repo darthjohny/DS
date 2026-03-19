@@ -1,5 +1,0 @@
-model_name,threshold_metric,threshold_source_split,threshold_value,threshold_score,n_rows,n_host,n_field
-baseline_legacy_gaussian,f1,train,0.3839469733058426,0.6019558131111915,10775,2375,8400
-baseline_mlp_small,f1,train,0.35674602230956,0.7418138519547529,10775,2375,8400
-baseline_random_forest,f1,train,0.6133333333333333,0.93687707641196,10775,2375,8400
-main_contrastive_v1,f1,train,0.498734471425149,0.6308310163731851,10775,2375,8400

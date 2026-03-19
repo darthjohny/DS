@@ -1,5 +1,0 @@
-Модель,Input rows,Host candidates,HIGH,MEDIUM,LOW,Top final_score
-Contrastive V1,5000,4202,243,1199,3558,0.7779
-RandomForest,5000,4202,744,794,3462,0.922
-MLP small,5000,4202,402,865,3733,0.8987
-Legacy Gaussian,5000,4202,141,1109,3750,0.7621

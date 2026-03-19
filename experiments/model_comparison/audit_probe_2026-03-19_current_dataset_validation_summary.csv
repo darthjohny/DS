@@ -1,2 +1,0 @@
-full_rows,train_rows,test_rows,n_classes,n_stratify_labels,full_host_share,train_host_share,test_host_share,max_abs_label_share_gap,max_abs_feature_smd,error_count,warning_count
-15394,10775,4619,4,8,0.22047550993893725,0.22041763341067286,0.22061052175795626,0.00018708160432873155,0.0166511516884363,0,0

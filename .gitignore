@@ -1,6 +1,7 @@
 # Python
 venv/
 .venv/
+.venv-v2/
 __pycache__/
 .pytest_cache/
 .mypy_cache/
@@ -37,3 +38,6 @@ experiments/model_comparison/baseline_comparison_2026-03-13_*
 # Local duplicate copies of the project
 DS/
 Baum_dspro_vkr_research/
+
+# Локальный архив старой версии проекта
+.legacy_v1/

@@ -1,5 +1,0 @@
-model_name,source_name,input_rows,router_rows,host_candidates,low_known_rows,unknown_rows,high_rows,medium_rows,low_rows,top_final_score
-main_contrastive_v1,public.gaia_dr3_training,5000,5000,4202,769,29,811,1379,2810,0.8917550295197826
-baseline_legacy_gaussian,public.gaia_dr3_training,5000,5000,4202,769,29,18,868,4114,0.6732179579237121
-baseline_random_forest,public.gaia_dr3_training,5000,5000,4202,769,29,439,927,3634,0.8144620353637325
-baseline_mlp_small,public.gaia_dr3_training,5000,5000,4202,769,29,168,898,3934,0.793854175448978
