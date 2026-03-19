@@ -1,0 +1,11 @@
+model_name,search_scope,spec_class,refit_metric,precision_k,cv_folds,n_train_rows,n_host,n_field,candidate_count,best_cv_score,cv_score_std,cv_score_min,cv_score_max,best_params_json
+baseline_legacy_gaussian,model,,roc_auc,50,10,10775,2375,8400,6,0.8437085846997027,0.0123743781190755,0.8233193277310924,0.8647458983593437,"{""shrink_alpha"": 0.15, ""use_m_subclasses"": true}"
+baseline_mlp_small,class,F,roc_auc,50,10,2388,288,2100,6,0.737762139338494,0.041097270553130026,0.6779967159277505,0.8042692939244663,"{""alpha"": 0.01, ""hidden_layer_sizes"": [16, 8]}"
+baseline_mlp_small,class,G,roc_auc,50,10,3381,1281,2100,6,0.9040655857788853,0.017142115118088344,0.885453869047619,0.9465029761904762,"{""alpha"": 0.0001, ""hidden_layer_sizes"": [16, 8]}"
+baseline_mlp_small,class,K,roc_auc,50,10,2749,649,2100,6,0.9601979166666668,0.01005122549001394,0.9374358974358974,0.9757509157509158,"{""alpha"": 0.0001, ""hidden_layer_sizes"": [8, 4]}"
+baseline_mlp_small,class,M,roc_auc,50,10,2257,157,2100,6,0.9048492063492063,0.03594873137508408,0.8323809523809523,0.9458333333333333,"{""alpha"": 0.0001, ""hidden_layer_sizes"": [16, 8]}"
+baseline_random_forest,class,F,roc_auc,50,10,2388,288,2100,6,0.8613992493549143,0.03470434872910124,0.7845648604269294,0.9139573070607554,"{""min_samples_leaf"": 4, ""n_estimators"": 300}"
+baseline_random_forest,class,G,roc_auc,50,10,3381,1281,2100,6,0.9025365823412699,0.017807471989708213,0.872470238095238,0.9343936011904762,"{""min_samples_leaf"": 1, ""n_estimators"": 300}"
+baseline_random_forest,class,K,roc_auc,50,10,2749,649,2100,6,0.9612105082417581,0.010177368343386266,0.9439732142857142,0.9837362637362638,"{""min_samples_leaf"": 4, ""n_estimators"": 100}"
+baseline_random_forest,class,M,roc_auc,50,10,2257,157,2100,6,0.9231597222222222,0.0321244225165564,0.865079365079365,0.9525297619047619,"{""min_samples_leaf"": 4, ""n_estimators"": 300}"
+main_contrastive_v1,model,,roc_auc,50,10,10775,2375,8400,8,0.875409910799763,0.010146913128389246,0.8641456582633054,0.8973327305605787,"{""min_population_size"": 2, ""shrink_alpha"": 0.05, ""use_m_subclasses"": false}"

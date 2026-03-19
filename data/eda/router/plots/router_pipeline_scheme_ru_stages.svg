@@ -56,17 +56,17 @@
   <circle cx="144" cy="457" r="34" fill="#5f87b1"/>
   <text x="133" y="468" class="step-num">2</text>
   <text x="204" y="438" class="stage-title">Router EDA + Gaussian Router</text>
-  <text x="204" y="470" class="stage-text">`src/router_eda.py` проверяет структуры, графики, ковариации и готовность классов к Gaussian.</text>
-  <text x="204" y="498" class="stage-text">`src/gaussian_router.py` учится распознавать `spec_class` и `evolution_stage` по `teff`, `logg`, `radius`.</text>
+  <text x="204" y="470" class="stage-text">`analysis.router_eda` проверяет структуры, графики, ковариации и готовность классов к Gaussian.</text>
+  <text x="204" y="498" class="stage-text">`router_model` учится распознавать `spec_class` и `evolution_stage` по `teff`, `logg`, `radius`.</text>
   <text x="204" y="525" class="stage-small">Выход router: `router_label`, `predicted_spec_class`, `predicted_evolution_stage`, `d_mahal_router`, `router_similarity`</text>
 
   <rect x="88" y="595" width="1424" height="188" rx="30" fill="url(#stage3)" stroke="#5e8a60" stroke-width="2" filter="url(#shadowB)"/>
   <circle cx="144" cy="689" r="34" fill="#5a8b59"/>
   <text x="133" y="700" class="step-num">3</text>
   <text x="204" y="666" class="stage-title">Оркестрация и ветвление пайплайна</text>
-  <text x="204" y="698" class="stage-text">`src/star_orchestrator.py` забирает Gaia-кандидатов, вызывает router и записывает результат в `lab.gaia_router_results`.</text>
+  <text x="204" y="698" class="stage-text">`priority_pipeline` забирает Gaia-кандидатов, вызывает router и записывает результат в `lab.gaia_router_results`.</text>
   <text x="204" y="726" class="stage-text">Дальше звезда попадает в одну из веток:</text>
-  <text x="238" y="754" class="branch">• `M/K/G/F dwarf` → в `src/model_gaussian.py` для host similarity</text>
+  <text x="238" y="754" class="branch">• `M/K/G/F dwarf` → в `host_model` для host similarity</text>
   <text x="830" y="754" class="branch">• `A/B/O` или `evolved` → в low-priority stub с reason_code</text>
 
   <rect x="88" y="838" width="1424" height="132" rx="30" fill="url(#stage4)" stroke="#b36b64" stroke-width="2" filter="url(#shadowB)"/>

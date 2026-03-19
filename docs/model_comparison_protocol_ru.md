@@ -11,10 +11,16 @@
 - определить, что именно сравнивается;
 - зафиксировать dataset и split;
 - зафиксировать метрики и итоговые артефакты;
+- зафиксировать место validation-layer относительно benchmark;
 - заранее отделить baseline-слой от production-контура.
 
 Документ намеренно не содержит кода. Он задаёт стабильный контракт, на
 который дальше будут опираться модули `analysis/model_comparison/`.
+
+Связанный документ:
+
+- `docs/model_validation_protocol_ru.md`
+- `docs/orchestrator_host_prioritization_canon_ru.md`
 
 ## 2. Объект сравнения
 
@@ -183,7 +189,31 @@ Train/test split должен быть:
 - enrichment в top-k;
 - краткий operational snapshot на `public.gaia_dr3_training`.
 
-### 6.3 Что не сравниваем напрямую
+### 6.3 Threshold-based quality
+
+Помимо threshold-free benchmark-метрик comparison-layer должен считать
+классический quality-блок для бинарной классификации.
+
+В него входят:
+
+- `confusion matrix`;
+- `precision`;
+- `recall`;
+- `f1`;
+- `specificity`;
+- `balanced_accuracy`;
+- `accuracy` как вторичная метрика.
+
+Правила первой волны:
+
+- quality считается после выбора порога классификации;
+- порог выбирается только на `train` split;
+- test split не участвует в выборе порога;
+- в первой волне используется один глобальный threshold на модель;
+- threshold выбирается по `max F1`;
+- quality-блок дополняет benchmark и не подменяет его.
+
+### 6.4 Что не сравниваем напрямую
 
 Не сравниваем “в лоб” значения score разных моделей:
 
@@ -192,7 +222,8 @@ Train/test split должен быть:
 - `RandomForest predict_proba`.
 - `MLP predict_proba`.
 
-Сравнение делается по метрикам и ranking-качеству, а не по сырым шкалам.
+Сравнение делается по метрикам, ranking-качеству и quality-показателям,
+а не по сырым шкалам.
 
 ## 7. Выходные артефакты
 
@@ -203,9 +234,27 @@ Comparison-layer должен порождать артефакты в `experime
 - markdown summary;
 - CSV-таблица с итоговыми метриками;
 - CSV-таблица `search_summary` с лучшими параметрами и CV score;
+- CSV-таблица `thresholds` с train-selected classification threshold;
+- CSV-таблица `quality_summary` с threshold-based quality-метриками;
+- CSV-таблица `quality_classwise` с class-wise quality-показателями;
+- CSV-таблица `confusion_matrices` с `TP/FP/TN/FN`;
+- CSV-таблица `generalization` с `train/test` и `CV/test` diagnostics;
+- CSV- и markdown-таблица `generalization_audit` с per-model verdict;
+- markdown и CSV-артефакты `dataset_validation` до model fitting;
 - CSV или parquet со score-frame test-части;
 - отдельный snapshot report для `public.gaia_dr3_training`;
 - top-k CSV по каждой модели в snapshot-режиме.
+
+Важно:
+
+- `dataset_validation` является отдельным preflight-слоем и должен
+  сохраняться до benchmark markdown summary;
+- `generalization_audit` не заменяет benchmark-метрики, а дополняет их
+  как anti-overfitting слой;
+- quality-блок не заменяет threshold-free benchmark-метрики, а даёт
+  привычную прикладную интерпретацию в терминах бинарной классификации;
+- snapshot остаётся отдельным operational preview и не считается главным
+  supervised доказательством generalization.
 
 ## 8. Архитектурные ограничения
 
@@ -228,6 +277,7 @@ Baseline-слой не должен:
 - `analysis/model_comparison/random_forest.py`
 - `analysis/model_comparison/mlp_baseline.py`
 - `analysis/model_comparison/metrics.py`
+- `analysis/model_comparison/quality.py`
 - `analysis/model_comparison/reporting.py`
 - `analysis/model_comparison/snapshot.py`
 - `analysis/model_comparison/cli.py`
@@ -242,7 +292,13 @@ Baseline-этап считается закрытым, когда:
    test split.
 3. Внешний benchmark использует `test_size = 0.30`.
 4. Для всех моделей работает `10-fold` tuning-контур внутри train split.
-5. Для всех моделей построены общие supervised метрики.
-6. Есть единый markdown/CSV comparative report и `search_summary`.
-7. Есть минимальные smoke-tests для split, tuning и wrappers.
-8. `README` и материалы ВКР ссылаются на этот protocol.
+5. До benchmark запускается dataset validation layer.
+6. Для всех моделей построены общие supervised метрики.
+7. Для всех моделей есть threshold-based quality с train-selected
+   threshold.
+8. Есть `generalization diagnostics` и `per-model audit`.
+9. Есть единый markdown/CSV comparative report, `search_summary`,
+   `thresholds`, quality-артефакты и validation-артефакты.
+10. Есть минимальные smoke-tests для split, tuning, wrappers,
+   validation-layer.
+11. `README` и материалы ВКР ссылаются на этот protocol.

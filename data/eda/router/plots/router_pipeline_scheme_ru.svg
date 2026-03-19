@@ -53,13 +53,13 @@
   <rect x="70" y="340" width="310" height="118" rx="24" fill="url(#edaBox)" stroke="#9B7B4A" stroke-width="2" filter="url(#shadow)"/>
   <text x="100" y="378" class="section">Router EDA</text>
   <text x="100" y="408" class="body">Проверка структуры и физики</text>
-  <text x="100" y="435" class="small">/src/router_eda.py</text>
+  <text x="100" y="435" class="small">analysis.router_eda</text>
 
   <rect x="70" y="510" width="310" height="130" rx="24" fill="url(#coreBox)" stroke="#5780A8" stroke-width="2" filter="url(#shadow)"/>
   <text x="100" y="548" class="section">Gaussian Router</text>
   <text x="100" y="578" class="body">Распознаёт spec_class</text>
   <text x="100" y="605" class="body">и evolution_stage</text>
-  <text x="100" y="632" class="small">/src/gaussian_router.py</text>
+  <text x="100" y="632" class="small">router_model</text>
 
   <rect x="70" y="730" width="310" height="118" rx="24" fill="url(#dbBox)" stroke="#B69237" stroke-width="2" filter="url(#shadow)"/>
   <text x="100" y="768" class="section">NASA hosts + Gaia physics</text>
@@ -69,7 +69,7 @@
   <rect x="470" y="730" width="310" height="118" rx="24" fill="url(#edaBox)" stroke="#9B7B4A" stroke-width="2" filter="url(#shadow)"/>
   <text x="500" y="768" class="section">Host EDA</text>
   <text x="500" y="798" class="body">EDA для NASA host-stars</text>
-  <text x="500" y="825" class="small">/src/eda.py</text>
+  <text x="500" y="825" class="small">analysis.host_eda</text>
 
   <rect x="470" y="170" width="320" height="130" rx="24" fill="url(#dbBox)" stroke="#B69237" stroke-width="2" filter="url(#shadow)"/>
   <text x="500" y="208" class="section">Входные кандидаты Gaia</text>
@@ -80,7 +80,7 @@
   <text x="500" y="418" class="section">Оркестратор пайплайна</text>
   <text x="500" y="448" class="body">Вызывает router и host-model,</text>
   <text x="500" y="475" class="body">делит объекты по веткам</text>
-  <text x="500" y="505" class="small">/src/star_orchestrator.py</text>
+  <text x="500" y="505" class="small">priority_pipeline</text>
 
   <rect x="900" y="210" width="300" height="118" rx="24" fill="url(#dbBox)" stroke="#B69237" stroke-width="2" filter="url(#shadow)"/>
   <text x="930" y="248" class="section">Таблица распознавания</text>
@@ -96,7 +96,7 @@
   <text x="930" y="698" class="section">Gaussian Similarity</text>
   <text x="930" y="728" class="body">Работает только для</text>
   <text x="930" y="755" class="body">M/K/G/F dwarf</text>
-  <text x="930" y="782" class="small">/src/model_gaussian.py</text>
+  <text x="930" y="782" class="small">host_model</text>
 
   <rect x="1280" y="530" width="250" height="118" rx="24" fill="url(#dbBox)" stroke="#B69237" stroke-width="2" filter="url(#shadow)"/>
   <text x="1310" y="568" class="section">Таблица приоритизации</text>

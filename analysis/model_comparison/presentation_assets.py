@@ -83,6 +83,8 @@ class PresentationAssetConfig:
     snapshot_run_name: str
     input_dir: Path
     output_dir: Path
+    production_input_dir: Path
+    operational_run_name: str
     top_rank_limit: int = 10
 
 
@@ -95,6 +97,8 @@ class PresentationFrames:
     search_summary_df: pd.DataFrame
     snapshot_summary_df: pd.DataFrame
     top_frames: dict[str, pd.DataFrame]
+    operational_shortlist_df: pd.DataFrame
+    operational_shortlist_summary_df: pd.DataFrame
 
 
 def find_project_root(start: Path) -> Path:
@@ -130,12 +134,12 @@ def parse_args() -> Namespace:
     )
     parser.add_argument(
         "--benchmark-run-name",
-        default="baseline_comparison_2026-03-13_vkr30_cv10",
+        default="baseline_comparison_2026-03-19_v1_calibrated_limit5000",
         help="Имя benchmark run без суффикса `_summary.csv`.",
     )
     parser.add_argument(
         "--snapshot-run-name",
-        default="baseline_comparison_2026-03-13_vkr30_cv10_limit5000",
+        default="baseline_comparison_2026-03-19_v1_calibrated_limit5000",
         help="Имя snapshot run без суффикса `_snapshot_summary.csv`.",
     )
     parser.add_argument(
@@ -149,6 +153,17 @@ def parse_args() -> Namespace:
         type=Path,
         default=default_output_dir,
         help="Базовый каталог сохранения slide-ready ассетов.",
+    )
+    parser.add_argument(
+        "--production-input-dir",
+        type=Path,
+        default=project_root / "experiments" / "QA" / "production_runs",
+        help="Каталог с production shortlist artifacts.",
+    )
+    parser.add_argument(
+        "--operational-run-name",
+        default="production_priority_2026-03-19_v1_calibrated_limit5000",
+        help="Имя production operational run без суффикса `_shortlist.csv`.",
     )
     parser.add_argument(
         "--top-rank-limit",
@@ -167,6 +182,8 @@ def build_config(args: Namespace) -> PresentationAssetConfig:
         snapshot_run_name=str(args.snapshot_run_name),
         input_dir=Path(args.input_dir),
         output_dir=Path(args.output_dir) / str(args.benchmark_run_name),
+        production_input_dir=Path(args.production_input_dir),
+        operational_run_name=str(args.operational_run_name),
         top_rank_limit=int(args.top_rank_limit),
     )
 
@@ -182,12 +199,28 @@ def load_frames(config: PresentationAssetConfig) -> PresentationFrames:
     classwise_path = config.input_dir / f"{config.benchmark_run_name}_classwise.csv"
     search_path = config.input_dir / f"{config.benchmark_run_name}_search_summary.csv"
     snapshot_path = config.input_dir / f"{config.snapshot_run_name}_snapshot_summary.csv"
+    operational_shortlist_path = (
+        config.production_input_dir
+        / f"{config.operational_run_name}_shortlist.csv"
+    )
+    operational_shortlist_summary_path = (
+        config.production_input_dir
+        / f"{config.operational_run_name}_shortlist_summary.csv"
+    )
     top_paths = {
         model_name: config.input_dir / f"{config.snapshot_run_name}_snapshot_{model_name}_top.csv"
         for model_name in MODEL_ORDER
     }
 
-    required_paths = [summary_path, classwise_path, search_path, snapshot_path, *top_paths.values()]
+    required_paths = [
+        summary_path,
+        classwise_path,
+        search_path,
+        snapshot_path,
+        operational_shortlist_path,
+        operational_shortlist_summary_path,
+        *top_paths.values(),
+    ]
     missing_paths = [path for path in required_paths if not path.exists()]
     if missing_paths:
         missing_text = "\n".join(str(path) for path in missing_paths)
@@ -202,6 +235,14 @@ def load_frames(config: PresentationAssetConfig) -> PresentationFrames:
             model_name: pd.read_csv(path, low_memory=False)
             for model_name, path in top_paths.items()
         },
+        operational_shortlist_df=pd.read_csv(
+            operational_shortlist_path,
+            low_memory=False,
+        ),
+        operational_shortlist_summary_df=pd.read_csv(
+            operational_shortlist_summary_path,
+            low_memory=False,
+        ),
     )
 
 
@@ -336,6 +377,63 @@ def build_contrastive_top_table(
     table[["teff_gspphot", "logg_gspphot", "radius_gspphot"]] = table[
         ["teff_gspphot", "logg_gspphot", "radius_gspphot"]
     ].round(3)
+    return table
+
+
+def build_operational_shortlist_summary_table(frames: PresentationFrames) -> pd.DataFrame:
+    """Собрать компактную presentation-table по production shortlist priorities."""
+
+    summary_df = frames.operational_shortlist_summary_df.copy()
+    class_map = (
+        frames.operational_shortlist_df[["observation_priority", "predicted_spec_class"]]
+        .drop_duplicates()
+        .sort_values("observation_priority")
+    )
+    merged = summary_df.merge(class_map, on="observation_priority", how="left")
+    table = merged.rename(
+        columns={
+            "observation_priority": "Приоритет",
+            "predicted_spec_class": "Класс",
+            "n_rows": "Число кандидатов",
+        }
+    )
+    return table
+
+
+def build_operational_shortlist_top_table(
+    frames: PresentationFrames,
+    *,
+    top_rank_limit: int,
+) -> pd.DataFrame:
+    """Собрать top production shortlist table для финального follow-up слайда."""
+
+    shortlist_df = frames.operational_shortlist_df.copy().head(top_rank_limit)
+    table = shortlist_df[
+        [
+            "observation_priority",
+            "rank_in_priority",
+            "source_id",
+            "predicted_spec_class",
+            "host_like_percent",
+            "final_score",
+            "ra",
+            "dec",
+        ]
+    ].rename(
+        columns={
+            "observation_priority": "Приоритет",
+            "rank_in_priority": "Место",
+            "source_id": "source_id",
+            "predicted_spec_class": "Класс",
+            "host_like_percent": "Host-like, %",
+            "final_score": "final_score",
+            "ra": "RA",
+            "dec": "DEC",
+        }
+    )
+    table["final_score"] = table["final_score"].round(4)
+    table["RA"] = table["RA"].round(4)
+    table["DEC"] = table["DEC"].round(4)
     return table
 
 
@@ -495,12 +593,19 @@ def generate_assets(config: PresentationAssetConfig) -> list[Path]:
         frames,
         top_rank_limit=config.top_rank_limit,
     )
+    operational_shortlist_summary_table = build_operational_shortlist_summary_table(frames)
+    operational_shortlist_top_table = build_operational_shortlist_top_table(
+        frames,
+        top_rank_limit=config.top_rank_limit,
+    )
 
     output_paths = [
         config.output_dir / "benchmark_test_table.csv",
         config.output_dir / "search_summary_table.csv",
         config.output_dir / "snapshot_summary_table.csv",
         config.output_dir / "contrastive_top_table.csv",
+        config.output_dir / "operational_shortlist_summary_table.csv",
+        config.output_dir / "operational_shortlist_top_table.csv",
         config.output_dir / "benchmark_metrics.png",
         config.output_dir / "classwise_roc_auc_heatmap.png",
         config.output_dir / "snapshot_priority_mix.png",
@@ -511,11 +616,13 @@ def generate_assets(config: PresentationAssetConfig) -> list[Path]:
     save_table(search_table, output_paths[1])
     save_table(snapshot_table, output_paths[2])
     save_table(contrastive_top_table, output_paths[3])
+    save_table(operational_shortlist_summary_table, output_paths[4])
+    save_table(operational_shortlist_top_table, output_paths[5])
 
-    plot_benchmark_metrics(test_table, output_paths[4])
-    plot_classwise_heatmap(frames, output_paths[5])
-    plot_snapshot_priority_mix(snapshot_table, output_paths[6])
-    plot_top_score_curves(frames, output_paths[7], top_rank_limit=config.top_rank_limit)
+    plot_benchmark_metrics(test_table, output_paths[6])
+    plot_classwise_heatmap(frames, output_paths[7])
+    plot_snapshot_priority_mix(snapshot_table, output_paths[8])
+    plot_top_score_curves(frames, output_paths[9], top_rank_limit=config.top_rank_limit)
     return output_paths
 
 

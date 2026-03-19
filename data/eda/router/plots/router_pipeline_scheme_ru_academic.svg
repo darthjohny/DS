@@ -63,18 +63,18 @@
 
   <rect x="600" y="210" width="360" height="145" rx="24" fill="url(#codeA)" stroke="#6f8fb2" stroke-width="2" filter="url(#shadowA)"/>
   <text x="630" y="252" class="box-title">Router EDA</text>
-  <text x="630" y="284" class="box-text">`src/router_eda.py`</text>
+  <text x="630" y="284" class="box-text">`analysis.router_eda`</text>
   <text x="630" y="312" class="box-text">Проверка структуры, графики, cov, det(Σ), PD</text>
 
   <rect x="600" y="388" width="360" height="162" rx="24" fill="url(#codeA)" stroke="#6f8fb2" stroke-width="2" filter="url(#shadowA)"/>
   <text x="630" y="430" class="box-title">Gaussian Router</text>
-  <text x="630" y="462" class="box-text">`src/gaussian_router.py`</text>
+  <text x="630" y="462" class="box-text">`router_model`</text>
   <text x="630" y="490" class="box-text">Вход: teff, logg, radius</text>
   <text x="630" y="518" class="box-text">Выход: `router_label`, `spec_class`, `evolution_stage`</text>
 
   <rect x="600" y="585" width="360" height="145" rx="24" fill="url(#codeA)" stroke="#6f8fb2" stroke-width="2" filter="url(#shadowA)"/>
   <text x="630" y="627" class="box-title">Host EDA + Gaussian</text>
-  <text x="630" y="659" class="box-text">`src/eda.py` + `src/model_gaussian.py`</text>
+  <text x="630" y="659" class="box-text">`analysis.host_eda` + `host_model`</text>
   <text x="630" y="687" class="box-text">Работает только для M/K/G/F dwarf</text>
 
   <rect x="1120" y="210" width="395" height="125" rx="24" fill="url(#dbA)" stroke="#b48b2c" stroke-width="2" filter="url(#shadowA)"/>
@@ -83,7 +83,7 @@
 
   <rect x="1120" y="378" width="395" height="145" rx="24" fill="url(#pipeA)" stroke="#5f8b61" stroke-width="2" filter="url(#shadowA)"/>
   <text x="1150" y="420" class="box-title">Star Orchestrator</text>
-  <text x="1150" y="452" class="box-text">`src/star_orchestrator.py`</text>
+  <text x="1150" y="452" class="box-text">`priority_pipeline`</text>
   <text x="1150" y="480" class="box-text">Маршрутизация, сохранение, запуск scoring-веток</text>
 
   <rect x="1120" y="570" width="395" height="115" rx="24" fill="url(#dbA)" stroke="#b48b2c" stroke-width="2" filter="url(#shadowA)"/>
