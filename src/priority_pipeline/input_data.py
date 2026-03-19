@@ -9,13 +9,6 @@ from uuid import uuid4
 import pandas as pd
 from sqlalchemy.engine import Engine
 
-from gaussian_router import (
-    FEATURES as ROUTER_FEATURES,
-)
-from gaussian_router import (
-    RouterModel,
-    load_router_model,
-)
 from host_model import ContrastiveGaussianModel, load_contrastive_model
 from priority_pipeline.constants import (
     DEFAULT_INPUT_SOURCE,
@@ -29,6 +22,8 @@ from priority_pipeline.relations import (
     relation_exists,
     split_relation_name,
 )
+from router_model import FEATURES as ROUTER_FEATURES
+from router_model import RouterModel, load_router_model
 
 
 def make_run_id(prefix: str = "gaia_pipeline") -> str:
@@ -51,11 +46,20 @@ def load_input_candidates(
     для router и затем выбирает одну детерминированную строку на
     `source_id`, используя quality-aware порядок сортировки.
 
+    Важная V1-оговорка
+    ------------------
+    Production input-layer сейчас пропускает в runtime только
+    structurally scoreable строки. Если в relation отсутствует любой из
+    базовых router-признаков `teff_gspphot`, `logg_gspphot` или
+    `radius_gspphot`, такая строка отфильтровывается ещё до router
+    scoring и не попадает в canonical `UNKNOWN`-ветку.
+
     Возвращает
     ----------
     pd.DataFrame
         Нормализованный входной DataFrame с колонками для router и
-        decision layer.
+        decision layer. В текущей V1 это уже scoreable подмножество
+        relation, а не полный raw batch.
     """
     if not relation_exists(engine, source_name):
         raise RuntimeError(f"Input source does not exist: {source_name}")
@@ -105,6 +109,8 @@ def load_input_candidates(
         WHERE base.source_id IS NOT NULL
           AND base.ra IS NOT NULL
           AND base.dec IS NOT NULL
+          -- V1-contract: structurally incomplete rows не идут в router;
+          -- UNKNOWN применяется только к scoreable rows после raw scoring.
           AND base.teff_gspphot IS NOT NULL
           AND base.logg_gspphot IS NOT NULL
           AND base.radius_gspphot IS NOT NULL

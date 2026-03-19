@@ -7,7 +7,6 @@ from pathlib import Path
 import pandas as pd
 from sqlalchemy.engine import Engine
 
-from gaussian_router import RouterModel, make_engine_from_env, score_router_df
 from host_model import ContrastiveGaussianModel
 from priority_pipeline.branching import split_router_branches
 from priority_pipeline.constants import (
@@ -31,6 +30,7 @@ from priority_pipeline.input_data import (
     make_run_id,
 )
 from priority_pipeline.persist import save_priority_results, save_router_results
+from router_model import RouterModel, make_engine_from_env, score_router_df
 
 
 def run_router(df: pd.DataFrame, router_model: RouterModel) -> pd.DataFrame:

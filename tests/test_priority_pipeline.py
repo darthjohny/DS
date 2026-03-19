@@ -205,6 +205,8 @@ def test_run_pipeline_mini_batch_end_to_end(
         result["host_posterior"] = 0.80
         result["class_prior"] = 0.95
         result["quality_factor"] = 0.95
+        result["reliability_factor"] = 0.95
+        result["followup_factor"] = 0.90
         result["metallicity_factor"] = 1.00
         result["color_factor"] = 1.00
         result["validation_factor"] = 1.00

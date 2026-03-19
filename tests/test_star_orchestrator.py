@@ -10,7 +10,8 @@ from typing import Any
 import pandas as pd
 import pytest
 
-import star_orchestrator as orchestrator
+import priority_pipeline as orchestrator
+import priority_pipeline.decision as decision_module
 
 
 def test_split_branches_only_mkgf_dwarfs_go_to_host() -> None:
@@ -103,7 +104,7 @@ def test_run_host_similarity_applies_decision_layer(
         result["host_posterior"] = 0.5
         return result
 
-    monkeypatch.setattr(orchestrator, "score_host_df", fake_score_host_df)
+    monkeypatch.setattr(decision_module, "score_host_df", fake_score_host_df)
 
     df_host = pd.DataFrame(
         [
@@ -142,8 +143,9 @@ def test_run_host_similarity_applies_decision_layer(
     expected = orchestrator.clip_unit_interval(
         0.5
         * orchestrator.class_prior("M")
-        * orchestrator.quality_factor(1.0, 20.0, 15.0)
         * orchestrator.metallicity_factor(0.1)
+        * orchestrator.reliability_factor(1.0, 20.0)
+        * orchestrator.followup_factor(15.0)
         * orchestrator.color_factor(1.2)
         * orchestrator.normalized_validation_factor(0.9)
     )
@@ -167,6 +169,15 @@ def test_run_host_similarity_applies_decision_layer(
     assert math.isclose(float(host_log_lr_value), 1.0, rel_tol=1e-9)
     assert math.isclose(float(host_posterior_value), 0.5, rel_tol=1e-9)
     assert pd.isna(similarity_value)
+
+
+def test_priority_tier_from_score_uses_current_v1_thresholds() -> None:
+    """Current V1 orchestration должен держать HIGH от 0.50, MEDIUM от 0.30."""
+    assert orchestrator.priority_tier_from_score(0.60) == "HIGH"
+    assert orchestrator.priority_tier_from_score(0.50) == "HIGH"
+    assert orchestrator.priority_tier_from_score(0.49) == "MEDIUM"
+    assert orchestrator.priority_tier_from_score(0.30) == "MEDIUM"
+    assert orchestrator.priority_tier_from_score(0.29) == "LOW"
 
 
 def test_load_models_rejects_legacy_host_artifact(tmp_path: Path) -> None:

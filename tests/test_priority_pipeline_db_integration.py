@@ -100,6 +100,8 @@ def _prepare_result_tables_with_constraints(
                     similarity double precision,
                     class_prior double precision,
                     quality_factor double precision,
+                    reliability_factor double precision,
+                    followup_factor double precision,
                     metallicity_factor double precision,
                     color_factor double precision,
                     validation_factor double precision,
@@ -339,6 +341,8 @@ def test_run_pipeline_persists_into_temporary_schema(
         result["similarity"] = None
         result["class_prior"] = 0.95
         result["quality_factor"] = 0.97
+        result["reliability_factor"] = 0.97
+        result["followup_factor"] = 0.92
         result["metallicity_factor"] = 1.02
         result["color_factor"] = 1.01
         result["validation_factor"] = 1.00

@@ -17,8 +17,12 @@ import pandas as pd
 from host_model import score_df_contrastive as score_host_df
 from priority_pipeline.branching import known_low_reason_code
 from priority_pipeline.constants import (
+    CLASS_PRIOR_BY_SPEC_CLASS,
+    DEFAULT_CLASS_PRIOR,
     HOST_MODEL_VERSION,
     HOST_SCORING_REASON,
+    PRIORITY_TIER_HIGH_THRESHOLD,
+    PRIORITY_TIER_MEDIUM_THRESHOLD,
     ROUTER_UNKNOWN_REASON,
 )
 from priority_pipeline.frame_contract import ensure_decision_columns
@@ -31,16 +35,12 @@ def clip_unit_interval(value: float) -> float:
 
 def class_prior(spec_class: Any) -> float:
     """Вернуть физический prior для спектрального класса."""
-    priors = {
-        "M": 1.00,
-        "K": 0.95,
-        "G": 0.80,
-        "F": 0.65,
-        "A": 0.20,
-        "B": 0.20,
-        "O": 0.20,
-    }
-    return float(priors.get(str(spec_class), 0.20))
+    return float(
+        CLASS_PRIOR_BY_SPEC_CLASS.get(
+            str(spec_class),
+            DEFAULT_CLASS_PRIOR,
+        )
+    )
 
 
 def ruwe_factor(value: Any) -> float:
@@ -92,15 +92,26 @@ def distance_factor(parallax: Any) -> float:
 def quality_factor(
     ruwe: Any,
     parallax_over_error: Any,
-    parallax: Any,
 ) -> float:
-    """Объединить качество астрометрии и расстояние в один фактор."""
+    """Объединить факторы надёжности астрометрии без distance penalty."""
     values = (
         ruwe_factor(ruwe),
         parallax_precision_factor(parallax_over_error),
-        distance_factor(parallax),
     )
     return clip_unit_interval(sum(values) / float(len(values)))
+
+
+def reliability_factor(
+    ruwe: Any,
+    parallax_over_error: Any,
+) -> float:
+    """Вернуть отдельный фактор качества и надёжности астрометрии."""
+    return quality_factor(ruwe, parallax_over_error)
+
+
+def followup_factor(parallax: Any) -> float:
+    """Вернуть отдельный фактор наблюдательной пригодности follow-up."""
+    return distance_factor(parallax)
 
 
 def metallicity_factor(value: Any) -> float:
@@ -140,18 +151,11 @@ def normalized_validation_factor(value: Any) -> float:
 
 def priority_tier_from_score(score: float) -> str:
     """Преобразовать непрерывный score в operational priority tier."""
-    if score >= 0.55:
+    if score >= PRIORITY_TIER_HIGH_THRESHOLD:
         return "HIGH"
-    if score >= 0.30:
+    if score >= PRIORITY_TIER_MEDIUM_THRESHOLD:
         return "MEDIUM"
     return "LOW"
-
-
-def iter_triplets(
-    rows: Iterable[tuple[Any, Any, Any]],
-) -> Iterable[tuple[Any, Any, Any]]:
-    """Явный адаптер для итераторов по тройкам значений."""
-    return rows
 
 
 def apply_common_factors(df: pd.DataFrame) -> pd.DataFrame:
@@ -159,20 +163,27 @@ def apply_common_factors(df: pd.DataFrame) -> pd.DataFrame:
 
     Функция ожидает колонки router output и decision metadata, после чего
     добавляет в DataFrame `class_prior`, `quality_factor`,
-    `metallicity_factor`, `color_factor` и нормализованный
-    `validation_factor`.
+    `reliability_factor`, `followup_factor`, `metallicity_factor`,
+    `color_factor` и нормализованный `validation_factor`.
     """
     result = ensure_decision_columns(df)
     result["class_prior"] = [
         class_prior(spec_class)
         for spec_class in result["predicted_spec_class"]
     ]
-    quality_rows = result[
-        ["ruwe", "parallax_over_error", "parallax"]
-    ].itertuples(index=False, name=None)
-    result["quality_factor"] = [
-        quality_factor(ruwe, plx_err, parallax)
-        for ruwe, plx_err, parallax in iter_triplets(quality_rows)
+    reliability_rows = cast(
+        Iterable[tuple[Any, Any]],
+        result[
+            ["ruwe", "parallax_over_error"]
+        ].itertuples(index=False, name=None),
+    )
+    result["reliability_factor"] = [
+        reliability_factor(ruwe, plx_err)
+        for ruwe, plx_err in reliability_rows
+    ]
+    result["quality_factor"] = result["reliability_factor"]
+    result["followup_factor"] = [
+        followup_factor(parallax) for parallax in result["parallax"]
     ]
     result["metallicity_factor"] = [
         metallicity_factor(value) for value in result["mh_gspphot"]
@@ -230,26 +241,50 @@ def run_host_similarity(
         [
             "host_posterior",
             "class_prior",
-            "quality_factor",
+            "reliability_factor",
+            "followup_factor",
             "metallicity_factor",
+            "color_factor",
+            "validation_factor",
+        ]
+    ].itertuples(index=False, name=None)
+    scored["host_score"] = [
+        clip_unit_interval(
+            float(host_posterior)
+            * float(class_prior_value)
+            * float(metallicity_value)
+        )
+        for (
+            host_posterior,
+            class_prior_value,
+            reliability_value,
+            followup_value,
+            metallicity_value,
+            color_value,
+            validation_value,
+        ) in scoring_rows
+    ]
+    scoring_rows = scored[
+        [
+            "host_score",
+            "reliability_factor",
+            "followup_factor",
             "color_factor",
             "validation_factor",
         ]
     ].itertuples(index=False, name=None)
     scored["final_score"] = [
         clip_unit_interval(
-            float(host_posterior)
-            * float(class_prior_value)
-            * float(quality_value)
-            * float(metallicity_value)
+            float(host_score_value)
+            * float(reliability_value)
+            * float(followup_value)
             * float(color_value)
             * float(validation_value)
         )
         for (
-            host_posterior,
-            class_prior_value,
-            quality_value,
-            metallicity_value,
+            host_score_value,
+            reliability_value,
+            followup_value,
             color_value,
             validation_value,
         ) in scoring_rows
@@ -331,14 +366,15 @@ __all__ = [
     "clip_unit_interval",
     "color_factor",
     "distance_factor",
+    "followup_factor",
     "host_model_version",
-    "iter_triplets",
     "metallicity_factor",
     "normalized_validation_factor",
     "order_priority_results",
     "parallax_precision_factor",
     "priority_tier_from_score",
     "quality_factor",
+    "reliability_factor",
     "ruwe_factor",
     "run_host_similarity",
 ]

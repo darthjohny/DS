@@ -8,6 +8,16 @@
   router outcome;
 - не должен читаться как главный current-state документ.
 
+Current V1 note:
+- в текущем production `UNKNOWN` трактуется уже уже, чем в этом
+  историческом ТЗ;
+- structurally incomplete строки сейчас отфильтровываются в
+  [input_data.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/src/priority_pipeline/input_data.py)
+  ещё до router scoring;
+- поэтому `missing features -> UNKNOWN` ниже нужно читать как
+  historical first-wave target, а не как точное описание current
+  production runtime.
+
 Где смотреть текущее состояние:
 - `README.md` — пользовательское описание текущего runtime-контракта;
 - `src/router_model/ood.py` и `src/router_model/score.py` — каноническая
@@ -64,6 +74,14 @@
 - объект с недостаточной уверенностью router;
 - объект, который лучше не пускать в closed-set ветку, чем насильно
   относить к одному из известных классов.
+
+Важно для current V1:
+
+- первый пункт выше реализован не в production runtime, а только в
+  historical target-spec;
+- фактический production runtime сейчас использует `UNKNOWN` только для
+  scoreable rows, которые дошли до router scoring и были отвергнуты
+  пустым artifact, label-normalization failure или confidence reject.
 
 ## 4. Канонический runtime-контракт
 
