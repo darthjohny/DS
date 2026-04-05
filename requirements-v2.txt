@@ -1,29 +1,22 @@
 # DSPro VKR V2
 # Python target: 3.13.x
 #
-# Отдельный manifest для нового окружения V2.
-# Здесь только осмысленные зависимости верхнего уровня для новой
-# архитектуры, benchmark-контура и будущего API-слоя.
+# Полный локальный манифест для работы над V2:
+# runtime, notebooks и QA-инструменты.
+# Пакетные runtime-зависимости вынесены отдельно в
+# `requirements-runtime-v2.txt`, потому что `pyproject.toml`
+# использует их как источник metadata для editable/installable пакета.
 
-# Core runtime and ML stack
-numpy==2.4.1
-pandas==3.0.0
-scipy==1.17.0
-scikit-learn==1.8.0
-SQLAlchemy==2.0.46
-psycopg2-binary==2.9.11
+-r requirements-runtime-v2.txt
 
-# Analysis, plots and notebooks
+# Notebook и визуализация
 matplotlib==3.10.8
 seaborn==0.13.2
 jupyterlab==4.5.3
-nbconvert==7.17.0
+nbclient==0.10.4
 
-# Future API layer
-fastapi>=0.116,<1.0
-uvicorn>=0.35,<1.0
-
-# QA and static checks
+# QA и статические проверки
 pytest==9.0.2
 mypy==1.19.1
 ruff==0.15.5
+pyright==1.1.407

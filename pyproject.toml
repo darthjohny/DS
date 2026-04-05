@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "exohost"
+version = "0.1.0"
+description = "Modular research platform for stellar classification and follow-up prioritization."
+readme = "README.md"
+requires-python = ">=3.13"
+dynamic = ["dependencies"]
+
+[project.scripts]
+exohost = "exohost.cli.main:main"
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements-runtime-v2.txt"] }
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["exohost", "exohost.*"]
+exclude = ["tests", "tests.*"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.13"
+mypy_path = "src"
+files = ["src", "tests"]
+pretty = true
+show_error_codes = true
+warn_unused_configs = true
+exclude = "(^analysis/|^.legacy_v1/)"
+
+[[tool.mypy.overrides]]
+module = ["pandas"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["sklearn", "sklearn.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["joblib"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["astropy", "astropy.*", "astroquery", "astroquery.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+norecursedirs = ["archive_research"]

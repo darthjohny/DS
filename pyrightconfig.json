@@ -1,0 +1,14 @@
+{
+  "include": [
+    "src",
+    "tests"
+  ],
+  "extraPaths": [
+    "src"
+  ],
+  "venvPath": ".",
+  "venv": ".venv-v2",
+  "typeCheckingMode": "basic",
+  "reportMissingTypeStubs": false,
+  "useLibraryCodeForTypes": true
+}

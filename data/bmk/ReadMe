@@ -1,0 +1,243 @@
+B/mk        Catalogue of Stellar Spectral Classifications     (Skiff, 2009-    )
+================================================================================
+General Catalogue of Stellar Spectral Classifications
+     Skiff B.A.
+    <Lowell Observatory (October 2014)>
+    =2014yCat....1.2023S
+================================================================================
+ADC_Keywords: Spectral types ; MK spectral classification
+
+Description:
+    This file contains spectral classifications for stars collected from
+    the literature, serving as a continuation of the compilations produced
+    by the Jascheks, by Kennedy, and by Buscombe. The source of each
+    spectral type is indicated by a standard 19-digit bibcode citation.
+    These papers of course should be cited in publication, not this
+    compilation.
+
+    The stars are identified either by the name used in each publication
+    or by a valid SIMBAD identifier. Some effort has been made to
+    determine accurate (~1" or better) coordinates for equinox J2000 (and
+    epoch 2000 if possible), and these serve as a secondary identifier. To
+    the extent possible with current astrometric sources, the components
+    of double stars and stars with composite spectra are shown as separate
+    entries.
+
+    Magnitudes are provided as an indication of brightness, but these data
+    are not necessarily accurate, as they often derive from photographic
+    photometry or rough estimates.
+
+    The file includes only spectral types determined from spectra (viz.
+    line and band strengths or ratios), omitting those determined from
+    photometry (e.g. DDO, Vilnius) or inferred from broadband colors or
+    spectral energy distributions.
+
+    The classifications include MK types as well as types not strictly on
+    the MK system (white dwarfs, Wolf-Rayet, etc), and in addition simple
+    HD-style temperature types. Luminosity classes in the early Mount
+    Wilson style (e.g. 'd' for dwarf, 'g' for giant) and other similar
+    schemes have been converted to modern notation. Since a citation is
+    provided for each entry, the source paper should be consulted for
+    details about classification schemes, spectral dispersion, and
+    instrumentation used.
+
+    System-defining primary MK standard stars are included from the last
+    lists by Morgan and Keenan, and are flagged by a + sign in column 83.
+    The early-type standards comprise the 1973 "dagger standards"
+    (1973ARA&A..11...29M) and stars from the Morgan, Abt, and Tapscott
+    atlas (1978rmsa.book.....M). Standards from Table I of the Morgan &
+    Abt 'MKA' paper (1972AJ.....77...35M) not appearing in the two later
+    lists are added. Keenan made continual adjustments to the standards
+    lists up to the time of his death. Thus the late-type standards
+    comprise those marked as high-weight standards in the 1989 Perkins
+    catalogue (1989ApJS...71..245K = III/150); the revised S-type
+    standards in collaboration with Boeshaar (1980ApJS...43..379K); plus
+    the carbon standards and class IIIb 'clump giants' in collaboration
+    with Barnbaum (1996ApJS..105..419B and 1999ApJ...518..859K). In
+    addition, I have made use of the final types by Keenan up to January
+    2000 shown at the Ohio State Web site
+    (http://www.astronomy.ohio-state.edu/MKCool), accessed in autumn 2003.
+    Though the present file contains all the stars in these lists, only
+    those marked as standards are flagged as such. Garrison's list of MK
+    'anchor points' might also be consulted in this regard
+    (1994mpyp.conf....3G, and
+    http://www.astro.utoronto.ca/~garrison/mkstds.html).
+
+    The catalogue includes for the first time results from many
+    large-scale objective-prism spectral surveys done at Case, Stockholm,
+    Crimea, Abastumani, and elsewhere. The stars in these surveys were
+    usually identified only on charts or by other indirect means, and have
+    been overlooked heretofore because of the difficulty in recovering the
+    stars. More complete results from these separate publications,
+    including notes and identifications, have been made available to the
+    CDS, and are kept at the Lowell Observatory ftp area
+    (ftp://ftp.lowell.edu/pub/bas/starcats). Not all of these stars are
+    present in SIMBAD.
+
+    As a 'living catalogue', an attempt will be made to keep up with
+    current literature, and to extend the indexing of citations back in
+    time.
+
+File Summary:
+--------------------------------------------------------------------------------
+ FileName   Lrecl  Records  Explanations
+--------------------------------------------------------------------------------
+ReadMe         80        .  This file
+mktypes.dat   141   1058791  The catalog of MK Spectral Types
+surveyed.txt   96      804  List of surveyed articles
+--------------------------------------------------------------------------------
+
+See also:
+  III/18  : Stellar Spectra classified in the MK system (Jaschek+, 1963)
+  III/42  : Selected MK Spectral Types (Jaschek, 1978)
+  III/78  : MK Classification Catalogue Extension (Kennedy, 1983)
+
+Byte-by-byte Description of file: mktypes.dat
+--------------------------------------------------------------------------------
+   Bytes Format Units   Label    Explanations
+--------------------------------------------------------------------------------
+   1- 19  A19   ---     Bibcode  Publication Source
+  22- 48  A27   ---     Name     Star name as published or valid
+                                      SIMBAD name (Lortet et al.)
+  50- 51  I2    h       RAh      Right Ascension (J2000) hour
+  53- 54  I2    min     RAm      Right Ascension (J2000) minute
+  56- 60  F5.2  s       RAs      [0/60] Right Ascension (J2000) second
+      62  A1    ---     DE-      Declination sign
+  63- 64  I2    deg     DEd      Declination (J2000) degree
+  66- 67  I2    arcmin  DEm      Declination (J2000) minute
+  69- 72  F4.1  arcsec  DEs      [0/60] Declination (J2000) second
+      74  A1    ---     rc       Source of coordinates (1)
+  76- 80  F5.2  mag     Mag      ? Magnitude, see passband in n_Mag
+  81- 82  A2    ---   n_Mag      Color passband of magnitude (2)
+      83  A1    ---   n_SpType   [+] if spectral type is an MK standard
+  84-109  A26   ---     SpType   spectral type (MK, HD, or other)
+ 111-141  A31   ---     Remarks  Comments (3)
+--------------------------------------------------------------------------------
+Note (1): sources of astrometry are numbered as follows:
+    A = USNO-A2.0  (1998USNO2.C......0M, Cat. I/252)
+    B = Bordeaux meridian circle  (2001A&A...376..325R, Cat. I/272)
+      + PM2000  (2006A&A...448.1235D, Cat. I/300)
+    b = USNO-B1.0  (2003AJ....125..984M, Cat. I/284)
+    c = AC2000  (1998AJ....115.1212U, Cat. I/275)
+    C = Carlsberg CMC11  (1999yCat.1256.....C, Cat. I/256)
+      + Carlsberg CMC12  (2002A&A...395..347E, Cat. I/282)
+      + Carlsberg CMC14  (2005yCat.1304.....C, Cat. I/304)
+      + Carlsberg CMC15  (2011yCat.1327.....C, Cat. I/327)
+    D = DENIS  (1999A&A...349..236E, Cat. b/denis)
+    E = Edinburgh SuperCOSMOS  (http://www-wfau.roe.ac.uk/sss/obj.html)
+    F = USNO-Flagstaff transit circle  (1999AJ....118.2488S, Cat. I/263)
+    G = GSC-ACT  (1999yCat.1255.....G, Cat. I/255)
+    g = GSC-2.2  (2001yCat.1271.....S, Cat. I/271)
+      + GSC-2.3  (2008AJ....136..735L, Cat. I/305)
+    i = IRSF  (2007PASJ...59..615K, Cat. II/288)
+    I = IPHAS DR2 (2014yCat.2321....0B, Cat. II/321)
+    L = LSPM  (2005AJ....129.1483L, Cat. I/298)
+    M = 2MASS second, all-sky, or 6x releases  (2006AJ....131.1163S,
+        Cat. II/241, II/246, II/281)
+    s = SkyView estimate (+/-2")
+    S = Sloan Digital Sky Survey DR6,7,8,9 (2008ApJS..175..297A, Cat. II/282)
+    T = all Hipparcos/Tycho-related catalogues, including in approximate
+        order of preference:
+      + Tycho-2    (2000A&A...357..367H, Cat. I/259)
+      + TDSC       (2002A&A...384..180F, Cat. I/276)
+      + TRC        (1998A&A...335L..65H and 1999A&AS..136..491K, Cat. I/250)
+      + ACT        (1998AJ....115.2161U, Cat. I/246)
+      + Hipparcos2 (2007A&A...474..653V, Cat. I/311)
+      + Hipparcos  (1997HIP...C......0E, Cat. I/239/hip_main)
+      + Tycho-1    (1997HIP...C......0E, Cat. I/239/tyc_main)
+    U = UCAC1, UCAC2, UCAC4, or URAT1  (2000AJ....120.2131Z,
+      Cat. I/268, I/289, I/322, I/329)
+    u = UKIDSS DR6  (2007MNRAS.379.1599L, Cat. II/316)
+      + UKIDSS DR7  (Cat. II/310)
+      + UKIDSS DR8  (Cat. II/314)
+      + UKIDSS DR9  (Cat. II/319)
+    W = WISE  (Cutri et al 2011, Cat. II/311)
+    Y = Yale SPM  (1998AJ....116.2556P, Cat. I/277)
+    z = MCPS catalogue  (2002AJ....123..855Z, Cat. J/AJ/123/855)
+    - = other  (copied from source paper, derived from x,y coordinates, etc.)
+
+Note (2):  passbands are usually standard Johnson-Cousins BVRI, or
+    photographic equivalents, near-infrared J and K, Sloan-Gunn g or z.
+
+Note (3): comments are often greatly compressed; some common phrases are:
+   brtr       = brighter
+   close pair = nearly-equal pairs usually < 0".5 separation observed together
+   comp       = companion or composite (clear from context)
+   cpm pair   = common proper motion double star
+   DIB        = diffuse interstellar band
+   em         = emission
+   f          = faint
+   fntr       = fainter
+   grp        = group
+   gx         = galaxy
+   ID         = identification
+   interst    = interstellar
+   lg pm      = large proper motion (usually > 0".15 per year)
+   vlg pm     = very large proper motion (> 2" per year)
+   lum        = luminosity (class)
+   max        = maximum (brightness)
+   met, mets  = metals, metallic lines
+   min        = minimum (brightness)
+   nr         = near
+   opt pair   = 'optical' double star, i.e. not common proper motion
+   pec        = peculiar
+   prob       = probably
+   sl         = slight, slightly
+   spec var   = spectrum variable
+   str        = strong
+   uncer      = uncertain
+   var        = variable
+   wk         = weak
+   Nrn        = northern
+   Nmost      = northernmost (and similar)
+   Ern        = eastern
+   Srn        = southern
+   Wrn        = western
+   NErn       = northeastern
+   NWrn       = northwestern
+   SErn       = southeastern
+   SWrn       = southwestern
+--------------------------------------------------------------------------------
+
+Acknowledgements:
+    I have received much help on various aspects of preparing this
+    catalogue from Larry Wasserman (Lowell Obs), Gerard Jasniewicz (CDS),
+    Francois Ochsenbein (CDS), Fabienne Woelfel (CDS), Pascal Dubois (CDS),
+    Jack MacConnell (STScI), Harold Corwin (IPAC), Cameron Reed (Alma College),
+    Brian Mason (USNO), Ernst Paunzen (Univ Wien), Thurburn Barker (PARI),
+    Chris Corbally (Vatican Obs), Richard Gray (Appalachian State Univ),
+    Mati Morel, Chris Watson (AAVSO), John Greaves, Wayne Osborn,
+    Erik Anderson, Bill Buscombe, Billy Bidelman, Nancy Houk, as well
+    as librarians Antoinette Beiser and Lauren Amundson (Lowell Obs),
+    Brenda Corbin (USNO), and Suzanne Laloe (IAP-Paris), plus numerous
+    authors whose work is compiled here.
+
+
+History:
+  * 19-May-2003: Prepared by Brian Skiff (Lowell Observatory) (58783 records)
+  * 18-Jul-2003: Several errors corrected by the author (63865 records)
+  * 31-May-2004: Updated and completed version (III/233A, 107968 records)
+  * 06-Jun-2005: Updated and completed version (III/233B, 156824 records)
+  * 23-Oct-2007: Updated (B/mk), now 272640 records
+  * 07-Jan-2008: Updated (B/mk), now 283486 records
+  * 19-Feb-2009: Updated (B/mk), now 333826 records
+  * 14-Jul-2009: Updated (B/mk), now 347592 records
+  * 05-Oct-2009: Updated (B/mk), now 361152 records
+  * 22-Mar-2010: Updated (B/mk), now 423055 records
+  * 28-Dec-2010: Updated (B/mk), now 433169 records
+  * 14-Sep-2011: Updated (B/mk), now 452890 records
+  * 21-Feb-2012: Updated (B/mk), now 534091 records
+  * 17-Jul-2012: Updated (B/mk), now 557746 records
+  * 13-Jan-2013: Updated (B/mk), now 604090 records
+  * 06-May-2013: Updated (B/mk), now 636441 records
+  * 03-Feb-2014: Updated (B/mk), now 657452 records
+  * 04-May-2014: Updated (B/mk), now 682075 records
+  * 21-Oct-2014: Updated (B/mk), now 716029 records
+  * 15-Dec-2014: Updated (B/mk), now 716029 records
+  * 23-Jun-2015: Updated (B/mk), now 760007 records
+  * 02-feb-2016: Updated (B/mk), now 798203 records
+  * 01-aug-2017: Updated (B/mk), now 861868 records
+  * 18-dec-2018: Updated (B/mk), now 888588 records
+  * 06-feb-2020: Updated (B/mk), now 911723 records
+================================================================================
+(End)        Brian Skiff [Lowell Obs.], Francois Ochsenbein [CDS]    21-Oct-2014

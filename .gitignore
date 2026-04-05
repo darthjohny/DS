@@ -8,12 +8,23 @@ __pycache__/
 .ruff_cache/
 .pyright/
 *.pyc
+*.pyo
+*.pyd
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
 *.egg-info/
 
 # Environment
 .env
+.env.*
 
-# OS / notebooks
+# IDE / local tooling
+.vscode/
+.idea/
+
+# OS / notebooks / temp
 .DS_Store
 .ipynb_checkpoints/
 notebooks/eda/data/
@@ -21,9 +32,12 @@ Pandas_1 -1-.ipynb
 Untitled*.ipynb
 Untitled Folder/
 docs/assets/Снимок экрана *.png
+tmp/
 
 # Generated data
+artifacts/
 data/processed/
+data/bmk/mktypes.dat
 *.session.sql
 experiments/Логи калибровки decision_layer/iteration_*.md
 experiments/Логи калибровки decision_layer/iteration_*_class_distribution.csv
