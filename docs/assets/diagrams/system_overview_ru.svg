@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1140" viewBox="0 0 1600 1140" role="img" aria-labelledby="title desc">
+  <title id="title">Обзорная схема системы проекта</title>
+  <desc id="desc">Схема показывает путь от источников данных через БД и модели к итоговому shortlist наблюдений, а также контур доверия и точку дальнейшего развития.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f6f2ea; }
+      .title { font: 700 30px 'Helvetica Neue', Arial, sans-serif; fill: #1f2937; }
+      .subtitle { font: 500 16px 'Helvetica Neue', Arial, sans-serif; fill: #475569; }
+      .box-title { font: 700 20px 'Helvetica Neue', Arial, sans-serif; fill: #0f172a; }
+      .box-text { font: 500 16px 'Helvetica Neue', Arial, sans-serif; fill: #1e293b; }
+      .small-text { font: 500 15px 'Helvetica Neue', Arial, sans-serif; fill: #334155; }
+      .arrow { stroke: #475569; stroke-width: 3.5; fill: none; marker-end: url(#arrowhead); }
+      .arrow-dashed { stroke: #64748b; stroke-width: 3; fill: none; stroke-dasharray: 8 8; marker-end: url(#arrowhead); }
+      .label { font: 600 14px 'Helvetica Neue', Arial, sans-serif; fill: #475569; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <polygon points="0 0, 10 5, 0 10" fill="#475569"/>
+    </marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#94a3b8" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1600" height="1140"/>
+
+  <text class="title" x="70" y="62">Обзорная схема системы проекта</text>
+  <text class="subtitle" x="70" y="92">Источник данных, БД, обучение, боевой pipeline, shortlist наблюдений и контур доверия</text>
+
+  <!-- Row 1 -->
+  <g filter="url(#shadow)">
+    <rect x="60" y="140" rx="22" ry="22" width="280" height="280" fill="#dbeafe" stroke="#60a5fa" stroke-width="2.5"/>
+    <text class="box-title" x="90" y="180">Источники данных</text>
+    <text class="box-text" x="90" y="220">• Gaia DR3</text>
+    <text class="box-text" x="90" y="252">• NASA Exoplanet Archive</text>
+    <text class="box-text" x="90" y="284">• CDS/VizieR B/mk</text>
+    <text class="small-text" x="90" y="334">Астрометрия, фотометрия,</text>
+    <text class="small-text" x="90" y="360">астрофизические параметры</text>
+    <text class="small-text" x="90" y="386">и внешние спектральные метки</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="390" y="140" rx="22" ry="22" width="340" height="280" fill="#dcfce7" stroke="#4ade80" stroke-width="2.5"/>
+    <text class="box-title" x="420" y="180">Подготовка и БД</text>
+    <text class="box-text" x="420" y="220">• ingestion и нормализация</text>
+    <text class="box-text" x="420" y="252">• crossmatch и enrichment</text>
+    <text class="box-text" x="420" y="284">• labeled / training_reference</text>
+    <text class="box-text" x="420" y="316">• quality_gated / unknown_review</text>
+    <text class="small-text" x="420" y="366">Главный боевой вход:</text>
+    <text class="small-text" x="420" y="392">lab.gaia_mk_quality_gated</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="780" y="140" rx="22" ry="22" width="340" height="280" fill="#fef3c7" stroke="#f59e0b" stroke-width="2.5"/>
+    <text class="box-title" x="810" y="180">Обучение и benchmark</text>
+    <text class="box-text" x="810" y="220">• ID/OOD</text>
+    <text class="box-text" x="810" y="252">• coarse-классы</text>
+    <text class="box-text" x="810" y="284">• refinement / family</text>
+    <text class="box-text" x="810" y="316">• host-like модель</text>
+    <text class="small-text" x="810" y="366">Основной рабочий контур</text>
+    <text class="small-text" x="810" y="392">опирается на HGB-модели</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="1170" y="140" rx="22" ry="22" width="340" height="280" fill="#ede9fe" stroke="#8b5cf6" stroke-width="2.5"/>
+    <text class="box-title" x="1200" y="180">Активный inference-контур</text>
+    <text class="box-text" x="1200" y="220">• active artifacts</text>
+    <text class="box-text" x="1200" y="252">• calibration</text>
+    <text class="box-text" x="1200" y="284">• tuned quality_gate</text>
+    <text class="box-text" x="1200" y="316">• tuned priority</text>
+    <text class="small-text" x="1200" y="366">Воспроизводимый baseline</text>
+    <text class="small-text" x="1200" y="392">и validation run</text>
+  </g>
+
+  <!-- Arrows top -->
+  <path class="arrow" d="M 340 265 C 355 265, 365 265, 390 265"/>
+  <path class="arrow" d="M 730 265 C 745 265, 755 265, 780 265"/>
+  <path class="arrow" d="M 1120 265 C 1135 265, 1145 265, 1170 265"/>
+
+  <!-- Row 2 -->
+  <g filter="url(#shadow)">
+    <rect x="310" y="510" rx="24" ry="24" width="980" height="220" fill="#ffffff" stroke="#94a3b8" stroke-width="2.5"/>
+    <text class="box-title" x="340" y="550">Финальный pipeline принятия решения</text>
+
+    <rect x="340" y="580" rx="16" ry="16" width="150" height="90" fill="#e0f2fe" stroke="#38bdf8" stroke-width="2"/>
+    <text class="small-text" x="366" y="615">quality_gate</text>
+    <text class="small-text" x="367" y="642">pass / unknown</text>
+
+    <rect x="530" y="580" rx="16" ry="16" width="150" height="90" fill="#e0e7ff" stroke="#818cf8" stroke-width="2"/>
+    <text class="small-text" x="575" y="615">ID / OOD</text>
+    <text class="small-text" x="556" y="642">рабочий routing</text>
+
+    <rect x="720" y="580" rx="16" ry="16" width="170" height="90" fill="#fef9c3" stroke="#eab308" stroke-width="2"/>
+    <text class="small-text" x="805" y="615" text-anchor="middle">coarse + refinement</text>
+    <text class="small-text" x="805" y="642" text-anchor="middle">классы и подклассы</text>
+
+    <rect x="930" y="580" rx="16" ry="16" width="150" height="90" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+    <text class="small-text" x="1005" y="615" text-anchor="middle">host_similarity_score</text>
+    <text class="small-text" x="1005" y="642" text-anchor="middle">сходство с host</text>
+
+    <rect x="1120" y="580" rx="16" ry="16" width="140" height="90" fill="#fee2e2" stroke="#f87171" stroke-width="2"/>
+    <text class="small-text" x="1190" y="615" text-anchor="middle">priority_score</text>
+    <text class="small-text" x="1190" y="638" text-anchor="middle">Наблюдаемый</text>
+    <text class="small-text" x="1190" y="656" text-anchor="middle">ранг</text>
+
+    <path class="arrow" d="M 490 625 C 505 625, 515 625, 530 625"/>
+    <path class="arrow" d="M 680 625 C 695 625, 705 625, 720 625"/>
+    <path class="arrow" d="M 890 625 C 905 625, 915 625, 930 625"/>
+    <path class="arrow" d="M 1080 625 C 1095 625, 1105 625, 1120 625"/>
+
+    <text class="label" x="342" y="700">Связка моделей и policy-слоев превращает сырые данные в shortlist для follow-up наблюдений.</text>
+  </g>
+
+  <!-- Row 3 -->
+  <g filter="url(#shadow)">
+    <rect x="310" y="820" rx="24" ry="24" width="980" height="180" fill="#ecfeff" stroke="#22d3ee" stroke-width="2.5"/>
+    <text class="box-title" x="340" y="860">Итоговый результат работы</text>
+    <text class="box-text" x="340" y="900">• final_decision.csv и priority_ranking.csv</text>
+    <text class="box-text" x="340" y="934">• high priority = 72 113 объектов</text>
+    <text class="box-text" x="340" y="968">• верхняя группа сосредоточена в зоне F/G/K и выглядит host-like</text>
+  </g>
+
+  <path class="arrow" d="M 800 420 C 800 458, 800 478, 800 510"/>
+  <path class="arrow" d="M 800 730 C 800 766, 800 786, 800 820"/>
+
+  <!-- Trust block -->
+  <g filter="url(#shadow)">
+    <rect x="60" y="510" rx="24" ry="24" width="210" height="300" fill="#f8fafc" stroke="#94a3b8" stroke-width="2.5"/>
+    <text class="box-title" x="88" y="550">Контур доверия</text>
+    <text class="box-text" x="88" y="592">• unit</text>
+    <text class="box-text" x="88" y="624">• integration</text>
+    <text class="box-text" x="88" y="656">• smoke</text>
+    <text class="box-text" x="88" y="688">• regression</text>
+    <text class="box-text" x="88" y="720">• validation run</text>
+    <text class="small-text" x="88" y="770">Страхует pipeline</text>
+    <text class="small-text" x="88" y="796">от тихого дрейфа</text>
+  </g>
+
+  <path class="arrow-dashed" d="M 270 660 C 290 660, 300 660, 310 660"/>
+  <text class="label" x="134" y="842">Проверка</text>
+
+  <!-- Growth block -->
+  <g filter="url(#shadow)">
+    <rect x="1320" y="510" rx="24" ry="24" width="220" height="300" fill="#fff7ed" stroke="#fb923c" stroke-width="2.5"/>
+    <text class="box-title" x="1351" y="550">Точка роста</text>
+    <text class="box-text" x="1351" y="592">• подклассы</text>
+    <text class="box-text" x="1351" y="624">• O/B boundary</text>
+    <text class="box-text" x="1351" y="656">• спектроскопия</text>
+    <text class="box-text" x="1351" y="688">• новые признаки</text>
+    <text class="small-text" x="1351" y="750">Доп. научный слой,</text>
+    <text class="small-text" x="1351" y="776">а не ядро успеха</text>
+  </g>
+
+  <path class="arrow-dashed" d="M 1030 420 C 1120 450, 1270 480, 1320 560"/>
+  <text class="label" x="1148" y="472">Дальнейшее развитие</text>
+
+  <!-- Footer note -->
+  <text class="subtitle" x="70" y="1088">Главный прикладной результат: система воспроизводимо формирует shortlist целей для последующих наблюдений, а не пытается объявлять обнаружение экзопланет.</text>
+</svg>

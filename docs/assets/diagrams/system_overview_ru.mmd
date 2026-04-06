@@ -1,0 +1,18 @@
+%% Обзорная схема системы для ВКР и презентации.
+%% Этот файл нужен как исходник для правок структуры.
+%% Для вставки в docs и презентацию используем готовый SVG.
+
+flowchart LR
+    A["Источники данных<br/>Gaia DR3<br/>NASA Exoplanet Archive<br/>CDS/VizieR B/mk"]
+    B["Подготовка и БД<br/>ingestion<br/>crossmatch<br/>labeled<br/>training_reference<br/>quality_gated"]
+    C["Обучение и benchmark<br/>ID/OOD<br/>coarse-классы<br/>refinement / family<br/>host-like модель"]
+    D["Активный inference-контур<br/>active artifacts<br/>calibration<br/>tuned policy"]
+    E["Финальный pipeline<br/>quality_gate<br/>ID / OOD / unknown<br/>coarse + refinement<br/>priority scoring"]
+    F["Итог работы<br/>final_decision.csv<br/>priority_ranking.csv<br/>high priority = 72 113<br/>host-like shortlist F/G/K"]
+    G["Контур доверия<br/>unit<br/>integration<br/>smoke<br/>regression<br/>validation run"]
+    H["Точка роста<br/>подклассы и O/B boundary<br/>внешняя спектроскопия<br/>новые физические признаки"]
+
+    A --> B --> C --> D --> E --> F
+    G -. страхует .-> C
+    G -. страхует .-> E
+    C -. развитие .-> H

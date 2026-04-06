@@ -37,6 +37,10 @@
 - задача более глубокой подклассовой детализации остается отдельной точкой
   роста.
 
+## Обзорная Схема Системы
+
+![Обзорная схема системы проекта](docs/assets/diagrams/system_overview_ru.svg)
+
 ## Зачем Нужна Работа
 
 В задачах поиска экзопланет важна не только сама классификация звезд, но и
@@ -312,13 +316,14 @@ tests/
 Если нужно быстро понять проект, лучше идти в таком порядке:
 
 1. [analysis/notebooks/technical/final_decision_review.ipynb](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/technical/final_decision_review.ipynb)
-2. [docs/methodology/run_reviews/high_priority_cohort_review_2026_04_05_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/high_priority_cohort_review_2026_04_05_ru.md)
-3. [analysis/notebooks/technical/model_pipeline_review.ipynb](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/technical/model_pipeline_review.ipynb)
-4. [docs/methodology/run_reviews/baseline_run_registry_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/baseline_run_registry_ru.md)
-5. [docs/methodology/contracts/project_db_contour_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/project_db_contour_ru.md)
-6. [docs/methodology/contracts/external_decide_input_contract_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/external_decide_input_contract_ru.md)
-7. [docs/methodology/vkr/README.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/vkr/README.md)
-8. [analysis/notebooks/README.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/README.md)
+2. [docs/assets/diagrams/system_overview_ru.svg](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/assets/diagrams/system_overview_ru.svg)
+3. [docs/methodology/run_reviews/high_priority_cohort_review_2026_04_05_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/high_priority_cohort_review_2026_04_05_ru.md)
+4. [analysis/notebooks/technical/model_pipeline_review.ipynb](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/technical/model_pipeline_review.ipynb)
+5. [docs/methodology/run_reviews/baseline_run_registry_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/baseline_run_registry_ru.md)
+6. [docs/methodology/contracts/project_db_contour_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/project_db_contour_ru.md)
+7. [docs/methodology/contracts/external_decide_input_contract_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/external_decide_input_contract_ru.md)
+8. [docs/methodology/vkr/README.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/vkr/README.md)
+9. [analysis/notebooks/README.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/README.md)
 
 ## База Данных И Внешний Вход
 
