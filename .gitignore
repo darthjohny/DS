@@ -33,6 +33,7 @@ Untitled*.ipynb
 Untitled Folder/
 docs/assets/Снимок экрана *.png
 tmp/
+docs/architecture/
 
 # Generated data
 artifacts/

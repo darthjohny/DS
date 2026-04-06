@@ -5,9 +5,11 @@
 Связанные документы:
 
 - [regression_testing_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/regression_testing_tz_ru.md)
-- [regression_testing_micro_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/architecture/regression_testing_micro_tz_ru.md)
 - [notebook_qa_policy_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/notebook_qa_policy_ru.md)
 - [file_header_policy_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/file_header_policy_ru.md)
+
+Внутренний микро-план regression-пакета ведется вне публичного контура
+репозитория.
 
 ## Зачем Нужен Отдельный Регресс-Слой
 

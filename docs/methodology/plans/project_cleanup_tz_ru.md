@@ -270,7 +270,8 @@
 
 Детальная разбивка на шаги вынесена отдельно:
 
-- [project_cleanup_micro_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/architecture/project_cleanup_micro_tz_ru.md)
+Внутренний микро-план cleanup-пакета ведется вне публичного контура
+репозитория.
 
 ## Текущее Продвижение
 

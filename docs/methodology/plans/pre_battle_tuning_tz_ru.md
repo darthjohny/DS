@@ -7,7 +7,9 @@
 - [post_run_stabilization_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/post_run_stabilization_tz_ru.md)
 - [quality_gate_host_priority_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/quality_gate_host_priority_tz_ru.md)
 - [priority_threshold_calibration_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/priority_threshold_calibration_tz_ru.md)
-- [coding_standard_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/architecture/coding_standard_ru.md)
+
+Внутренний инженерный стандарт проекта ведется вне публичного контура
+репозитория.
 
 ## Зачем Нужен Этот Пакет
 

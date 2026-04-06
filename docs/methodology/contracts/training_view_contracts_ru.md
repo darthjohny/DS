@@ -389,4 +389,6 @@ First-wave вывод:
 - [DB Layer Closure Plan For Hierarchical MK/OOD Wave](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/db_layer_closure_plan_ru.md)
 - [Quality And OOD Contract V2](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/quality_ood_contract_ru.md)
 - [Hierarchical Classification And OOD Strategy](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/hierarchical_ood_strategy_ru.md)
-- [V2 Maturation Micro-TZ](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/architecture/v2_maturation_micro_tz_ru.md)
+
+Внутренний микро-план maturation-этапа ведется вне публичного контура
+репозитория.

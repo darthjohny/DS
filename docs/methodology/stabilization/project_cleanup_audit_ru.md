@@ -5,7 +5,9 @@
 Следующие документы по этому аудиту:
 
 - [project_cleanup_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/project_cleanup_tz_ru.md)
-- [project_cleanup_micro_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/architecture/project_cleanup_micro_tz_ru.md)
+
+Внутренний микро-план cleanup-пакета ведется вне публичного контура
+репозитория.
 
 ## Контур проверки
 

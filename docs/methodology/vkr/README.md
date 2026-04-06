@@ -25,4 +25,6 @@
 Если нужен план того, как этот пакет собирался, смотри:
 
 - [vkr_interpretation_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/vkr_interpretation_tz_ru.md)
-- [vkr_interpretation_micro_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/architecture/vkr_interpretation_micro_tz_ru.md)
+
+Внутренний микро-план интерпретационного пакета ведется вне публичного контура
+репозитория.

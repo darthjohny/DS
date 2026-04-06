@@ -5,10 +5,12 @@
 Связанные документы:
 
 - [project_cleanup_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/project_cleanup_tz_ru.md)
-- [project_cleanup_micro_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/architecture/project_cleanup_micro_tz_ru.md)
 - [tests/archive_research/README.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/tests/archive_research/README.md)
 - [analysis/notebooks/archive_research/README.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/archive_research/README.md)
 - [docs/methodology/archive_research/README.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/README.md)
+
+Внутренний микро-план cleanup-пакета ведется вне публичного контура
+репозитория.
 
 ## Назначение
 

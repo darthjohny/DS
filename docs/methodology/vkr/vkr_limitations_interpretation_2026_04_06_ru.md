@@ -5,7 +5,6 @@
 Связанные документы:
 
 - [vkr_interpretation_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/vkr_interpretation_tz_ru.md)
-- [vkr_interpretation_micro_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/architecture/vkr_interpretation_micro_tz_ru.md)
 - [vkr_interpretation_source_of_truth_2026_04_06_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/vkr/vkr_interpretation_source_of_truth_2026_04_06_ru.md)
 - [vkr_model_quality_interpretation_2026_04_06_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/vkr/vkr_model_quality_interpretation_2026_04_06_ru.md)
 - [vkr_result_trust_interpretation_2026_04_06_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/vkr/vkr_result_trust_interpretation_2026_04_06_ru.md)

@@ -283,7 +283,6 @@ analysis/notebooks/
   technical/    - технический review pipeline и моделей
 
 docs/
-  architecture/ - архитектурные ТЗ и микро-ТЗ
   methodology/  - контракты, планы, run-review, ВКР-интерпретация и stabilization
 
 tests/

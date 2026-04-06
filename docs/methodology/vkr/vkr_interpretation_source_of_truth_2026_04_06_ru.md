@@ -5,7 +5,6 @@
 Связанные документы:
 
 - [vkr_interpretation_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/vkr_interpretation_tz_ru.md)
-- [vkr_interpretation_micro_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/architecture/vkr_interpretation_micro_tz_ru.md)
 - [baseline_run_registry_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/baseline_run_registry_ru.md)
 
 ## Зачем Нужен Этот Документ
