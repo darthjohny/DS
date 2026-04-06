@@ -5,6 +5,7 @@
 - норму и контракты;
 - планы и проектные решения;
 - результаты прогонов и обзоров;
+- интерпретационный слой для текста ВКР;
 - документы стабилизации и служебной политики;
 - архив исследований.
 
@@ -16,6 +17,8 @@
   Планы, design-документы, стратегии и TZ.
 - [run_reviews](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/README.md)
   Итоги прогонов, аудитов и review-раундов.
+- [vkr](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/vkr/README.md)
+  Слой интерпретации результата для текста ВКР.
 - [stabilization](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/README.md)
   Служебные политики, cleanup-аудит и ledger стабилизации.
 - [archive_research](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/README.md)
@@ -29,6 +32,8 @@
 
 Если документ фиксирует результат конкретного прогона, анализа или review,
 он идет в `run_reviews`.
+
+Если документ переводит уже готовый результат на язык ВКР, он идет в `vkr`.
 
 Если документ описывает правила рабочего контура, cleanup или политику
 стабилизации, он идет в `stabilization`.

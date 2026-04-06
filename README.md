@@ -7,10 +7,12 @@
 
 ## О Чем Этот Проект
 
-Проект посвящен двум связанным задачам:
+Проект посвящен двум связанным задачам, но с разным приоритетом:
 
-- классификации звезд по спектральным классам и подклассам;
-- построению shortlist-слоя для последующих наблюдений объектов, похожих на звезды-хозяева экзопланет.
+- главной прикладной задаче: построению shortlist-слоя для последующих
+  наблюдений объектов, похожих на звезды-хозяева экзопланет;
+- поддерживающей научной задаче: классификации звезд по спектральным классам и
+  подклассам.
 
 Практически система делает следующее:
 
@@ -27,6 +29,14 @@
 - верхняя группа состоит из `72 113` объектов;
 - это не подтвержденные планетные системы, а shortlist наиболее интересных host-like кандидатов для дальнейшей проверки.
 
+Важно:
+
+- основная прикладная задача текущей версии проекта решена;
+- pipeline уверенно поднимает наверх спокойные host-like объекты в зоне
+  `F/G/K`, а не редкий горячий хвост;
+- задача более глубокой подклассовой детализации остается отдельной точкой
+  роста.
+
 ## Зачем Нужна Работа
 
 В задачах поиска экзопланет важна не только сама классификация звезд, но и
@@ -37,6 +47,10 @@
 - переводит большие каталоги звезд в инженерно понятный pipeline;
 - отделяет пригодные цели от шумных и сомнительных;
 - дает интерпретируемый ranking объектов для follow-up наблюдений.
+
+Классификация по подклассам в этой логике нужна не сама по себе, а как
+дополнительный физический слой, который помогает сделать итоговый shortlist
+более осмысленным.
 
 ## Какие Модели Использованы
 
@@ -182,6 +196,11 @@ Notebook и визуализация:
 - анализа пограничных объектов;
 - сравнения локальных меток с Gaia hot-star семантикой.
 
+Это отдельный исследовательский контур проекта, а не центральный критерий
+успеха основной прикладной задачи. Для текущей версии работы проблема `O/B`
+рассматривается как честная точка дальнейшего развития, связанная с
+ограничениями данных и потребностью во внешней спектроскопии.
+
 ### 6. Внешние Метки Для Спектральной Классификации
 
 Проект использует и нормализует:
@@ -196,6 +215,12 @@ Notebook и визуализация:
 - coarse-классификация по крупным классам;
 - refinement-слой по подклассам;
 - отдельный разбор проблемных границ, например `O/B`.
+
+Практически это означает:
+
+- верхнеуровневая классификация уже хорошо поддерживает pipeline;
+- глубокая детализация по подклассам полезна и научно интересна;
+- но именно она сейчас сильнее всего зависит от ограничений текущих данных.
 
 ### 7. Данные Для Host-Like Задачи
 
@@ -229,6 +254,11 @@ Notebook и визуализация:
 1. к какому спектральному классу и подклассу ближе объект;
 2. насколько этот объект интересен как цель для дальнейших наблюдений.
 
+При этом центральный прикладной ответ проекта сейчас звучит так:
+
+- какие объекты в первую очередь похожи на host-like цели и должны попасть в
+  верхний наблюдательный shortlist.
+
 ## Структура Репозитория
 
 ```text
@@ -254,7 +284,7 @@ analysis/notebooks/
 
 docs/
   architecture/ - архитектурные ТЗ и микро-ТЗ
-  methodology/  - контракты, run-review, stabilization и планы
+  methodology/  - контракты, планы, run-review, ВКР-интерпретация и stabilization
 
 tests/
   unit/         - локальные модульные проверки
@@ -286,7 +316,25 @@ tests/
 2. [docs/methodology/run_reviews/high_priority_cohort_review_2026_04_05_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/high_priority_cohort_review_2026_04_05_ru.md)
 3. [analysis/notebooks/technical/model_pipeline_review.ipynb](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/technical/model_pipeline_review.ipynb)
 4. [docs/methodology/run_reviews/baseline_run_registry_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/baseline_run_registry_ru.md)
-5. [analysis/notebooks/README.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/README.md)
+5. [docs/methodology/contracts/project_db_contour_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/project_db_contour_ru.md)
+6. [docs/methodology/contracts/external_decide_input_contract_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/external_decide_input_contract_ru.md)
+7. [docs/methodology/vkr/README.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/vkr/README.md)
+8. [analysis/notebooks/README.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/README.md)
+
+## База Данных И Внешний Вход
+
+Если нужно понять, как устроен DB-контур и что подавать в модель, смотри:
+
+- [project_db_contour_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/project_db_contour_ru.md)
+- [external_decide_input_contract_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/external_decide_input_contract_ru.md)
+
+Первый документ показывает, где что лежит в `public` и `lab`.
+
+Второй документ показывает:
+
+- какая relation является боевым входом;
+- какой CSV понимает текущий `decide`;
+- и какой ADQL-запрос можно сделать в Gaia Archive для внешней проверки.
 
 ## Как Запустить Проект Локально
 

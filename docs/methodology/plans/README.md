@@ -16,3 +16,11 @@
 Следующий инженерный пакет после донастройки:
 
 - [regression_testing_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/regression_testing_tz_ru.md)
+
+Следующий содержательный пакет после фиксации regression-слоя:
+
+- [vkr_interpretation_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/vkr_interpretation_tz_ru.md)
+
+Его итоговые текстовые документы собраны отдельно в:
+
+- [vkr](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/vkr/README.md)
