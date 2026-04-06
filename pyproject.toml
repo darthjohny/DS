@@ -60,5 +60,8 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+# Активный контур тестов собирается из общего корня `tests`,
+# включая `unit`, `integration`, `smoke` и `regression`.
 testpaths = ["tests"]
+# Архивный исследовательский слой не входит в регулярный прогон.
 norecursedirs = ["archive_research"]

@@ -1,0 +1,5 @@
+source_id,quality_state,quality_reason,review_bucket,ruwe,parallax_over_error,radius_flame,has_missing_flame_features
+1,pass,pass,pass,1.1,10.0,1.0,False
+2,unknown,review_missing_radius_flame,review_missing_radius_flame,1.0,7.0,,True
+3,unknown,review_high_ruwe,review_high_ruwe,1.55,10.0,1.2,False
+4,reject,reject_missing_core_features,reject_missing_core_features,1.0,9.0,1.1,False

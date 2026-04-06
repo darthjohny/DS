@@ -12,3 +12,7 @@
 Текущий активный пакет донастройки перед следующим боевым прогоном:
 
 - [pre_battle_tuning_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/pre_battle_tuning_tz_ru.md)
+
+Следующий инженерный пакет после донастройки:
+
+- [regression_testing_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/regression_testing_tz_ru.md)

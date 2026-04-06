@@ -1,0 +1,3 @@
+source_id,quality_state,quality_reason,review_bucket,ood_state,ood_reason,teff_gspphot,logg_gspphot,mh_gspphot,bp_rp,parallax,parallax_over_error,ruwe,phot_g_mean_mag,radius_feature,radius_gspphot,validation_factor
+501,pass,pass,pass,id,accepted,5810.0,4.4,0.08,0.74,15.1,18.2,1.01,10.9,1.0,1.0,0.92
+502,pass,pass,pass,id,accepted,4460.0,4.7,-0.18,1.13,10.0,15.0,1.04,13.1,0.8,0.8,0.61

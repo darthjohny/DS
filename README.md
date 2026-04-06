@@ -255,7 +255,28 @@ analysis/notebooks/
 docs/
   architecture/ - архитектурные ТЗ и микро-ТЗ
   methodology/  - контракты, run-review, stabilization и планы
+
+tests/
+  unit/         - локальные модульные проверки
+  integration/  - короткие сквозные связки между слоями
+  smoke/        - быстрые проверки стартового контура
+  regression/   - поведенческий регресс `quality_gate`, `priority` и `decide`
 ```
+
+## Тестовый Контур
+
+Проект использует четыре активных слоя тестирования:
+
+- `unit` — проверяет локальную бизнес-логику, контракты и helper-слой;
+- `integration` — проверяет короткие связки между несколькими модулями;
+- `smoke` — подтверждает, что пакет и CLI не сломаны на старте;
+- `regression` — страхует поведение системы на frozen fixtures.
+
+Если нужно быстро понять тестовую структуру, смотри:
+
+- [tests/README.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/tests/README.md)
+- [tests/regression/README.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/tests/regression/README.md)
+- [docs/methodology/stabilization/regression_test_runbook_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/regression_test_runbook_ru.md)
 
 ## Что Посмотреть В Репозитории В Первую Очередь
 
@@ -282,6 +303,12 @@ python -m pip install -e .
 .venv-v2/bin/mypy src tests
 .venv-v2/bin/pyright src tests
 .venv-v2/bin/pytest -q tests
+```
+
+Быстрый запуск только регресс-слоя:
+
+```bash
+.venv-v2/bin/pytest -q tests/regression
 ```
 
 ## Основная Документация И Источники

@@ -58,3 +58,24 @@ def test_final_decision_review_priority_frames_cover_ranking_outputs(
     assert bool(priority_status_df.loc[0, "host_signal_available"]) is True
     assert "host-сигнал" in str(priority_status_df.loc[0, "status_note"]).lower()
     assert list(top_candidates_df["source_id"]) == [1, 2]
+
+
+def test_host_priority_status_detects_host_signal_outside_decision_input(
+    tmp_path: Path,
+) -> None:
+    decision_input_df = build_decision_input_df().drop(columns=["host_similarity_score"])
+    paths = save_final_decision_artifacts(
+        pipeline_name="hierarchical_final_decision",
+        decision_input_df=decision_input_df,
+        final_decision_df=build_final_decision_df(),
+        priority_input_df=build_priority_input_df(),
+        priority_ranking_df=build_priority_ranking_df(),
+        output_dir=tmp_path,
+    )
+    bundle = load_final_decision_review_bundle(paths.run_dir)
+
+    priority_status_df = build_host_priority_status_frame(bundle)
+
+    assert bool(priority_status_df.loc[0, "host_signal_available"]) is True
+    assert int(priority_status_df.loc[0, "priority_output_rows"]) == 2
+    assert "host-сигнал" in str(priority_status_df.loc[0, "status_note"]).lower()

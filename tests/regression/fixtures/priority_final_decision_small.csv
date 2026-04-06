@@ -1,0 +1,5 @@
+source_id,final_domain_state,final_quality_state,final_coarse_class,priority_state
+1,id,pass,G,stale_high
+2,candidate_ood,pass,K,stale_medium
+3,unknown,reject,,stale_low
+4,id,pass,A,stale_high

@@ -1,0 +1,5 @@
+source_id,host_similarity_score,evolution_stage,parallax,phot_g_mean_mag,parallax_over_error,ruwe,validation_factor
+1,0.78,dwarf,16.0,10.8,18.0,1.02,0.93
+2,0.52,dwarf,10.0,12.2,12.0,1.10,0.70
+3,0.30,evolved,7.0,13.5,9.0,1.18,0.55
+4,0.98,dwarf,20.0,9.5,25.0,1.01,1.00

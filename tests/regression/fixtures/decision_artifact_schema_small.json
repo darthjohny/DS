@@ -1,0 +1,89 @@
+{
+  "decision_input_required_columns": [
+    "source_id",
+    "quality_state",
+    "quality_reason",
+    "review_bucket",
+    "ood_state",
+    "ood_reason",
+    "ood_decision",
+    "coarse_predicted_label",
+    "coarse_probability_max"
+  ],
+  "final_decision_required_columns": [
+    "source_id",
+    "final_domain_state",
+    "final_quality_state",
+    "final_coarse_class",
+    "final_refinement_state",
+    "final_decision_reason",
+    "final_decision_policy_version",
+    "priority_state"
+  ],
+  "priority_input_required_columns": [
+    "source_id",
+    "spec_class",
+    "host_similarity_score"
+  ],
+  "priority_ranking_required_columns": [
+    "source_id",
+    "spec_class",
+    "class_priority_score",
+    "host_similarity_score",
+    "priority_score",
+    "priority_label",
+    "priority_reason"
+  ],
+  "metadata_required_keys": [
+    "pipeline_name",
+    "created_at_utc",
+    "n_rows_input",
+    "n_rows_final_decision",
+    "n_rows_priority_input",
+    "n_rows_priority_ranking",
+    "decision_input_columns",
+    "final_decision_columns",
+    "priority_input_columns",
+    "priority_ranking_columns",
+    "final_domain_distribution",
+    "priority_label_distribution",
+    "context"
+  ],
+  "metadata_context_required_keys": [
+    "candidate_ood_disposition",
+    "coarse_model_run_dir",
+    "connect_timeout",
+    "decision_policy_version",
+    "dotenv_path",
+    "host_model_run_dir",
+    "host_score_column",
+    "input_csv",
+    "min_coarse_probability",
+    "ood_model_run_dir",
+    "ood_threshold_run_dir",
+    "output_dir",
+    "preview_rows",
+    "priority_high_min",
+    "priority_medium_min",
+    "quality_gate_policy_name",
+    "quality_require_flame_for_pass",
+    "refinement_families",
+    "relation_name"
+  ],
+  "allowed_final_domain_states": [
+    "id",
+    "candidate_ood",
+    "ood",
+    "unknown"
+  ],
+  "allowed_final_refinement_states": [
+    "not_attempted",
+    "accepted",
+    "rejected_to_unknown"
+  ],
+  "allowed_priority_labels": [
+    "high",
+    "medium",
+    "low"
+  ]
+}

@@ -142,7 +142,7 @@ def build_priority_by_coarse_class_frame(bundle: FinalDecisionReviewBundle) -> p
 
 def build_host_priority_status_frame(bundle: FinalDecisionReviewBundle) -> pd.DataFrame:
     # Явно показываем, подключены ли host/priority сигналы в текущем run.
-    has_host_signal = "host_similarity_score" in bundle.decision_input_df.columns
+    has_host_signal = _has_host_signal(bundle)
     has_priority_output = bool(bundle.priority_ranking_df.shape[0] > 0)
 
     if has_host_signal and has_priority_output:
@@ -167,6 +167,19 @@ def build_host_priority_status_frame(bundle: FinalDecisionReviewBundle) -> pd.Da
                 "status_note": note,
             }
         ]
+    )
+
+
+def _has_host_signal(bundle: FinalDecisionReviewBundle) -> bool:
+    signal_column_name = "host_similarity_score"
+    return any(
+        signal_column_name in frame.columns
+        for frame in (
+            bundle.decision_input_df,
+            bundle.priority_input_df,
+            bundle.priority_ranking_df,
+            bundle.final_decision_df,
+        )
     )
 
 
