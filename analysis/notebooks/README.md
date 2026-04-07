@@ -87,5 +87,8 @@ QA по умолчанию.
   - синтаксическую корректность code-cell.
 - `nbclient` запускается адресно для активных notebook, затронутых текущим шагом.
 
-Подробная политика зафиксирована в
-[/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/notebook_qa_policy_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/notebook_qa_policy_ru.md).
+Практически это означает:
+
+- быстрый `pytest` страхует структуру notebook;
+- `nbclient` используется адресно для тех active notebook, которые были
+  изменены.

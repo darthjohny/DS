@@ -12,5 +12,5 @@
 Они не считаются частью активного production-like слоя и не должны
 использоваться активным кодом без явного возврата из архива.
 
-Общая политика архива зафиксирована в
-[/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/archive_research_policy_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/archive_research_policy_ru.md).
+Этот каталог сохраняется как внутренний архив и не должен использоваться как
+часть активного reporting-контура без явного возврата в рабочий слой.

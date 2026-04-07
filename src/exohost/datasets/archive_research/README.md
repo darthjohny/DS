@@ -13,5 +13,5 @@
 При возврате такого файла в активную работу его сначала нужно вернуть в
 рабочий слой и привести к текущему инженерному стандарту.
 
-Общая политика архива зафиксирована в
-[/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/archive_research_policy_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/archive_research_policy_ru.md).
+Этот каталог сохраняется как внутренний архив и не считается частью активного
+dataset-контура проекта.

@@ -1,4 +1,4 @@
-# Внешний Входной Контракт Для Боевого `decide`
+# Внешний входной контракт для боевого `decide`
 
 Дата фиксации: `2026-04-06`
 
@@ -7,16 +7,15 @@
 - [project_db_contour_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/project_db_contour_ru.md)
 - [gaia_upload_contract_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/gaia_upload_contract_ru.md)
 - [training_view_contracts_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/training_view_contracts_ru.md)
-- [baseline_run_registry_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/baseline_run_registry_ru.md)
 - [Gaia Archive: writing queries](https://www.cosmos.esa.int/web/gaia-users/archive/writing-queries)
 - [Gaia DR3 `gaia_source`](https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_main_source_catalogue/ssec_dm_gaia_source.html)
 - [Gaia DR3 `astrophysical_parameters`](https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_astrophysical_parameter_tables/ssec_dm_astrophysical_parameters.html)
 
-## Зачем Нужен Этот Документ
+## Зачем нужен этот документ
 
 Этот документ отвечает на практический вопрос:
 
-> какие данные должен дать внешний пользователь, чтобы текущий боевой pipeline
+> какие данные должен дать внешний пользователь, чтобы текущий боевой контур
 > их принял и обработал.
 
 Документ нужен для двух сценариев:
@@ -25,11 +24,11 @@
 - проверяющий хочет сам выгрузить данные из Gaia Archive и прогнать их без
   работы с нашей локальной БД.
 
-## Важная Граница Сценариев
+## Важная граница сценариев
 
 Здесь нужно сразу честно разделить два режима.
 
-### Режим 1. Полностью сопоставимый с active baseline
+### Режим 1. Полностью сопоставимый с базовым прогоном
 
 Для этого нужен проектный рабочий слой:
 
@@ -38,34 +37,34 @@
 Только этот путь:
 
 - проходит через ту же quality-логику;
-- согласован с current active baseline;
+- согласован с текущим базовым прогоном;
 - дает результат, который можно честно сравнивать с нашими notebook и
-  run-review.
+  обзорами прогонов.
 
 ### Режим 2. Внешний быстрый прогон по Gaia CSV
 
-Он тоже возможен, но это уже не полная копия active baseline.
+Он тоже возможен, но это уже не полная копия базового прогона.
 
 В этом режиме пользователь:
 
 - сам выгружает таблицу из Gaia Archive;
 - локально подает ее в `decide`;
-- получает рабочий inference-result;
+- получает рабочий результат;
 - но должен понимать, что quality-слой в таком сценарии будет упрощен, если он
   не воспроизведет `quality_gate` из проекта.
 
 То есть быстрый CSV-прогон полезен для проверки и знакомства с системой, но не
-является идеальной заменой project DB route.
+является полной заменой маршрута через проектную базу данных.
 
-## Что Требует Текущий Боевой `decide`
+## Что требует текущий боевой `decide`
 
-Для текущего active bundle loader требует:
+Для текущего набора артефактов нужны:
 
 - `source_id`
 - `quality_state`
-- набор физических признаков текущего decision-bundle
+- набор физических признаков текущего набора артефактов
 
-Фактический feature union current active bundle:
+Фактический набор признаков:
 
 - `teff_gspphot`
 - `logg_gspphot`
@@ -83,13 +82,14 @@
 
 Важно:
 
-- `radius_feature` допускает compatibility-алиас из `radius_flame` или
+- `radius_feature` допускает совместимый алиас из `radius_flame` или
   `radius_gspphot`;
 - `radius_gspphot` тоже может быть восстановлен через `radius_flame`;
-- но `radius_flame`, `lum_flame` и `evolstage_flame` для current active bundle
+- но `radius_flame`, `lum_flame` и `evolstage_flame` для текущего набора
+  артефактов
   нужно считать практически обязательными.
 
-## Минимальный CSV-Контракт Для Внешнего Прогона
+## Минимальный CSV-контракт для внешнего прогона
 
 Если пользователь хочет подать таблицу напрямую в `decide --input-csv`, то
 минимальный практический набор колонок такой:
@@ -121,21 +121,21 @@
 - `ra`, `dec` полезны для traceability и внешней сверки;
 - `random_index` удобен для воспроизводимого порядка строк.
 
-## Что Делать С `quality_state`
+## Что делать с `quality_state`
 
 Это самый важный практический вопрос.
 
 `quality_state` не приходит из Gaia Archive напрямую.
 
-В боевом project route он появляется в:
+В проектном маршруте он появляется в:
 
 - `lab.gaia_mk_quality_gated`
 
 Если внешний пользователь не воспроизводит этот слой, у него есть два пути.
 
-### Честный путь
+### Полный путь
 
-Использовать project DB route и работать через:
+Использовать маршрут через проектную базу данных и работать через:
 
 - `lab.gaia_mk_quality_gated`
 
@@ -150,14 +150,14 @@
 Но это нужно понимать правильно:
 
 - такой запуск обходит project quality gate;
-- он удобен для технической проверки inference-контура;
-- он не должен сравниваться с нашим active baseline как полностью
+- он удобен для технической проверки контура обработки;
+- он не должен сравниваться с нашим базовым прогоном как полностью
   эквивалентный run.
 
-## Какой ADQL Запрос Можно Сделать В Gaia Archive
+## Какой ADQL-запрос можно сделать в Gaia Archive
 
 Ниже приведен практический запрос, который позволяет выгрузить минимальный
-сырой Gaia DR3 слой для текущего decision-контра.
+сырой слой Gaia DR3 для текущего контура принятия решения.
 
 ```sql
 SELECT
@@ -197,11 +197,11 @@ ORDER BY gs.random_index ASC, gs.source_id ASC
 
 Этот запрос:
 
-- не копирует весь наш project route;
-- но дает сырой CSV, который уже близок к current active decision contract;
+- не копирует весь наш проектный маршрут;
+- но дает сырой CSV, который уже близок к текущему входному контракту;
 - после добавления `quality_state` может быть подан в `decide --input-csv`.
 
-## Как Превратить Gaia CSV В `decide`-Совместимый CSV
+## Как превратить Gaia CSV в совместимый вход для `decide`
 
 Минимальный практический путь:
 
@@ -212,25 +212,26 @@ ORDER BY gs.random_index ASC, gs.source_id ASC
 5. подать его в `decide`.
 
 Если у пользователя есть и `radius_gspphot`, и `radius_flame`, этого уже
-достаточно для current compatibility policy по радиусу.
+достаточно для текущей логики совместимости по радиусу.
 
-## Что Важно Сказать Проверяющему
+## Что важно сказать проверяющему
 
 Корректная формулировка:
 
 > Для полностью сопоставимого с проектом прогона следует использовать рабочую
-> relation `lab.gaia_mk_quality_gated`, так как именно она содержит результат
-> project quality gate. Однако для внешней технической проверки inference-слоя
+> таблицу `lab.gaia_mk_quality_gated`, так как именно она содержит результат
+> проектной фильтрации качества. Однако для внешней технической проверки
+> контура обработки
 > можно самостоятельно выгрузить совместимый Gaia DR3 CSV по ADQL, добавить
 > колонку `quality_state` и подать файл напрямую в `decide`.
 
 Некорректная формулировка:
 
-- “любой Gaia CSV автоматически эквивалентен нашему active baseline”;
+- “любой Gaia CSV автоматически эквивалентен нашему базовому прогону”;
 - “quality_state можно игнорировать совсем”;
-- “сырой ADQL-экспорт полностью повторяет весь project pipeline”.
+- “сырой ADQL-экспорт полностью повторяет весь проектный контур”.
 
-## Короткий Вывод
+## Короткий вывод
 
 Для внешнего пользователя есть простой и честный ответ:
 
@@ -238,5 +239,5 @@ ORDER BY gs.random_index ASC, gs.source_id ASC
   `lab.gaia_mk_quality_gated`;
 - если нужен внешний быстрый запуск, выгружаем Gaia DR3 по ADQL, добавляем
   `quality_state` и подаем CSV напрямую;
-- второй путь годится для проверки inference-контура, но не заменяет полностью
-  project DB route.
+- второй путь годится для проверки контура обработки, но не заменяет полностью
+  маршрут через проектную базу данных.

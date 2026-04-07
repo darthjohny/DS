@@ -48,7 +48,8 @@
 .venv-v2/bin/pytest -q tests/regression
 ```
 
-Подробная политика и runbook регресс-слоя лежат в:
+Обычный рабочий порядок простой:
 
-- [regression_test_policy_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/regression_test_policy_ru.md)
-- [regression_test_runbook_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/regression_test_runbook_ru.md)
+- перед крупным изменением достаточно `unit`;
+- перед push или после затрагивания policy-слоя гоняем весь `tests`;
+- если менялся routing или `decide`, обязательно прогоняем `tests/regression`.

@@ -1,15 +1,15 @@
-# ВКР: Приоритизация Наблюдений И Оценка Вероятности Наличия Экзопланет
+# ВКР: Приоритизация наблюдений и оценка вероятности наличия экзопланет
 
 Выпускная квалификационная работа для МГТУ им. Н. Э. Баумана.
 
 Тема работы:
 `Data Science как инструмент приоритизации наблюдений и оценки вероятности наличия экзопланет на основе параметров звезд. Классификация звезд по спектральным классам и подклассам.`
 
-## О Чем Этот Проект
+## О чём этот проект
 
-Проект посвящен двум связанным задачам, но с разным приоритетом:
+Проект посвящён двум связанным задачам, но с разным приоритетом:
 
-- главной прикладной задаче: построению shortlist-слоя для последующих
+- главной прикладной задаче: построению слоя отбора для последующих
   наблюдений объектов, похожих на звезды-хозяева экзопланет;
 - поддерживающей научной задаче: классификации звезд по спектральным классам и
   подклассам.
@@ -25,40 +25,41 @@
 
 Главный прикладной результат текущей версии проекта:
 
-- построен воспроизводимый слой `high priority` для follow-up наблюдений;
+- построен воспроизводимый слой верхнего приоритета для последующих наблюдений;
 - верхняя группа состоит из `72 113` объектов;
-- это не подтвержденные планетные системы, а shortlist наиболее интересных host-like кандидатов для дальнейшей проверки.
+- это не подтвержденные планетные системы, а список наиболее интересных
+  host-like кандидатов для дальнейшей проверки.
 
 Важно:
 
 - основная прикладная задача текущей версии проекта решена;
-- pipeline уверенно поднимает наверх спокойные host-like объекты в зоне
+- контур обработки уверенно поднимает наверх спокойные host-like объекты в зоне
   `F/G/K`, а не редкий горячий хвост;
 - задача более глубокой подклассовой детализации остается отдельной точкой
   роста.
 
-## Обзорная Схема Системы
+## Обзорная схема системы
 
-![Обзорная схема системы проекта](docs/assets/diagrams/system_overview_ru.svg)
+![Обзорная схема системы проекта](assets/diagrams/system_overview_ru.svg)
 
-## Зачем Нужна Работа
+## Зачем нужна работа
 
 В задачах поиска экзопланет важна не только сама классификация звезд, но и
 ответ на прикладной вопрос: какие объекты стоит наблюдать в первую очередь.
 
 Проект решает именно эту задачу:
 
-- переводит большие каталоги звезд в инженерно понятный pipeline;
+- переводит большие каталоги звезд в понятный инженерный контур;
 - отделяет пригодные цели от шумных и сомнительных;
-- дает интерпретируемый ranking объектов для follow-up наблюдений.
+- дает интерпретируемое ранжирование объектов для последующих наблюдений.
 
 Классификация по подклассам в этой логике нужна не сама по себе, а как
-дополнительный физический слой, который помогает сделать итоговый shortlist
+дополнительный физический слой, который помогает сделать итоговый список
 более осмысленным.
 
-## Какие Модели Использованы
+## Какие модели используются
 
-В benchmark- и model-selection слое используются:
+В слое сравнения моделей и контрольной оценки используются:
 
 - `HGB` — `HistGradientBoostingClassifier`
 - `MLP` — `Multi-Layer Perceptron Classifier`
@@ -66,17 +67,17 @@
 
 Основной рабочий контур в текущей версии проекта опирается прежде всего на
 `HistGradientBoostingClassifier`, потому что он лучше всего показал себя на
-табличных данных и в иерархическом pipeline.
+табличных данных и в иерархическом контуре.
 
 Отдельно в проекте есть:
 
 - модели coarse-классификации;
 - family/refinement-модели для подклассов;
-- post-hoc слой для `ID/OOD`, quality gate и final decision;
+- слой постобработки для `ID/OOD`, `quality gate` и итогового решения;
 - host-like модель для слоя приоритизации;
-- ranking-слой для итогового `priority_score`.
+- слой ранжирования для итогового `priority_score`.
 
-## Технологический Стек
+## Технологический стек
 
 - `Python 3.13`
 - `SQL`
@@ -86,9 +87,9 @@
 - `DBeaver`
 - `Jupyter Notebook / JupyterLab`
 
-## Основные Библиотеки
+## Основные библиотеки
 
-Runtime:
+Рабочие зависимости:
 
 - `numpy`
 - `pandas`
@@ -99,7 +100,7 @@ Runtime:
 - `psycopg2-binary`
 - `astropy`
 
-Notebook и визуализация:
+Ноутбуки и визуализация:
 
 - `matplotlib`
 - `seaborn`
@@ -113,7 +114,7 @@ Notebook и визуализация:
 - `pyright`
 - `ruff`
 
-## Откуда Взяты Данные
+## Откуда взяты данные
 
 Основные источники данных:
 
@@ -127,21 +128,22 @@ Notebook и визуализация:
 Роль источников в проекте:
 
 - `Gaia DR3` дает астрометрию, фотометрию, астрофизические параметры и quality-сигналы;
-- `NASA Exoplanet Archive` дает host-related контекст и внешний слой для host-like задачи;
+- `NASA Exoplanet Archive` дает внешний контекст по звездам-хозяевам и опорный
+  слой для host-like задачи;
 - `B/mk` используется как внешний источник спектральных меток для supervised-классификации.
 
-## Какие Данные Используются
+## Какие данные используются
 
 Ниже приведены основные группы признаков и полей, с которыми работает проект.
 
-### 1. Идентификаторы И Привязка Объектов
+### 1. Идентификаторы и привязка объектов
 
 - `source_id` — уникальный идентификатор источника в Gaia
 - `ra`, `dec` — координаты объекта
 - `hostname` — имя звезды-хозяина в NASA Archive
 - `external_catalog_name`, `external_object_id` — идентификаторы внешнего каталога
 
-### 2. Фотометрия И Цвет
+### 2. Фотометрия и цвет
 
 - `phot_g_mean_mag` — средняя звездная величина в полосе `G`
 - `bp_rp` — цветовой индекс `BP-RP`
@@ -152,7 +154,7 @@ Notebook и визуализация:
 - оценивать наблюдательную пригодность;
 - строить простые физические срезы по цвету и яркости.
 
-### 3. Астрометрия И Качество Измерений
+### 3. Астрометрия и качество измерений
 
 - `parallax` — параллакс
 - `parallax_over_error` — отношение параллакса к его ошибке
@@ -164,9 +166,9 @@ Notebook и визуализация:
 
 - quality gate;
 - отделения надежных объектов от сомнительных;
-- построения `ID/OOD` и support-слоя.
+- построения `ID/OOD` и вспомогательного слоя проверки.
 
-### 4. Астрофизические Параметры Gaia
+### 4. Астрофизические параметры Gaia
 
 - `teff_gspphot` — эффективная температура по `GSP-Phot`
 - `logg_gspphot` — поверхностная гравитация
@@ -183,7 +185,7 @@ Notebook и визуализация:
 - host-like оценки;
 - интерпретации верхнего слоя приоритета.
 
-### 5. Горячие Звезды И O/B-Пограничный Слой
+### 5. Горячие звезды и O/B-пограничный слой
 
 Для анализа горячих звезд в проекте отдельно использовались:
 
@@ -205,7 +207,7 @@ Notebook и визуализация:
 рассматривается как честная точка дальнейшего развития, связанная с
 ограничениями данных и потребностью во внешней спектроскопии.
 
-### 6. Внешние Метки Для Спектральной Классификации
+### 6. Внешние метки для спектральной классификации
 
 Проект использует и нормализует:
 
@@ -222,27 +224,27 @@ Notebook и визуализация:
 
 Практически это означает:
 
-- верхнеуровневая классификация уже хорошо поддерживает pipeline;
+- верхнеуровневая классификация уже хорошо поддерживает основной контур;
 - глубокая детализация по подклассам полезна и научно интересна;
 - но именно она сейчас сильнее всего зависит от ограничений текущих данных.
 
-### 7. Данные Для Host-Like Задачи
+### 7. Данные для host-like задачи
 
 Из связки `Gaia + NASA Exoplanet Archive` используются:
 
 - подтвержденные host-объекты как внешний ориентир для host-like задачи;
 - физические параметры звезд;
-- host-related таблицы `PSCompPars / Stellar Hosts`;
+- таблицы `PSCompPars / Stellar Hosts`, связанные со звездами-хозяевами;
 - кроссматч с Gaia `source_id`.
 
 Практический смысл этого слоя:
 
 - не доказать наличие планеты напрямую;
-- а найти звезды, наиболее похожие на известные host-профили.
+- а найти звезды, наиболее похожие на известные профили host-объектов.
 
-## Что Получается На Выходе
+## Что получается на выходе
 
-Итоговый pipeline строит:
+Итоговый контур строит:
 
 - `coarse`-класс звезды;
 - `refinement`-подкласс;
@@ -251,7 +253,7 @@ Notebook и визуализация:
 - `host_similarity_score`;
 - `observability_score`;
 - `priority_score`;
-- итоговый shortlist для последующих наблюдений.
+- итоговый список приоритетных целей для последующих наблюдений.
 
 В результате проект отвечает на два вопроса:
 
@@ -261,33 +263,33 @@ Notebook и визуализация:
 При этом центральный прикладной ответ проекта сейчас звучит так:
 
 - какие объекты в первую очередь похожи на host-like цели и должны попасть в
-  верхний наблюдательный shortlist.
+  верхний наблюдательный список.
 
-## Структура Репозитория
+## Структура репозитория
 
 ```text
 src/exohost/
   cli/          - запуск сценариев проекта
   contracts/    - контракты колонок, датасетов и policy-слоев
   datasets/     - загрузка и сборка dataframe
-  db/           - materialization, SQL и relation-layer
-  evaluation/   - метрики и benchmark-слой
+  db/           - материализация, SQL и слой таблиц
+  evaluation/   - метрики и слой контрольной оценки
   features/     - подготовка признаков и training frames
   ingestion/    - разбор и нормализация внешних меток
   labels/       - логика спектральных меток
-  models/       - модели и inference-обертки
-  posthoc/      - routing, gate, final decision
+  models/       - модели и обертки применения
+  posthoc/      - маршрутизация, фильтрация и итоговое решение
   ranking/      - приоритизация наблюдений
-  reporting/    - review-слой и helper для notebook
-  training/     - обучение и benchmark-прогоны
+  reporting/    - обзорный слой и вспомогательные модули для ноутбуков
+  training/     - обучение и контрольные прогоны
 
 analysis/notebooks/
-  eda/          - исследовательский EDA-контур
+  eda/          - обзор данных и обучающих выборок
   research/     - исследовательские разборы
-  technical/    - технический review pipeline и моделей
+  technical/    - технический обзор работы контура и моделей
 
-docs/
-  methodology/  - контракты, планы, run-review, ВКР-интерпретация и stabilization
+assets/
+  diagrams/     - обзорная схема системы для README и презентации
 
 tests/
   unit/         - локальные модульные проверки
@@ -296,7 +298,7 @@ tests/
   regression/   - поведенческий регресс `quality_gate`, `priority` и `decide`
 ```
 
-## Тестовый Контур
+## Тестовый контур
 
 Проект использует четыре активных слоя тестирования:
 
@@ -309,38 +311,41 @@ tests/
 
 - [tests/README.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/tests/README.md)
 - [tests/regression/README.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/tests/regression/README.md)
-- [docs/methodology/stabilization/regression_test_runbook_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/regression_test_runbook_ru.md)
 
-## Что Посмотреть В Репозитории В Первую Очередь
+## Что посмотреть в репозитории в первую очередь
 
 Если нужно быстро понять проект, лучше идти в таком порядке:
 
 1. [analysis/notebooks/technical/final_decision_review.ipynb](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/technical/final_decision_review.ipynb)
-2. [docs/assets/diagrams/system_overview_ru.svg](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/assets/diagrams/system_overview_ru.svg)
-3. [docs/methodology/run_reviews/high_priority_cohort_review_2026_04_05_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/high_priority_cohort_review_2026_04_05_ru.md)
-4. [analysis/notebooks/technical/model_pipeline_review.ipynb](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/technical/model_pipeline_review.ipynb)
-5. [docs/methodology/run_reviews/baseline_run_registry_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/baseline_run_registry_ru.md)
-6. [docs/methodology/contracts/project_db_contour_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/project_db_contour_ru.md)
-7. [docs/methodology/contracts/external_decide_input_contract_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/external_decide_input_contract_ru.md)
-8. [docs/methodology/vkr/README.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/vkr/README.md)
-9. [analysis/notebooks/README.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/README.md)
+2. [assets/diagrams/system_overview_ru.svg](/Users/evgeniikuznetsov/Desktop/dspro-vkr/assets/diagrams/system_overview_ru.svg)
+3. [analysis/notebooks/technical/model_pipeline_review.ipynb](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/technical/model_pipeline_review.ipynb)
+4. [analysis/notebooks/technical/host_priority_calibration_review.ipynb](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/technical/host_priority_calibration_review.ipynb)
+5. [analysis/notebooks/research/quality_gate_calibration.ipynb](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/research/quality_gate_calibration.ipynb)
+6. [analysis/notebooks/README.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/README.md)
+7. [tests/README.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/tests/README.md)
+8. [tests/regression/README.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/tests/regression/README.md)
 
-## База Данных И Внешний Вход
+## База данных и внешний вход
 
-Если нужно понять, как устроен DB-контур и что подавать в модель, смотри:
+Боевой вход текущего контура обработки:
 
-- [project_db_contour_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/project_db_contour_ru.md)
-- [external_decide_input_contract_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/external_decide_input_contract_ru.md)
+- таблица `lab.gaia_mk_quality_gated`
 
-Первый документ показывает, где что лежит в `public` и `lab`.
+Если внешний проверяющий не хочет использовать локальную БД, ему нужен CSV,
+собранный из Gaia DR3 как минимум с такими полями:
 
-Второй документ показывает:
+- `source_id`, `ra`, `dec`
+- `phot_g_mean_mag`, `bp_rp`
+- `parallax`, `parallax_over_error`, `ruwe`
+- `teff_gspphot`, `logg_gspphot`, `mh_gspphot`
+- `radius_gspphot`, `radius_flame`, `lum_flame`, `evolstage_flame`
+- `non_single_star`, `classprob_dsc_combmod_star`
 
-- какая relation является боевым входом;
-- какой CSV понимает текущий `decide`;
-- и какой ADQL-запрос можно сделать в Gaia Archive для внешней проверки.
+Этого достаточно, чтобы проверить контур обработки модели на внешнем CSV из
+Gaia. Для полного совпадения с базовым прогоном дополнительно нужен наш
+локальный слой `quality_gate`.
 
-## Как Запустить Проект Локально
+## Как запустить проект локально
 
 ```bash
 source .venv-v2/bin/activate
@@ -363,7 +368,7 @@ python -m pip install -e .
 .venv-v2/bin/pytest -q tests/regression
 ```
 
-## Основная Документация И Источники
+## Основная документация и источники
 
 Python и инженерный стек:
 
@@ -414,12 +419,12 @@ NASA и внешние каталоги:
 - [The Gaia-Kepler-TESS-Host Stellar Properties Catalog](https://arxiv.org/abs/2301.11338)
 - [Astrophysical parameters associated to hot stars in Gaia DR3](https://www.aanda.org/articles/aa/full_html/2023/06/aa43709-22/aa43709-22.html)
 
-## Короткий Итог
+## Короткий итог
 
 Этот репозиторий — не просто набор notebook и моделей, а оформленная
 исследовательская платформа для ВКР, которая:
 
 - классифицирует звезды по спектральным классам и подклассам;
-- строит quality-aware pipeline обработки данных;
-- формирует shortlist объектов для последующих наблюдений;
+- строит контур обработки данных с учетом качества наблюдений;
+- формирует список объектов для последующих наблюдений;
 - дает интерпретируемый верхний слой host-like кандидатов.

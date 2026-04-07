@@ -16,5 +16,5 @@
 - `14_coarse_o_train_support_review.ipynb`
 - `15_coarse_ob_feature_separability_review.ipynb`
 
-Общая политика архива зафиксирована в
-[/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/archive_research_policy_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/archive_research_policy_ru.md).
+Этот каталог остается внутренним исследовательским архивом и не должен
+смешиваться с активным notebook-контуром проекта.

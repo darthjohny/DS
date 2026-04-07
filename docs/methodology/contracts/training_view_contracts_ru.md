@@ -1,47 +1,34 @@
-# Training View Contracts For Hierarchical MK/OOD Wave
+# Контракты обучающих представлений для иерархической волны MK/OOD
 
 ## Цель
 
-Этот документ фиксирует следующий переход после закрытия DB foundation:
+Этот документ фиксирует, какие обучающие представления нужны проекту после
+сборки базового слоя данных:
 
-- какие training views нужны проекту;
-- какие relation являются их upstream-source;
-- какие поля и target используются в каждой задаче;
-- какие фильтры считаются first-wave policy.
+- какие представления нужны проекту;
+- какие таблицы являются для них исходными;
+- какие поля и целевые признаки используются в каждой задаче;
+- какие фильтры применяются в первой рабочей версии.
 
 Документ нужен, чтобы:
 
-- не проектировать loaders раньше самих training view;
-- не смешивать coarse, refinement и OOD в один общий source;
-- не выдумывать фильтры на этапе model-кода.
+- не проектировать загрузчики раньше самих представлений;
+- не смешивать coarse, refinement и OOD в один общий источник;
+- не придумывать фильтры на этапе кода моделей.
 
-## Инженерный Инвариант
+## Общий принцип
 
-Для всех следующих code-side шагов действует один и тот же стандарт:
+Каждое представление должно решать одну задачу.
 
-- `1 файл = 1 ответственность`
-- без монолитных loader/view-модулей
-- `PEP 8`
-- явная типизация
-- простое решение раньше сложного
-- без лишних зависимостей
-- после каждого маленького куска:
-  - micro-QA
-  - `ruff`
-  - точечный `mypy/pyright`
-  - целевые тесты
-- после закрытия микро-ТЗ:
-  - scoped big-QA только по написанному слою
+Поэтому:
 
-Это правило касается не только кода, но и SQL/view materialization:
+- coarse-, refinement- и OOD-слои не смешиваются в одном представлении;
+- для каждой задачи задается свой набор полей и фильтров;
+- служебные поля отделяются от целевых признаков.
 
-- один view = одна задача;
-- один DB-модуль = один тип view;
-- никакого giant SQL-файла "на все training scenarios".
+## Опора на Gaia для полей
 
-## Official Gaia Опора Для Полей
-
-Смысл признаков опирается на official Gaia DR3 datamodel:
+Смысл признаков опирается на модель данных Gaia DR3:
 
 - `source_id`, `random_index`, `parallax`, `parallax_over_error`, `ruwe`,
   `phot_g_mean_mag`, `bp_rp`, `non_single_star` — из `gaia_source`
@@ -51,11 +38,11 @@
 
 Важная оговорка:
 
-- project thresholds и training filters не считаются official Gaia cut;
-- official docs задают смысл полей;
-- конкретные training-slice правила фиксируются отдельно как first-wave policy.
+- пороги и фильтры проекта не являются официальными порогами Gaia;
+- официальная документация задает смысл полей;
+- конкретные правила отбора фиксируются в документации проекта.
 
-## View 1. `lab.v_gaia_id_coarse_training`
+## Представление 1. `lab.v_gaia_id_coarse_training`
 
 ### Назначение
 
@@ -63,15 +50,15 @@
 
 - target = крупный спектральный класс `OBAFGKM`
 
-### Upstream Source
+### Исходная таблица
 
 - `lab.gaia_id_coarse_reference`
 
-### Target
+### Целевой признак
 
 - `spec_class`
 
-### Auxiliary Поля
+### Служебные поля
 
 Разрешены как служебные:
 
@@ -82,9 +69,9 @@
 
 Они не являются target.
 
-### Feature Contract
+### Набор признаков
 
-Минимальный first-wave feature set:
+Минимальный набор признаков для первой рабочей версии:
 
 - `teff_gspphot`
 - `logg_gspphot`
@@ -94,16 +81,16 @@
 - `parallax_over_error`
 - `ruwe`
 
-Допустимые compatibility-поля:
+Допустимые совместимые поля:
 
 - `radius_feature`
   - first-wave view может строить его как
     `COALESCE(radius_flame, radius_gspphot)`
   - canonical storage при этом остается за `radius_flame`
 
-### First-Wave Filter Policy
+### Фильтрация первой рабочей версии
 
-В view допускаем только строки:
+В представление допускаем только строки:
 
 - `spec_class IS NOT NULL`
 - `teff_gspphot IS NOT NULL`
@@ -114,14 +101,15 @@
 - `parallax_over_error IS NOT NULL`
 - `ruwe IS NOT NULL`
 
-`radius_flame` не является обязательным для первого coarse view.
+`radius_flame` не является обязательным для первого coarse-представления.
 
 Причина:
 
-- иначе first-wave coarse slice потеряет слишком много строк;
-- при этом compatibility radius допустим только на уровне view, а не source relation.
+- иначе coarse-срез первой рабочей версии потеряет слишком много строк;
+- при этом совместимый радиус допустим только на уровне представления, а не
+  исходной таблицы.
 
-## View 2. `lab.v_gaia_mk_refinement_training`
+## Представление 2. `lab.v_gaia_mk_refinement_training`
 
 ### Назначение
 
@@ -130,25 +118,25 @@
 - subclass
 - при необходимости связанная luminosity/evolution auxiliary task
 
-### Upstream Source
+### Исходная таблица
 
 - `lab.gaia_mk_quality_gated`
 
-### Target
+### Целевой признак
 
-Основной target:
+Основной целевой признак:
 
 - `spectral_subclass`
 
-Сопутствующие label-поля:
+Сопутствующие поля меток:
 
 - `spectral_class`
 - `luminosity_class`
 - `peculiarity_suffix`
 
-### Feature Contract
+### Набор признаков
 
-Минимальный first-wave feature set:
+Минимальный набор признаков для первой рабочей версии:
 
 - `teff_gspphot`
 - `logg_gspphot`
@@ -165,16 +153,17 @@
 - `evolstage_flame`
 - `phot_g_mean_mag`
 
-### First-Wave Filter Policy
+### Фильтрация первой рабочей версии
 
-В refinement view допускаем только строки:
+В представление refinement допускаем только строки:
 
 - `quality_state = 'pass'`
 - `ood_state = 'in_domain'`
 - `spectral_subclass IS NOT NULL`
 - `has_core_features = TRUE`
 - `has_flame_features = TRUE`
-- support по full subclass `spec_class + spectral_subclass >= 15`
+- где полная комбинация `spec_class + spectral_subclass` встречается не менее
+  `15` раз
 
 Правило:
 
@@ -182,9 +171,9 @@
 - `unknown`
 - `reject`
 
-не попадают в normal refinement training.
+не попадают в обычное обучение refinement.
 
-### Что Не Делаем
+### Чего не делаем
 
 - не тянем `lab.gaia_mk_unknown_review` обратно в refinement training;
 - не смешиваем OOD и subclass target в один flat label;
@@ -193,31 +182,31 @@
 Причина для порога `>= 15`:
 
 - первая волна использует `30%` test split и `10-fold CV`;
-- support `10` в полном срезе оказался слишком хрупким для real split;
-- на живом прогоне редкий хвост `O3/O4/O6/O7/O8/O9/K9` давал warning-ы
-  про слишком маленькие классы в train-folds;
-- cutoff `15` стабилизировал first-wave baseline без переусложнения policy.
+- порог `10` оказался слишком хрупким для реального разбиения;
+- на живом прогоне редкий хвост `O3/O4/O6/O7/O8/O9/K9` давал предупреждения о
+  слишком маленьких классах в обучающих фолдах;
+- порог `15` стабилизировал первую рабочую версию без лишнего усложнения.
 
-## View 3. `lab.v_gaia_id_ood_training`
+## Представление 3. `lab.v_gaia_id_ood_training`
 
 ### Назначение
 
 Источник для отдельной задачи `ID vs OOD`.
 
-### Upstream Source
+### Исходные таблицы
 
 - `lab.gaia_mk_quality_gated`
 - `lab.gaia_ood_training_reference`
 
-### Target
+### Целевой признак
 
-Бинарный target:
+Бинарный целевой признак:
 
 - `domain_target`
   - `id`
   - `ood`
 
-### ID Side
+### Часть `ID`
 
 В `ID` часть берем строки из `lab.gaia_mk_quality_gated`, где:
 
@@ -225,9 +214,9 @@
 - `ood_state = 'in_domain'`
 - `has_core_features = TRUE`
 
-`unknown` и `candidate_ood` в ID-train первую волну не включаем.
+`unknown` и `candidate_ood` в обучение `ID` на первой рабочей версии не включаем.
 
-### OOD Side
+### Часть `OOD`
 
 В `OOD` часть берем строки из `lab.gaia_ood_training_reference`.
 
@@ -237,7 +226,7 @@
 - `ood_membership_count`
 - `has_multi_ood_membership`
 
-### Feature Contract
+### Набор признаков
 
 Базовый общий набор:
 
@@ -254,7 +243,7 @@
 - `radius_flame`
 - `phot_g_mean_mag`
 
-### First-Wave Filter Policy
+### Фильтрация первой рабочей версии
 
 Для OOD-view требуем:
 

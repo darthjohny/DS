@@ -9,12 +9,16 @@
 - документы стабилизации и служебной политики;
 - архив исследований.
 
+Этот каталог нужен не для внутренней переписки команды, а для понятного
+описания того, как устроен проект, на каких правилах он держится и какие
+выводы из него уже получены.
+
 ## Разделы
 
 - [contracts](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/README.md)
-  Нормативные контракты, словари и policy-документы.
+  Контракты, словари и документы с правилами.
 - [plans](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/README.md)
-  Планы, design-документы, стратегии и TZ.
+  Планы, стратегии и проектные решения.
 - [run_reviews](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/README.md)
   Итоги прогонов, аудитов и review-раундов.
 - [vkr](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/vkr/README.md)

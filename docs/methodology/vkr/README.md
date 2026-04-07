@@ -1,6 +1,7 @@
-# Интерпретация Для ВКР
+# Интерпретация для ВКР
 
-Здесь лежит не raw review-слой, а связный текстовый пакет для ВКР.
+Здесь лежит не технический слой review-документов, а связный текстовый пакет
+для ВКР.
 
 Этот раздел отвечает на вопрос:
 
@@ -10,7 +11,7 @@
 
 Основные документы:
 
-- [system_overview_ru.svg](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/assets/diagrams/system_overview_ru.svg)
+- [system_overview_ru.svg](/Users/evgeniikuznetsov/Desktop/dspro-vkr/assets/diagrams/system_overview_ru.svg)
 - [vkr_interpretation_source_of_truth_2026_04_06_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/vkr/vkr_interpretation_source_of_truth_2026_04_06_ru.md)
 - [vkr_main_result_outline_2026_04_06_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/vkr/vkr_main_result_outline_2026_04_06_ru.md)
 - [vkr_high_priority_interpretation_2026_04_06_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/vkr/vkr_high_priority_interpretation_2026_04_06_ru.md)

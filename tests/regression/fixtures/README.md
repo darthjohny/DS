@@ -86,5 +86,5 @@
 - только потом добавляем новую fixture;
 - каждый новый файл должен быть описан в этом README.
 
-Подробная политика слоя зафиксирована в
-[/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/regression_test_policy_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/regression_test_policy_ru.md).
+Этот каталог является внутренней базой frozen fixtures для активного
+регресс-слоя и должен оставаться компактным и читаемым.

@@ -42,8 +42,9 @@ Review и summary-регресс:
 - [reporting/test_final_decision_summary_regression.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/tests/regression/reporting/test_final_decision_summary_regression.py)
   страхует итоговые summary-таблицы, причины routing и статус priority-review слоя.
 
-Подробная политика слоя зафиксирована в
-[/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/regression_test_policy_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/regression_test_policy_ru.md).
+Практический сценарий запуска:
 
-Практический runbook запуска лежит в
-[/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/regression_test_runbook_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/regression_test_runbook_ru.md).
+- быстрый локальный прогон:
+  - `.venv-v2/bin/pytest -q tests/regression`
+- полный активный контур:
+  - `.venv-v2/bin/pytest -q tests`

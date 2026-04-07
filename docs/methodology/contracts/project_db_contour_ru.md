@@ -1,54 +1,53 @@
-# Контур Базы Данных Проекта
+# Контур базы данных проекта
 
 Дата фиксации: `2026-04-06`
 
 Связанные документы:
 
-- [db_layer_closure_plan_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/db_layer_closure_plan_ru.md)
 - [db_relation_policy_mk_wave_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/db_relation_policy_mk_wave_ru.md)
 - [mk_ingestion_schema_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/mk_ingestion_schema_ru.md)
 - [training_view_contracts_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/training_view_contracts_ru.md)
 
-## Зачем Нужен Этот Документ
+## Зачем нужен этот документ
 
 Этот документ нужен как короткая и практическая карта БД проекта.
 
 Его задача:
 
 - быстро показать, какие схемы и таблицы реально используются;
-- объяснить, где лежат reusable данные, а где рабочие слои pipeline;
+- объяснить, где лежат повторно используемые данные, а где рабочие слои проекта;
 - дать понятный маршрут от внешних данных до боевого `decide`.
 
-## Главный Принцип
+## Главный принцип
 
 В проекте используются две основные роли схем:
 
-- `public` — reusable и относительно нейтральные слои данных;
-- `lab` — рабочие, нормализованные и pipeline-специфичные relation.
+- `public` — повторно используемые и относительно нейтральные слои данных;
+- `lab` — рабочие, нормализованные и завязанные на логику проекта таблицы.
 
 Коротко:
 
-- `public` хранит то, что можно переиспользовать в нескольких сценариях;
-- `lab` хранит то, что уже связано с логикой проекта, quality gate, training,
-  review и final decision.
+- `public` хранит то, что можно использовать в нескольких сценариях;
+- `lab` хранит то, что уже связано с логикой проекта, фильтрацией качества,
+  обучением, разбором спорных случаев и итоговым решением.
 
 ## Схема `public`
 
 В `public` лежат:
 
 - чистые reference-наборы;
-- reusable enrichment-таблицы Gaia;
+- таблицы обогащения Gaia, которые можно использовать повторно;
 - очищенные OOD-source и другие слои, которые не завязаны на один конкретный
-  training или decision-проход.
+  обучающий или боевой прогон.
 
-### Ключевые relation
+### Ключевые таблицы
 
 - `public.gaia_ref_class_*`
   Чистые reference-наборы по крупным спектральным классам.
 - `public.gaia_ref_evolved_class_*`
   Reference-наборы для evolved-ветки.
 - `public.gaia_id_flame_enrichment_clean`
-  Reusable enrichment для coarse/ID-контура.
+  Таблица обогащения для coarse- и ID-контура.
 - `public.gaia_mk_core_enrichment_clean`
   Базовое Gaia-enrichment для MK-ветки.
 - `public.gaia_mk_flame_enrichment_clean`
@@ -60,14 +59,14 @@
 
 В `lab` лежат:
 
-- рабочие relation после нормализации и crossmatch;
+- рабочие таблицы после нормализации и crossmatch;
 - quality-gated слой;
-- review-таблицы;
-- training/reference relation;
-- task-oriented views;
-- локальные audit и summary-слои.
+- таблицы разбора спорных случаев;
+- обучающие и опорные таблицы;
+- представления для отдельных задач;
+- локальные слои аудита и сводок.
 
-### Ключевые relation
+### Ключевые таблицы
 
 - `lab.gaia_mk_external_raw`
   Сырой импорт внешнего спектрального источника.
@@ -76,7 +75,7 @@
 - `lab.gaia_mk_external_crossmatch`
   Связка external source и Gaia.
 - `lab.gaia_mk_external_labeled`
-  Нормализованные спектральные метки после parsing и выбора рабочего match.
+  Нормализованные спектральные метки после разбора и выбора рабочего совпадения.
 - `lab.gaia_mk_training_reference`
   Нормализованный Gaia-enriched слой перед quality gate.
 - `lab.gaia_mk_quality_gated`
@@ -88,7 +87,7 @@
 - `lab.gaia_ood_training_reference`
   Reference-слой для OOD-задачи.
 
-## Главный Поток Данных
+## Главный поток данных
 
 Практический маршрут данных в проекте выглядит так:
 
@@ -101,14 +100,14 @@
    `lab.gaia_mk_training_reference`;
 6. после quality/OOD-логики формируется `lab.gaia_mk_quality_gated`;
 7. uncertain-случаи уходят в `lab.gaia_mk_unknown_review`;
-8. training и scoring читают task-specific views;
+8. обучение и расчеты моделей читают специализированные представления;
 9. боевой `decide` читает `lab.gaia_mk_quality_gated`.
 
-## Task-Oriented Views
+## Представления для отдельных задач
 
-Над рабочими relation строятся view для разных модельных задач.
+Над рабочими таблицами строятся представления для разных модельных задач.
 
-### Основные views
+### Основные представления
 
 - `lab.v_gaia_id_coarse_training`
   Источник для coarse-классификации `OBAFGKM`.
@@ -117,24 +116,24 @@
 - `lab.v_gaia_id_ood_training`
   Источник для задачи `ID vs OOD`.
 
-Именно эти views уже превращают рабочие relation в model-ready training slices.
+Именно эти представления превращают рабочие таблицы в готовые обучающие выборки.
 
-## Какая Таблица Является Главной Для Боевого Inference
+## Главная таблица для боевого прогона
 
-Для текущего active baseline главным входом боевого pipeline является:
+Для текущего базового прогона главным входом боевого контура является:
 
 - `lab.gaia_mk_quality_gated`
 
 Это важно, потому что:
 
 - именно этот слой уже содержит `quality_state`;
-- именно он согласован с текущим `quality_gate`;
-- именно его использование делает результат сопоставимым с active baseline и
-  validation run.
+- именно он согласован с текущей логикой фильтрации качества;
+- именно его использование делает результат сопоставимым с базовым и
+  проверочным прогоном.
 
-## Что Считать Правильной Точкой Входа Для Разных Сценариев
+## Какая точка входа нужна в разных сценариях
 
-### Если нужен нормальный проектный pipeline
+### Если нужен полный проектный маршрут
 
 Используем:
 
@@ -143,8 +142,8 @@
 Это правильный путь для:
 
 - боевого `decide`;
-- technical notebook;
-- сравнения с active baseline;
+- технических ноутбуков;
+- сравнения с базовым прогоном;
 - воспроизводимой проверки проекта.
 
 ### Если нужен training-контур
@@ -155,29 +154,29 @@
 - `lab.v_gaia_mk_refinement_training`
 - `lab.v_gaia_id_ood_training`
 
-### Если нужен review uncertain-слоя
+### Если нужен разбор спорных случаев
 
 Используем:
 
 - `lab.gaia_mk_unknown_review`
 
-## Что Не Нужно Делать
+## Чего делать не нужно
 
 Не нужно:
 
-- читать `public`-таблицы напрямую в боевой `decide`;
+- читать таблицы `public` напрямую в боевой `decide`;
 - подменять `lab.gaia_mk_quality_gated` сырым Gaia CSV без явного понимания
   последствий;
-- смешивать reusable assets из `public` и project-specific routing relation из
-  `lab` в одну “универсальную” таблицу.
+- смешивать повторно используемые данные из `public` и рабочие таблицы из
+  `lab` в одну «универсальную» таблицу.
 
-## Короткий Вывод
+## Короткий вывод
 
 Если объяснять совсем просто, то БД проекта устроена так:
 
-- `public` хранит базовые reusable данные;
+- `public` хранит базовые повторно используемые данные;
 - `lab` хранит рабочий контур проекта;
-- главная боевая таблица для текущего inference-контура —
+- главная боевая таблица для текущего контура обработки —
   `lab.gaia_mk_quality_gated`.
 
 Именно от нее удобно отталкиваться и при отладке, и при проверке, и при

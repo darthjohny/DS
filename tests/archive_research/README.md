@@ -14,5 +14,5 @@
   обратно в активный контур `tests/unit/...` и только после этого
   приводятся к полному инженерному стандарту.
 
-Общая политика архива зафиксирована в
-[/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/archive_research_policy_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/archive_research_policy_ru.md).
+Этот каталог хранится в репозитории как внутренний исследовательский архив и не
+должен смешиваться с активным тестовым контуром.
