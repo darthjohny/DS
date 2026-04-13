@@ -1,17 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1140" viewBox="0 0 1600 1140" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1140" viewBox="25 20 1545 1095" role="img" aria-labelledby="title desc" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <title id="title">Обзорная схема системы проекта</title>
   <desc id="desc">Схема показывает путь от источников данных через БД и модели к итоговому shortlist наблюдений, а также контур доверия и точку дальнейшего развития.</desc>
   <defs>
     <style>
       .bg { fill: #f6f2ea; }
-      .title { font: 700 30px 'Helvetica Neue', Arial, sans-serif; fill: #1f2937; }
-      .subtitle { font: 500 16px 'Helvetica Neue', Arial, sans-serif; fill: #475569; }
-      .box-title { font: 700 20px 'Helvetica Neue', Arial, sans-serif; fill: #0f172a; }
-      .box-text { font: 500 16px 'Helvetica Neue', Arial, sans-serif; fill: #1e293b; }
-      .small-text { font: 500 15px 'Helvetica Neue', Arial, sans-serif; fill: #334155; }
+      .title { font: 700 31px 'Helvetica Neue', Arial, sans-serif; fill: #1f2937; }
+      .subtitle { font: 500 17px 'Helvetica Neue', Arial, sans-serif; fill: #475569; }
+      .box-title { font: 700 21px 'Helvetica Neue', Arial, sans-serif; fill: #0f172a; }
+      .box-text { font: 500 17px 'Helvetica Neue', Arial, sans-serif; fill: #1e293b; }
+      .small-text { font: 500 16px 'Helvetica Neue', Arial, sans-serif; fill: #334155; }
       .arrow { stroke: #475569; stroke-width: 3.5; fill: none; marker-end: url(#arrowhead); }
       .arrow-dashed { stroke: #64748b; stroke-width: 3; fill: none; stroke-dasharray: 8 8; marker-end: url(#arrowhead); }
-      .label { font: 600 14px 'Helvetica Neue', Arial, sans-serif; fill: #475569; }
+      .label { font: 600 15px 'Helvetica Neue', Arial, sans-serif; fill: #475569; }
     </style>
     <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
       <polygon points="0 0, 10 5, 0 10" fill="#475569"/>
