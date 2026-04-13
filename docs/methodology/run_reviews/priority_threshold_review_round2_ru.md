@@ -1,42 +1,42 @@
-# Priority Threshold Review Round 2
+# Второй обзор порогов слоя приоритета
 
-## Run
+## Прогон
 
-- baseline decision run:
+- базовый прогон итогового решения:
   - `artifacts/decisions/hierarchical_final_decision_2026_03_29_075935_878508`
-- threshold candidate run:
+- кандидатный прогон с новыми порогами:
   - `artifacts/decisions/hierarchical_final_decision_2026_03_29_111132_270743`
 
-## Applied Thresholds
+## Примененные пороги
 
 - `high_min = 0.85`
 - `medium_min = 0.55`
 
-Это тот же вариант, который в round 1 был проверен как
-`strict_high_medium_085_055`, но теперь уже на реальном live `decide` run.
+Это тот же вариант, который в первом обзоре был проверен как
+`strict_high_medium_085_055`, но теперь уже на реальном прогоне `decide`.
 
-## Live Comparison
+## Сравнение по рабочему прогону
 
 `n_rows = 177674`
 
-### Baseline
+### Базовый вариант
 
 - `high = 100173` (`56.38%`)
 - `medium = 18373` (`10.34%`)
 - `low = 59128` (`33.28%`)
 
-### Threshold Candidate
+### Кандидатный вариант
 
 - `high = 72048` (`40.55%`)
 - `medium = 41851` (`23.55%`)
 - `low = 63775` (`35.89%`)
 
-## Observed Transitions
+## Наблюдаемые переходы
 
-- changed rows:
+- изменившиеся строки:
   - `32772` (`18.45%`)
 
-Transitions:
+Переходы:
 
 - `high -> medium = 28125`
 - `medium -> low = 4647`
@@ -48,10 +48,10 @@ Transitions:
 - `ood = 765`
 - `unknown = 223787`
 
-То есть этот run меняет только downstream priority stratification и не ломает
-верхние decision contracts.
+То есть этот прогон меняет только распределение приоритетов и не ломает
+верхние контракты итогового решения.
 
-## Class-Level Distribution On New Run
+## Распределение по классам на новом прогоне
 
 - `A`
   - `high = 0.00%`
@@ -78,35 +78,34 @@ Transitions:
   - `medium = 33.59%`
   - `low = 64.77%`
 
-## Primary Findings
+## Основные выводы
 
-1. Live run полностью подтвердил offline threshold review.
-   - фактические распределения совпали с round 1 review
-   - hidden coupling в `decide` не обнаружено
+1. Рабочий прогон полностью подтвердил предварительный обзор порогов.
+   - фактические распределения совпали с первым обзором
+   - скрытой связности внутри `decide` не обнаружено
 
-2. Более строгие thresholds сужают `high` zone достаточно заметно.
+2. Более строгие пороги заметно сужают зону `high`.
    - `high` падает с `56.38%` до `40.55%`
-   - `medium` становится содержательным operational bucket
+   - `medium` становится содержательной рабочей категорией
 
-3. Threshold-only change не ломает upstream routing.
+3. Изменение только порогов не ломает верхнюю маршрутизацию.
    - `id / ood / unknown` не меняются
-   - меняется только priority-layer
+   - меняется только слой приоритета
 
 4. `K` остается самым насыщенным high-priority классом.
-   - это уже не threshold bug
-   - если это будет проблемой после star-level review, следующим шагом нужен
-     не новый threshold tweak, а отдельный scaling review
+   - это уже не ошибка порогов
+   - если это останется проблемой после обзора по отдельным объектам, следующим
+     шагом нужен отдельный обзор масштабирования, а не новый подбор порогов
 
-## Decision After Round 2
+## Решение после второго обзора
 
-- threshold candidate run принимается как текущий active review run;
+- кандидатный прогон с новыми порогами принимается как текущий рабочий обзорный прогон;
 - `final_decision_review.ipynb` должен смотреть именно на него;
-- отдельный `priority scaling` пакет пока не открываем;
-- сначала делаем star-level review на новом run и проверяем,
-  не остается ли top-zone слишком плоской operationally.
+- отдельный пакет масштабирования `priority` пока не открываем;
+- сначала делаем обзор по отдельным объектам на новом прогоне и проверяем,
+  не остается ли верхняя зона слишком плоской на практике.
 
-## Related
+## Связанные документы
 
 - [priority_threshold_review_round1_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/priority_threshold_review_round1_ru.md)
-- [priority_threshold_calibration_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/priority_threshold_calibration_tz_ru.md)
 - [host_priority_calibration_round1_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/host_priority_calibration_round1_ru.md)

@@ -1,4 +1,4 @@
-# MK Ingestion Schema
+# Схема загрузки MK-данных
 
 ## Цель
 
@@ -6,38 +6,40 @@
 
 Задача:
 
-- заранее определить структуру новых relation;
+- заранее определить структуру новых таблиц;
 - не придумывать таблицы по ходу загрузки;
-- отделить raw import, crossmatch, label normalization и training/scoring views.
+- отделить raw-импорт, кроссматч, нормализацию меток и обучающие представления.
 
-## Общий Принцип
+## Общий принцип
 
 Каждый слой хранит только свою ответственность.
 
 Не допускается:
 
-- raw table, которая уже "случайно" стала training source;
-- crossmatch result, в который сразу вшита вся логика ranking;
+- raw-таблица, которая уже "случайно" стала обучающим источником;
+- результат кроссматча, в который сразу вшита вся логика ранжирования;
 - одна большая таблица "про все".
 
-## Schema Layout Для Новой Волны
+## Разделение схем для новой волны
 
 До training/gate этапов используем две роли схем:
 
 - `public`:
-  - raw landing relation;
-  - clean reusable source assets;
-  - Gaia/MK enrichment relation, которые потом переиспользуются в нескольких
-    downstream-шагов.
+  - широкие таблицы первичной загрузки;
+  - чистые повторно используемые наборы данных;
+  - таблицы Gaia/MK enrichment, которые потом переиспользуются в нескольких
+    следующих шагах.
 - `lab`:
-  - normalized working layers;
-  - training/reference/gate/decision relation;
-  - audit summaries и task-oriented views.
+  - нормализованные рабочие слои;
+  - таблицы обучения, опоры, фильтрации и решения;
+  - сводки аудита и представления под конкретные задачи.
 
 Правило:
 
-- wide raw export и reusable clean assets не должны жить только в `lab`;
-- training/gate relation не должны превращаться в `public` dump "на всякий случай".
+- широкие raw-выгрузки и повторно используемые чистые наборы данных не должны
+  жить только в `lab`;
+- таблицы обучения и фильтрации не должны превращаться в `public`-дамп "на
+  всякий случай".
 
 ## Слой 1. External Raw
 
@@ -69,7 +71,8 @@ Relation:
 
 ## Слой 2. External Crossmatch
 
-Широкая выгрузка `Gaia Archive` может временно лежать в raw landing relation вне canonical схемы,
+Широкая выгрузка `Gaia Archive` может временно лежать в таблице первичной
+загрузки вне основной схемы,
 например в `public.raw_landing_table`, но она не заменяет этот слой.
 
 Relation:
@@ -127,7 +130,7 @@ Relation:
 
 Правило:
 
-- parsing и label normalization живут здесь, а не в raw table;
+- парсинг и нормализация меток живут здесь, а не в raw-таблице;
 - сюда попадают только записи с выбранным рабочим match.
 - слой строится локально в БД из:
   - `lab.gaia_mk_external_filtered`
@@ -139,10 +142,10 @@ Relation:
 
 ## Слой 4. Gaia-Enriched Reference
 
-Перед этим слоем допускается набор reusable clean assets в `public`, если они
-нужны нескольким downstream-layer одновременно.
+Перед этим слоем допускается набор повторно используемых чистых данных в
+`public`, если они нужны сразу нескольким следующим слоям.
 
-Текущие ожидаемые relation:
+Текущие ожидаемые таблицы:
 
 - `public.gaia_mk_core_enrichment_clean`
 - `public.gaia_mk_flame_enrichment_clean`
@@ -176,9 +179,9 @@ Relation:
 Правило:
 
 - это еще не quality-gated training source;
-- это нормализованный reference layer перед quality/OOD step.
-- compatibility alias `radius_gspphot` при необходимости строится только в downstream view,
-  а не хранится как canonical Gaia field.
+- это нормализованный опорный слой перед шагом `quality/OOD`.
+- совместимый псевдоним `radius_gspphot` при необходимости строится только в
+  отдельном представлении, а не хранится как основное поле Gaia.
 
 ## Слой 5. Quality-Gated Reference
 
@@ -212,7 +215,8 @@ Relation:
 
 Назначение:
 
-- хранит строки, которые не должны идти в обычный training/scoring как normal case;
+- хранит строки, которые не должны идти в обычное обучение и оценку как
+  нормальный случай;
 - отделяет `unknown`, `ood` и `reject` от обычного `pass`-контра.
 
 Минимальные поля:
@@ -230,8 +234,8 @@ Relation:
 
 Правило:
 
-- uncertain rows не теряются внутри общей relation;
-- downstream pipeline может читать эту таблицу отдельно как review/OOD contour.
+- сомнительные строки не теряются внутри общей таблицы;
+- следующий контур может читать эту таблицу отдельно как слой разбора и `OOD`.
 
 ## Слой 6. Training Views
 
@@ -253,14 +257,14 @@ Relations:
 
 - `dwarfs` и `evolved` для раздельных сценариев;
 - `router_training` для coarse/spectral tasks;
-- `host_training` для host-like контуров.
-- `id_coarse_training` для первого classifier по `OBAFGKM`;
-- `mk_refinement_training` для subclass-layer;
+- `host_training` для контуров поиска host-подобных объектов;
+- `id_coarse_training` для первого классификатора по `OBAFGKM`;
+- `mk_refinement_training` для слоя подклассов;
 - `id_ood_training` для отдельной задачи `ID vs OOD`.
 
 Правило:
 
-- training views не содержат тяжелую бизнес-логику;
+- обучающие представления не содержат тяжелую прикладную логику;
 - они только выделяют reproducible slices поверх уже подготовленных слоев.
 
 ## Слой 7. Candidate Scoring View
@@ -288,8 +292,9 @@ Relation:
 
 Примечание:
 
-- для candidate/scoring view допускается compatibility alias `radius_gspphot`,
-  если upstream canonical layer хранит официальный Gaia field `radius_flame`.
+- для представления оценки кандидатов допускается совместимый псевдоним
+  `radius_gspphot`, если основной слой хранит официальное поле Gaia
+  `radius_flame`.
 
 При необходимости:
 
@@ -301,20 +306,21 @@ Relation:
 - `mk_label`
 - `canonical_mk_string`
 
-Такие поля допустимы только как convenience fields, но не как единственный внутренний target.
+Такие поля допустимы только как вспомогательные поля, но не как единственная
+внутренняя метка.
 
 ## Правило Версионирования
 
 Если parsing или quality gate меняются:
 
 - не переписываем логику молча в одном и том же слое;
-- фиксируем version field или versioned workflow;
+- фиксируем поле версии или версионированный рабочий процесс;
 - при необходимости делаем новую table/view revision.
 
 ## Критерий Готовности Схемы
 
 Схема считается зафиксированной, если:
 
-- ingestion знает, в какую relation писать каждый шаг;
+- слой загрузки знает, в какую таблицу писать каждый шаг;
 - loaders знают, откуда читать;
-- новая MK-ветка не требует разрушать существующие relation.
+- новая MK-ветка не требует разрушать существующие таблицы.

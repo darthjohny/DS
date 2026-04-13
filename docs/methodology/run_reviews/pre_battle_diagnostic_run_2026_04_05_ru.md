@@ -1,14 +1,14 @@
-# Диагностический Run Перед Донастройкой
+# Диагностический прогон перед донастройкой
 
 Дата фиксации: `2026-04-05`
 
-Run:
+Прогон:
 
 - [hierarchical_final_decision_2026_04_05_090717_885503](/Users/evgeniikuznetsov/Desktop/dspro-vkr/artifacts/decisions/hierarchical_final_decision_2026_04_05_090717_885503)
 
-## Зачем Этот Run Нужен
+## Зачем нужен этот прогон
 
-Этот прогон не считается новым production baseline.
+Этот прогон не считается новым рабочим базовым прогоном.
 
 Он нужен как диагностическая точка отсчета перед пакетом донастройки:
 
@@ -23,29 +23,29 @@ Run:
 
 Артефакты:
 
-- `id_ood` model:
+- модель `id_ood`:
   - `artifacts/models/gaia_id_ood_classification__hist_gradient_boosting_calibrated_sigmoid__2026_03_28_215240_816364`
-- `id_ood` threshold:
+- порог `id_ood`:
   - `artifacts/thresholds/gaia_id_ood_classification__hist_gradient_boosting_calibrated_sigmoid__threshold__2026_03_28_215240_850166`
-- `coarse` model:
+- модель `coarse`:
   - `artifacts/models/gaia_id_coarse_classification__hist_gradient_boosting__2026_03_28_215003_509969`
-- `refinement` family models:
+- семейство моделей `refinement`:
   - `a`
   - `b`
   - `f`
   - `g`
   - `k`
   - `m`
-- `host` model:
+- модель `host`:
   - `artifacts/models/host_field_classification__hist_gradient_boosting__2026_03_29_071601_090632`
 
-Policy:
+Политика:
 
 - `priority_high_min = 0.75`
 - `priority_medium_min = 0.45`
-- остальные пороги взяты из текущей боевой конфигурации кода без ручного override
+- остальные пороги взяты из текущей боевой конфигурации кода без ручного переопределения
 
-## Итог По Пайплайну
+## Итог по контуру
 
 - `n_rows_input = 402226`
 - `n_rows_final_decision = 402226`
@@ -53,13 +53,13 @@ Policy:
 - `n_rows_priority_ranking = 177674`
 - `n_unique_source_id = 402226`
 
-## Финальный Routing
+## Финальная маршрутизация
 
 - `id = 177674` (`44.17%`)
 - `unknown = 223787` (`55.64%`)
 - `ood = 765` (`0.19%`)
 
-## Quality-State
+## Состояние `quality`
 
 - `pass = 178439` (`44.36%`)
 - `reject = 159964` (`39.77%`)
@@ -72,9 +72,9 @@ Policy:
 - `quality_unknown = 63823`
 - `hard_ood = 765`
 
-## Review Buckets
+## Группы разбора
 
-Основные review-buckets:
+Основные группы разбора:
 
 - `pass = 166847`
 - `reject_missing_core_features = 159873`
@@ -134,16 +134,16 @@ Policy:
 
 ## Текущая Трактовка
 
-Этот run подтверждает:
+Этот прогон подтверждает:
 
-- главный operational limiter сейчас это не падение базовых моделей;
-- основное давление на итоговый routing дает `quality_gate`;
+- главное практическое ограничение сейчас связано не с падением базовых моделей;
+- основное давление на итоговую маршрутизацию дает `quality_gate`;
 - `priority` все еще заметно насыщен в верхней зоне при дефолтных порогах;
 - поэтому следующий шаг должен идти не в интерпретацию объектов, а в
-  спокойную policy-донастройку двух слоев:
+  спокойную донастройку политики двух слоев:
   - `quality_gate`
   - `priority`
 
-## Следующий Шаг
+## Следующий шаг
 
-- [pre_battle_tuning_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/pre_battle_tuning_tz_ru.md)
+- переход к сравнению и донастройке `quality_gate` и `priority`.

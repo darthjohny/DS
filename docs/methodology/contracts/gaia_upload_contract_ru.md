@@ -1,25 +1,25 @@
-# Gaia Upload Contract For MK Wave
+# Контракт загрузки в Gaia для MK-волны
 
 ## Цель
 
-Этот документ фиксирует минимальный upload-friendly contract для `Gaia Archive`
-после локального B/mk filter-step.
+Этот документ фиксирует минимальный контракт загрузки в `Gaia Archive`
+после локального шага фильтрации `B/mk`.
 
 Задача:
 
 - не тащить в user table лишнюю parser-логику;
-- не потерять traceability между внешним source и будущим crossmatch;
-- зафиксировать один reproducible upload layer до похода в `Gaia`.
+- не потерять прослеживаемость между внешним источником и будущим кроссматчем;
+- зафиксировать один воспроизводимый слой загрузки перед обращением к `Gaia`.
 
-## Источник Upload-слоя
+## Источник слоя загрузки
 
-Upload table строим не из `raw`, а из:
+Таблицу загрузки строим не из `raw`, а из:
 
 - `lab.gaia_mk_external_filtered`
 
 Причина:
 
-- в `raw` остаются строки с неподдержанным spectral prefix;
+- в `raw` остаются строки с неподдержанным спектральным префиксом;
 - `filtered` уже гарантирует координаты, непустой `raw_sptype` и готовность к следующему шагу;
 - это уменьшает шум до `Gaia Archive` без потери полезных объектов.
 
@@ -37,12 +37,14 @@ Upload table строим не из `raw`, а из:
 Зачем:
 
 - `external_row_id` нужен как стабильный локальный ключ;
-- `external_catalog_name` нужен для traceability и будущего multi-source сценария;
+- `external_catalog_name` нужен для прослеживаемости и будущего сценария с
+  несколькими источниками;
 - `external_object_id` нужен для audit и ручной проверки;
 - `ra_deg`, `dec_deg` нужны для geometric crossmatch;
-- `raw_sptype` нужен, чтобы xmatch-enriched выгрузка сразу сохраняла исходную MK-строку рядом с `Gaia`-полями.
+- `raw_sptype` нужен, чтобы выгрузка после кроссматча сразу сохраняла исходную
+  строку MK рядом с полями `Gaia`.
 
-## Что Не Тянем В Upload-слой
+## Что не тянем в слой загрузки
 
 На этом шаге не отправляем в `Gaia Archive`:
 
@@ -60,11 +62,11 @@ Upload table строим не из `raw`, а из:
 
 Причина:
 
-- это уже parser-local или DB-local логика;
-- upload table должна быть минимальной и прозрачной;
-- label normalization и audit flags не смешиваем с crossmatch-механикой.
+- это уже логика парсера или локальной базы данных;
+- таблица загрузки должна быть минимальной и прозрачной;
+- нормализацию меток и audit-флаги не смешиваем с механикой кроссматча.
 
-## Локальный Filter Для Upload
+## Локальный фильтр для загрузки
 
 В upload table идут только строки, где:
 
@@ -77,7 +79,7 @@ Upload table строим не из `raw`, а из:
 
 - `925840` строк
 
-## Канонический Local Query
+## Канонический локальный запрос
 
 Канонический источник для следующего шага собирается так:
 
@@ -101,7 +103,7 @@ ORDER BY external_row_id ASC;
 
 - [bmk_upload.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/src/exohost/db/bmk_upload.py)
 
-## Что Получаем После Upload
+## Что получаем после загрузки
 
 После загрузки в `Gaia Archive` user table должна сохранять:
 
@@ -109,13 +111,14 @@ ORDER BY external_row_id ASC;
 - координаты для built-in crossmatch;
 - исходный `raw_sptype` рядом с будущим `source_id`.
 
-Это позволяет потом выгрузить xmatch-enriched слой без отдельного ручного merge по локальным CSV.
+Это позволяет потом выгрузить слой после кроссматча без отдельного ручного
+слияния локальных `CSV`.
 
-## Что Остается Следующим Шагом
+## Что остается следующим шагом
 
 Этот contract не определяет:
 
-- radius и batch policy для crossmatch;
+- политику радиуса и пакетной обработки для кроссматча;
 - правило выбора лучшего match среди нескольких кандидатов;
 - финальную структуру `lab.gaia_mk_external_crossmatch`;
 - label normalization после `Gaia`.
@@ -128,11 +131,12 @@ ORDER BY external_row_id ASC;
 - [Gaia Crossmatch Strategy For MK Wave](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/gaia_crossmatch_strategy_ru.md)
 - [MK Ingestion Workflow](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/mk_ingestion_workflow_ru.md)
 
-## Критерий Готовности Контракта
+## Критерий готовности контракта
 
 Контракт считается зафиксированным, если:
 
-- понятно, из какой relation строится upload table;
+- понятно, из какой таблицы строится таблица загрузки;
 - список колонок не придумывается вручную по ходу;
-- upload layer не смешан с label normalization;
-- следующий Gaia-step можно начинать без повторного обсуждения состава user table.
+- слой загрузки не смешан с нормализацией меток;
+- следующий шаг в `Gaia` можно начинать без повторного обсуждения состава
+  пользовательской таблицы.

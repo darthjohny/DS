@@ -1,41 +1,40 @@
-# Variant Review Для `quality_gate` На Диагностическом Baseline
+# Обзор вариантов для `quality_gate` на диагностическом базовом прогоне
 
 Дата фиксации: `2026-04-05`
 
-Baseline:
+Базовый прогон:
 
 - [hierarchical_final_decision_2026_04_05_090717_885503](/Users/evgeniikuznetsov/Desktop/dspro-vkr/artifacts/decisions/hierarchical_final_decision_2026_04_05_090717_885503)
 
 Связанные документы:
 
 - [quality_gate_rule_roles_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/quality_gate_rule_roles_ru.md)
-- [pre_battle_tuning_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/pre_battle_tuning_tz_ru.md)
 
 ## Цель
 
-Проверить candidate policy-варианты для `quality_gate` без изменения mainline.
+Проверить варианты политики для `quality_gate` без изменения основной логики.
 
 Важно:
 
 - этот review затрагивает только `review`-правила;
-- hard reject по `missing_core_features` не меняется;
+- жесткое отклонение по `missing_core_features` не меняется;
 - OOD-сигналы тоже не меняются в этом сравнении.
 
-## Сравниваемые Варианты
+## Сравниваемые варианты
 
-### Baseline
+### Базовый вариант
 
 - `ruwe_unknown_threshold = 1.4`
 - `parallax_snr_unknown_threshold = 5.0`
 - `require_flame_for_pass = True`
 
-### Relaxed
+### Смягченный вариант
 
 - `ruwe_unknown_threshold = 1.6`
 - `parallax_snr_unknown_threshold = 3.0`
 - `require_flame_for_pass = False`
 
-### Strict
+### Строгий вариант
 
 - `ruwe_unknown_threshold = 1.2`
 - `parallax_snr_unknown_threshold = 7.0`
@@ -43,37 +42,37 @@ Baseline:
 
 ## Итоговая Сводка
 
-### Baseline
+### Базовый вариант
 
 - `pass = 178439`
 - `unknown = 63823`
 - `reject = 159964`
 
-### Relaxed
+### Смягченный вариант
 
 - `pass = 195815`
 - `unknown = 46447`
 - `reject = 159964`
 
-Изменение относительно baseline:
+Изменение относительно базового варианта:
 
 - `+17376` строк переходят из `unknown` в `pass`
 - `reject` не меняется вообще
 
-### Strict
+### Строгий вариант
 
 - `pass = 162741`
 - `unknown = 79521`
 - `reject = 159964`
 
-Изменение относительно baseline:
+Изменение относительно базового варианта:
 
 - `15698` строк переходят из `pass` в `unknown`
 - `reject` не меняется вообще
 
 ## Что Важно По Переходам
 
-### Relaxed
+### Смягченный вариант
 
 Переходы:
 
@@ -83,10 +82,10 @@ Baseline:
 
 Это означает:
 
-- relaxed-вариант действительно работает только по review-правилам;
-- hard reject слой не размывается.
+- смягченный вариант действительно работает только по правилам разбора;
+- слой жесткого отклонения не размывается.
 
-### Strict
+### Строгий вариант
 
 Переходы:
 
@@ -96,12 +95,12 @@ Baseline:
 
 Это тоже подтверждает:
 
-- strict-вариант изолированно усиливает review-слой;
-- hard reject слой остается тем же.
+- строгий вариант изолированно усиливает слой разбора;
+- слой жесткого отклонения остается тем же.
 
-## Какие Правила Реально Двигают Строки
+## Какие правила реально двигают строки
 
-### Relaxed
+### Смягченный вариант
 
 Основные причины возврата строк в `pass`:
 
@@ -109,9 +108,10 @@ Baseline:
 - `review_missing_radius_flame`
 - `review_low_parallax_snr`
 
-Пример changed rows подтверждает, что меняются именно эти review-cases.
+Пример изменившихся строк подтверждает, что меняются именно эти случаи из слоя
+разбора.
 
-### Strict
+### Строгий вариант
 
 Основные причины перевода строк в `unknown`:
 
@@ -122,8 +122,8 @@ Baseline:
 
 Этот review подтверждает два важных факта:
 
-1. helper-слой сравнения вариантов работает корректно и не смешивает review с
-   hard reject;
+1. вспомогательный слой сравнения вариантов работает корректно и не смешивает
+   разбор с жестким отклонением;
 2. главный trade-off сейчас действительно сидит в review-правилах, а не в
    `reject_missing_core_features`.
 

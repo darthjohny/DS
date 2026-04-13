@@ -1,13 +1,13 @@
-# Host Priority Calibration Round 1
+# Первый обзор калибровки host-приоритета
 
-## Run
+## Прогон
 
-- model artifact:
+- артефакт модели:
   - `artifacts/models/host_field_classification__hist_gradient_boosting__2026_03_29_071601_090632`
-- review notebook:
+- обзорный ноутбук:
   - `analysis/notebooks/technical/host_priority_calibration_review.ipynb`
 
-## Holdout Summary
+## Сводка по holdout-выборке
 
 - `n_rows_full = 7406`
 - `n_rows_train = 5184`
@@ -15,14 +15,14 @@
 - `train_positive_rate = 0.5`
 - `test_positive_rate = 0.5`
 
-## Core Metrics
+## Основные метрики
 
 - `brier_score = 0.035357`
 - `log_loss = 0.134080`
 - `roc_auc = 0.990521`
 - `mean_predicted_probability = 0.503894`
 
-## Primary Findings
+## Основные выводы
 
 1. Разделение `host` vs `field` сильное.
    - `roc_auc` высокий, значит сигнал `host_similarity_score` не выглядит случайным.
@@ -40,14 +40,14 @@
      - `mean_probability = 0.002514`
      - `positive_rate = 0.012597`
 
-4. Проблема `priority` saturation пока выглядит не как bug в host-model.
-   - host-model хорошо разделяет классы
-   - saturation выше по pipeline, вероятно, усиливается через:
+4. Проблема насыщения `priority` пока не выглядит как ошибка в host-модели.
+   - host-модель хорошо разделяет классы
+   - насыщение выше по контуру, вероятно, усиливается через:
      - `class_priority_score`
      - границы `priority_label`
-     - policy интеграции `host_similarity_score` в final ranking
+     - политику интеграции `host_similarity_score` в итоговое ранжирование
 
-## Group Context
+## Контекст по группам
 
 По holdout `spec_class`:
 
@@ -61,16 +61,15 @@
 - `dwarf`: `2032`, `median_host_similarity_score = 0.686660`
 - `evolved`: `190`, `0.417684`
 
-## Decision After Round 1
+## Решение после первого обзора
 
-- post-hoc calibration пока не включаем автоматически
-- сначала сохраняем этот review как baseline
+- дополнительную калибровку пока не включаем автоматически
+- сначала сохраняем этот обзор как базовый
 - следующий шаг:
-  - проверить, достаточно ли скорректировать `priority` thresholds / scaling
-  - и только после этого решать, нужен ли отдельный calibrated host layer
+  - проверить, достаточно ли скорректировать пороги и масштабирование `priority`
+  - и только после этого решать, нужен ли отдельный откалиброванный слой host
 
-## Related
+## Связанные документы
 
-- [host_priority_calibration_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/host_priority_calibration_tz_ru.md)
 - [priority_review_round1_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/priority_review_round1_ru.md)
 - [stabilization_issue_ledger_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/stabilization_issue_ledger_ru.md)

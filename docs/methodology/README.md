@@ -2,7 +2,7 @@
 
 Документы в этом каталоге разделены по ролям, чтобы быстрее отличать:
 
-- норму и контракты;
+- нормы и контракты;
 - планы и проектные решения;
 - результаты прогонов и обзоров;
 - интерпретационный слой для текста ВКР;
@@ -20,24 +20,24 @@
 - [plans](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/README.md)
   Планы, стратегии и проектные решения.
 - [run_reviews](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/README.md)
-  Итоги прогонов, аудитов и review-раундов.
+  Итоги прогонов, аудитов и обзоров.
 - [vkr](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/vkr/README.md)
   Слой интерпретации результата для текста ВКР.
 - [stabilization](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/README.md)
-  Служебные политики, cleanup-аудит и ledger стабилизации.
+  Служебные политики, аудит чистки и правила рабочего контура.
 - [archive_research](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/README.md)
   Архивные исследовательские документы.
 
-## Правило
+## Правило размещения
 
 Если документ задает норму или контракт, он идет в `contracts`.
 
 Если документ объясняет, что и зачем делаем дальше, он идет в `plans`.
 
-Если документ фиксирует результат конкретного прогона, анализа или review,
+Если документ фиксирует результат конкретного прогона, анализа или обзора,
 он идет в `run_reviews`.
 
 Если документ переводит уже готовый результат на язык ВКР, он идет в `vkr`.
 
-Если документ описывает правила рабочего контура, cleanup или политику
+Если документ описывает правила рабочего контура, чистку или политику
 стабилизации, он идет в `stabilization`.

@@ -1,55 +1,46 @@
-# Calibration And Threshold Policy
+# Политика калибровки и порогов
 
 ## Цель
 
-Этот документ фиксирует second-wave policy для:
+Этот документ фиксирует политику второй рабочей версии для:
 
-- probability calibration;
-- threshold tuning;
+- калибровки вероятностей;
+- настройки порогов;
 - handoff между `OOD`, `coarse`, `refinement` и `unknown/review`.
 
 Документ нужен, чтобы:
 
-- не прятать confidence logic внутри inference-кода;
-- не смешивать calibration с base model training;
+- не прятать логику уверенности внутри кода обработки;
+- не смешивать калибровку с обучением базовой модели;
 - не подбирать пороги на test split;
-- не превращать decision layer в набор ad hoc `if` по месту.
+- не превращать слой решения в набор разрозненных `if`.
 
-## Инженерный Инвариант
+## Общий принцип
 
-Для кода, который будет реализовывать этот policy later, действует тот же стандарт:
+Документ задает правила для кода, но не описывает нашу внутреннюю организацию
+работы по файлам и шагам.
 
-- `1 файл = 1 ответственность`
-- calibration modules отдельно от base model runners
-- threshold tuning отдельно от final decision mapping
-- без giant inference-policy file
-- `PEP 8`
-- явная типизация
-- простая логика раньше сложной
-- без лишних зависимостей
-- после каждого небольшого куска:
-  - micro-QA
-  - `ruff`
-  - точечный `mypy/pyright`
-  - целевые tests
-- после завершения микро-ТЗ:
-  - scoped big-QA только по написанному слою
+Здесь фиксируются только:
 
-## Official Опора
+- роль калибровки;
+- роль настройки порогов;
+- место этих шагов в общем контуре.
+
+## Документационная опора
 
 ### Probability Calibration
 
-Official scikit-learn docs фиксируют:
+Документация `scikit-learn` фиксирует:
 
-- calibration переводит `decision_function` или `predict_proba` output в calibrated
-  probability;
-- calibrator должен учиться на данных, независимых от train subset базового
-  classifier;
-- `CalibratedClassifierCV` делает это через internal cross-validation;
-- для multiclass calibrator fit-ится отдельно по классам;
+- калибровка переводит выход `decision_function` или `predict_proba` в
+  откалиброванную вероятность;
+- калибратор должен обучаться на данных, независимых от обучающего поднабора
+  базового классификатора;
+- `CalibratedClassifierCV` делает это через внутреннюю кросс-валидацию;
+- для многоклассовой задачи калибратор подгоняется отдельно по классам;
 - при `ensemble=True` calibration идет по folds и averaged на predict-time;
 - `isotonic` не рекомендуется при слишком малом числе calibration samples;
-- `sigmoid` safer как first default на ограниченных данных.
+- `sigmoid` безопаснее как первый вариант по умолчанию на ограниченных данных.
 
 Официальные источники:
 
@@ -58,9 +49,10 @@ Official scikit-learn docs фиксируют:
 
 ### Threshold Tuning
 
-Official scikit-learn docs фиксируют:
+Документация `scikit-learn` фиксирует:
 
-- threshold tuning — это отдельный post-hoc step поверх classifier score/probability;
+- настройка порога — это отдельный шаг постобработки поверх оценки или
+  вероятности классификатора;
 - `TunedThresholdClassifierCV` пост-оптимизирует decision threshold через CV;
 - default metric у него — `balanced_accuracy`;
 - `cv="prefit"` нельзя использовать на том же датасете, на котором estimator
@@ -74,7 +66,7 @@ Official scikit-learn docs фиксируют:
 
 ### Metrics
 
-Official scikit-learn docs фиксируют:
+Документация `scikit-learn` фиксирует:
 
 - `balanced_accuracy` подходит для binary и multiclass задач при class imbalance;
 - `classification_report` удобен как structured report по precision / recall / F1
@@ -85,20 +77,20 @@ Official scikit-learn docs фиксируют:
 - [balanced_accuracy_score](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.balanced_accuracy_score.html)
 - [classification_report](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification_report.html)
 
-## Общие Правила Проекта
+## Общие правила проекта
 
-### Rule 1. Calibration Не Живет Внутри Base Model
+### Правило 1. Калибровка не живет внутри базовой модели
 
-Base classifier и calibrator — разные сущности.
+Базовый классификатор и калибратор — разные сущности.
 
-Project policy:
+Правило проекта:
 
 - сначала train base estimator;
 - потом отдельно calibration stage;
 - потом отдельно decision threshold stage;
 - потом отдельно final decision mapping.
 
-### Rule 2. Test Split Не Используется Для Calibration/Threshold Tuning
+### Правило 2. Test split не используется для калибровки и настройки порогов
 
 Calibration и threshold tuning разрешены только на:
 
@@ -111,7 +103,7 @@ Calibration и threshold tuning разрешены только на:
 - fit classifier на set A и tune threshold на том же set A;
 - fit classifier, calibrator и final threshold на test split.
 
-### Rule 3. Thresholds Versioned
+### Правило 3. Пороги должны версионироваться
 
 Порог — это не магическое число в коде.
 
@@ -123,46 +115,46 @@ Calibration и threshold tuning разрешены только на:
 - `threshold_fit_scope`
 - `threshold_policy_version`
 
-## Stage-Specific Policy
+## Политика по этапам
 
-## Stage A. `ID/OOD`
+## Этап A. `ID/OOD`
 
-### Почему Этот Stage Тюним Первым
+### Почему этот этап настраиваем первым
 
 `ID/OOD` у нас binary и уже имеет сильный baseline:
 
 - test balanced_accuracy `0.926215`
 - test macro_f1 `0.944521`
 
-Значит именно этот stage first candidate для official threshold tuning.
+Значит именно этот этап является первым кандидатом для настройки порогов.
 
-### Base Policy
+### Базовая политика
 
-First second-wave design:
+Для второй рабочей версии:
 
 - base estimator family пока не меняем;
-- используем existing `HistGradientBoostingClassifier` baseline;
+- используем существующий базовый `HistGradientBoostingClassifier`;
 - тюнинг threshold делаем отдельно от fit.
 
-### Calibration Policy
+### Политика калибровки
 
 Для `ID/OOD` допускается:
 
-- calibrate probabilities через `CalibratedClassifierCV`
+- калибровка вероятностей через `CalibratedClassifierCV`
 - default calibration method: `sigmoid`
 
 Причина:
 
-- `sigmoid` safer default;
+- `sigmoid` безопаснее как вариант по умолчанию;
 - не требует большого calibration mass как `isotonic`;
-- лучше соответствует conservative first second-wave.
+- лучше соответствует осторожной первой рабочей версии.
 
 `isotonic`:
 
-- оставляем как later experiment;
-- не делаем default без отдельного evidence-run.
+- оставляем как отдельный следующий эксперимент;
+- не делаем вариантом по умолчанию без отдельного подтверждающего прогона.
 
-### Threshold Policy
+### Политика порогов
 
 Для `ID/OOD` threshold tuning проектируем через:
 
@@ -174,11 +166,11 @@ Default scoring:
 
 Пояснение:
 
-- это official default scorer для `TunedThresholdClassifierCV`;
+- это стандартная метрика по умолчанию для `TunedThresholdClassifierCV`;
 - он согласуется с нашей задачей, где и false `OOD`, и missed `OOD` важны;
-- это лучше, чем hard-coded `0.5`.
+- это лучше, чем жестко прописанное `0.5`.
 
-### Output Contract
+### Выходной контракт
 
 `ID/OOD` stage должен уметь отдавать:
 
@@ -191,7 +183,7 @@ Default scoring:
   - `candidate_ood`
   - `ood`
 
-### First Decision Policy
+### Решение для первой рабочей версии
 
 Этот документ не фиксирует конкретные numeric thresholds.
 
@@ -201,9 +193,9 @@ Default scoring:
 - `ood` и `candidate_ood` разделяем в отдельном manual policy layer;
 - `candidate_ood` не схлопываем с clean `in_domain`.
 
-## Stage B. `Coarse`
+## Этап B. `Coarse`
 
-### Base Policy
+### Базовая политика
 
 `coarse` baseline уже достаточно силен:
 
@@ -212,11 +204,11 @@ Default scoring:
 Поэтому:
 
 - coarse stage не становится primary candidate для threshold tuning first;
-- сначала его используем как stable classifier с probability output.
+- сначала используем его как стабильный классификатор с вероятностным выходом.
 
-### Calibration Policy
+### Политика калибровки
 
-Second-wave default:
+Для второй рабочей версии:
 
 - calibration для `coarse` не является обязательным первым шагом;
 - сначала сохраняем raw `predict_proba` и confidence margin;
@@ -225,10 +217,10 @@ Second-wave default:
 Причина:
 
 - coarse metrics уже очень высокие;
-- biggest next-wave gain ожидается не от re-calibration coarse,
-  а от better handoff logic между stages.
+- основной следующий выигрыш ожидается не от повторной калибровки coarse,
+  а от более качественной логики передачи между этапами.
 
-### Confidence Policy
+### Политика уверенности
 
 Для `coarse` фиксируем decision contract, а не numeric threshold:
 
@@ -236,17 +228,17 @@ Second-wave default:
 - `coarse_probability_margin`
 - `coarse_policy_version`
 
-Project policy:
+Правило проекта:
 
 - numeric threshold для `coarse -> refinement` подбирается на validation;
 - threshold не тюним на test;
 - threshold не живет внутри base model code.
 
-## Stage C. `Refinement`
+## Этап C. `Refinement`
 
-### Base Policy
+### Базовая политика
 
-`refinement` во второй волне идет через family-based decomposition:
+`refinement` во второй рабочей версии идет через разбиение по семействам:
 
 - `A`
 - `B`
@@ -257,14 +249,15 @@ Project policy:
 
 `O` остается coarse-only.
 
-### Calibration Policy
+### Политика калибровки
 
-Calibration для refinement families допускается, но не должна быть mandatory
-в первом кодовом шаге.
+Калибровка для семейств refinement допускается, но не должна быть обязательной
+в первом рабочем шаге.
 
 Причина:
 
-- сначала нужно materialize-ить family tasks и проверить их baseline;
+- сначала нужно материализовать задачи по семействам и проверить их базовое
+  качество;
 - только потом решать, где calibration реально улучшает reliability.
 
 Default future policy:
@@ -273,7 +266,7 @@ Default future policy:
 - default method: `sigmoid`;
 - `isotonic` только как targeted experiment на достаточно больших family slices.
 
-### Output Contract
+### Выходной контракт
 
 Каждая family model должна уметь отдавать:
 
@@ -286,7 +279,7 @@ Default future policy:
   - `rejected_to_unknown`
   - `not_attempted`
 
-### Handoff Policy
+### Политика передачи
 
 Refinement запускается только если одновременно:
 
@@ -297,14 +290,14 @@ Refinement запускается только если одновременно
 
 Если это не выполнено:
 
-- refinement не forced-run-ится;
+- refinement не запускается принудительно;
 - объект остается на coarse-level или уходит в `unknown/review`.
 
-## Unknown / Review Policy
+## Политика `unknown/review`
 
-`unknown/review` — это отдельный outcome, не ошибка метрики.
+`unknown/review` — это отдельный исход, а не ошибка метрики.
 
-Object должен попадать в `unknown/review`, если:
+Объект должен попадать в `unknown/review`, если:
 
 - `quality_state <> 'pass'`
 - `ood_state = 'candidate_ood'`
@@ -313,27 +306,27 @@ Object должен попадать в `unknown/review`, если:
 - coarse class coarse-only для refinement
 - refinement family отказалась от confident decision
 
-## Что Не Делаем
+## Чего не делаем
 
 - не вшиваем numeric thresholds в training runner;
 - не смешиваем calibration, threshold tuning и final decision mapping в одном модуле;
 - не используем `cv="prefit"` на том же наборе, где fit-ился estimator;
 - не вводим multiclass threshold tuning ad hoc без validation contract;
-- не делаем `isotonic` default без отдельного justification.
+- не делаем `isotonic` вариантом по умолчанию без отдельного обоснования.
 
-## MTZ-M51 Deliverable
+## Критерий готовности документа
 
-`MTZ-M51` считается закрытым, когда:
+Документ считается зафиксированным, когда:
 
-- calibration policy зафиксирована отдельно от model-code;
+- политика калибровки зафиксирована отдельно от кода моделей;
 - threshold policy зафиксирована отдельно от decision mapping;
-- official scikit-learn опора и project policy разведены явно;
+- документация `scikit-learn` и правила проекта разведены явно;
 - следующий шаг может проектировать final decision layer без архитектурной
   импровизации.
 
-## Current Code Status (`2026-03-28`)
+## Состояние реализации (`2026-03-28`)
 
-Policy уже переведен в отдельные code-side модули:
+Политика уже переведена в отдельные модули:
 
 - [calibration.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/src/exohost/posthoc/calibration.py)
 - [threshold_tuning.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/src/exohost/posthoc/threshold_tuning.py)
@@ -341,26 +334,28 @@ Policy уже переведен в отдельные code-side модули:
 - [run_id_ood_posthoc_gate.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/src/exohost/training/run_id_ood_posthoc_gate.py)
 - [id_ood_threshold_artifacts.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/src/exohost/reporting/id_ood_threshold_artifacts.py)
 
-Инженерно важный low-level фикс:
+Важный технический фикс:
 
 - custom model wrappers приведены к корректной sklearn classifier semantics через
   `ClassifierMixin` слева от `BaseEstimator`;
 - это потребовалось, чтобы official `CalibratedClassifierCV` и
-  `TunedThresholdClassifierCV` работали без ad hoc adapters.
+  `TunedThresholdClassifierCV` работали без дополнительных обходных адаптеров.
 
-Дополнительный data-slice фикс:
+Дополнительный фикс на уровне выборки:
 
 - `ID/OOD` loader больше не режет `limit` по `domain_target ASC`;
 - ограниченные выборки теперь упорядочиваются по `random_index`, чтобы CV не
   получал одноклассовый slice.
 
-Artifact contract теперь тоже закрыт:
+Контракт артефактов теперь тоже закрыт:
 
 - tuned threshold policy сохраняется отдельно от model artifact;
-- decision CLI читает не только saved estimator, но и saved threshold artifact;
-- это исключает скрытый manual threshold drift между notebook, CLI и end-to-end run.
+- `decision CLI` читает не только сохраненную модель, но и сохраненный артефакт
+  порогов;
+- это исключает скрытый ручной дрейф порогов между ноутбуком, `CLI` и
+  сквозным прогоном.
 
-Live smoke-run для `gaia_id_ood_classification` (`HistGradientBoosting`,
+Проверочный прогон для `gaia_id_ood_classification` (`HistGradientBoosting`,
 `limit=5000`):
 
 - train accuracy: `0.985677`
@@ -371,7 +366,7 @@ Live smoke-run для `gaia_id_ood_classification` (`HistGradientBoosting`,
 - test macro_f1: `0.961488`
 - tuned threshold: `0.041898`
 
-Scoped QA по post-hoc slice:
+Проверка по срезу постобработки:
 
 - `ruff` ok
 - `mypy` ok

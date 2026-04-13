@@ -86,7 +86,7 @@
 - `radius_feature`
   - first-wave view может строить его как
     `COALESCE(radius_flame, radius_gspphot)`
-  - canonical storage при этом остается за `radius_flame`
+  - основным хранилищем при этом остается `radius_flame`
 
 ### Фильтрация первой рабочей версии
 
@@ -252,9 +252,9 @@
 `radius_flame` не делаем обязательным,
 потому что OOD-pool по FLAME покрыт плохо.
 
-## First Baseline Results (`2026-03-28`)
+## Результаты первого базового прогона (`2026-03-28`)
 
-Ниже зафиксированы первые live baseline-run по новым view.
+Ниже зафиксированы результаты первого базового прогона по новым представлениям.
 
 ### Coarse
 
@@ -283,14 +283,14 @@
 - artifacts:
   - `artifacts/benchmarks/gaia_mk_refinement_classification_2026_03_28_172145_781713`
 
-First-wave вывод:
+Вывод по первой рабочей версии:
 
-- refinement numerically уже работает end-to-end;
-- coarse и OOD baseline заметно сильнее;
+- refinement уже работает сквозным образом;
+- coarse и `OOD`-слои заметно сильнее;
 - subclass-tail требует отдельной второй волны:
   либо regrouping,
   либо hierarchical-per-class refinement,
-  либо support-aware pruning.
+  либо отсечения редких подклассов по поддержке.
 
 ### ID vs OOD
 
@@ -307,38 +307,40 @@ First-wave вывод:
 
 Общий вывод первой волны:
 
-- `coarse` baseline уже production-like по качеству;
-- `ID/OOD` baseline уже strong enough для отдельной ветки reject-aware logic;
-- `refinement` baseline работоспособен, но пока это именно baseline, а не финальная
-  исследовательская схема второго слоя.
+- `coarse` уже показывает качество, достаточное для основного рабочего контура;
+- `ID/OOD` уже достаточно стабилен для отдельной ветки с учетом отклонения
+  сомнительных объектов;
+- `refinement` работоспособен, но пока остается первым приближением, а не
+  финальной исследовательской схемой второго слоя.
 
-## Code-Side Loader Policy
+## Политика загрузчиков
 
-После materialized views код не читает их ad hoc SQL-строками из training-runner.
+После материализации представлений код не читает их через разрозненные
+`SQL`-запросы внутри обучающего контура.
 
-Первая code-side волна фиксируется так:
+Для первой рабочей версии фиксируем следующее:
 
 - [hierarchical_dataset_contracts.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/src/exohost/contracts/hierarchical_dataset_contracts.py)
-  содержит relation-contracts только для новых view;
+  содержит контракты таблиц только для новых представлений;
 - каждый loader живет в отдельном файле:
   - [load_gaia_id_coarse_training_dataset.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/src/exohost/datasets/load_gaia_id_coarse_training_dataset.py)
   - [load_gaia_mk_refinement_training_dataset.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/src/exohost/datasets/load_gaia_mk_refinement_training_dataset.py)
   - [load_gaia_id_ood_training_dataset.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/src/exohost/datasets/load_gaia_id_ood_training_dataset.py)
 - training-frame normalization вынесен отдельно в
   [hierarchical_training_frame.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/src/exohost/features/hierarchical_training_frame.py)
-  и не смешан с legacy V2 frame-preparation.
+  и не смешан со старой подготовкой таблиц `V2`.
 
-### Coarse Loader Policy
+### Политика coarse-загрузчика
 
 - loader читает `lab.v_gaia_id_coarse_training`;
 - stage-label не приходит из view напрямую;
-- code-side compatibility mapping строится из `is_evolved -> evolution_stage`;
+- совместимое отображение строится из `is_evolved -> evolution_stage`;
 - `spec_class` остается главным target первого слоя.
 
-### Refinement Loader Policy
+### Политика refinement-загрузчика
 
 - loader читает `lab.v_gaia_mk_refinement_training`;
-- code-side mapping:
+- отображение на стороне кода:
   - `spectral_class -> spec_class`
   - `spectral_subclass -> spec_subclass`
   - `luminosity_class -> evolution_stage`
@@ -346,7 +348,7 @@ First-wave вывод:
   [mk_evolution_stage.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/src/exohost/labels/mk_evolution_stage.py),
   а не через скрытый SQL-case в training-code.
 
-### ID/OOD Loader Policy
+### Политика загрузчика для `ID/OOD`
 
 - loader читает `lab.v_gaia_id_ood_training`;
 - target остается бинарным: `domain_target`;
@@ -361,23 +363,24 @@ First-wave вывод:
 Причина:
 
 - для binary `ID vs OOD` training нам нужна уникальность по `source_id`;
+- для бинарного обучения `ID vs OOD` нужна уникальность по `source_id`;
 - overlap не должен приводить к leakage между train/test;
 - traceability при этом не теряется.
 
-## Что Делаем После Фиксации Contracts
+## Что делаем после фиксации контракта
 
-Только после фиксации этих view-contract:
+Только после фиксации этих контрактов представлений:
 
 1. materialize/create views в БД;
 2. сделать DB/profile audit по каждому view;
 3. потом писать loaders;
 4. только потом запускать первые baseline train/benchmark runs.
 
-## Связанные Документы
+## Связанные документы
 
-- [DB Layer Closure Plan For Hierarchical MK/OOD Wave](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/db_layer_closure_plan_ru.md)
-- [Quality And OOD Contract V2](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/quality_ood_contract_ru.md)
-- [Hierarchical Classification And OOD Strategy](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/hierarchical_ood_strategy_ru.md)
+- [db_layer_closure_plan_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/db_layer_closure_plan_ru.md)
+- [quality_ood_contract_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/quality_ood_contract_ru.md)
+- [hierarchical_ood_strategy_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/hierarchical_ood_strategy_ru.md)
 
 Внутренний микро-план maturation-этапа ведется вне публичного контура
 репозитория.

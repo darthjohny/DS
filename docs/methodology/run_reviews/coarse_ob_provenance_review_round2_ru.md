@@ -1,50 +1,50 @@
-# Coarse O/B Provenance Review Round 2
+# Второй обзор происхождения меток для `coarse O/B`
 
 ## Цель
 
-Проверить, что происходит с downstream `O/B`-пулом после фикса parser-policy
-для ambiguous `OB...` labels и после проталкивания этого фикса в downstream
-relations.
+Проверить, что происходит с рабочим пулом `O/B` после исправления parser-policy
+для ambiguous `OB...` labels и после проталкивания этого исправления в рабочие
+таблицы.
 
-## Что Было Сделано
+## Что было сделано
 
 1. Parser-policy для ambiguous hot-boundary labels изменена так, что:
    - `OB...`
    - `O/B...`
    - `O9.5/B0...`
-   materialize-ятся как:
+   материализуются как:
    - `spectral_class = 'OB'`
    - `label_parse_status = 'partial'`
    - `label_parse_notes = 'ambiguous_ob_boundary_label'`
-2. Выполнен downstream sync:
+2. Выполнена синхронизация рабочих таблиц:
    - `lab.gaia_mk_training_reference`
    - `lab.gaia_mk_quality_gated`
    - `lab.gaia_mk_unknown_review`
-3. Пересобран local provenance audit слой:
+3. Пересобран локальный слой аудита происхождения:
    - `lab.gaia_ob_hot_provenance_audit_source`
    - `lab.gaia_ob_hot_provenance_audit_summary`
    - `lab.gaia_ob_hot_provenance_crosswalk_summary`
 
 ## Источники
 
-- parser-fixed labeled source:
+- источник размеченных данных после исправления parser:
   - `lab.gaia_mk_external_labeled`
-- synced downstream relations:
+- синхронизированные рабочие таблицы:
   - `lab.gaia_mk_training_reference`
   - `lab.gaia_mk_quality_gated`
   - `lab.gaia_mk_unknown_review`
-- refreshed provenance audit:
+- пересобранный аудит происхождения:
   - `lab.gaia_ob_hot_provenance_audit_source`
   - `lab.gaia_ob_hot_provenance_audit_summary`
   - `lab.gaia_ob_hot_provenance_crosswalk_summary`
-- Gaia hot-star result:
+- результат Gaia по горячим звездам:
   - `public.gaia_ob_hot_provenance_audit_clean`
 
 ## Ключевые Результаты
 
-### 1. Ambiguous `OB...` больше не сидят в downstream `O`
+### 1. Ambiguous `OB...` больше не сидят в рабочем `O`
 
-После sync:
+После синхронизации:
 
 - `lab.gaia_mk_training_reference`
   - `spectral_class='O'`: `1207`
@@ -59,24 +59,24 @@ relations.
   - `spectral_class='OB'`: `3684`
   - `ambiguous OB -> O`: `0`
 
-То есть parser-fix реально дошел до downstream слоя, а не остался только в
+То есть исправление parser реально дошло до рабочего слоя, а не осталось только в
 `lab.gaia_mk_external_labeled`.
 
-### 2. Широкий problematic `O`-пул почти целиком превратился в explicit `OB` boundary
+### 2. Широкий проблемный пул `O` почти целиком превратился в явную границу `OB`
 
-На refreshed hot provenance source:
+На обновленном источнике происхождения горячих звезд:
 
 - `B`: `7112`
 - `OB`: `1163`
 - `O`: `25`
 
-До sync-а downstream problematic `O`-пул был `1188` строк. После sync-а он
+До синхронизации проблемный рабочий пул `O` был `1188` строк. После синхронизации он
 схлопнулся до `25` строк, а почти весь спорный хвост переехал в явный
-`OB boundary` pool.
+пул границы `OB`.
 
-### 3. Новый `OB` boundary pool по Gaia hot-star semantics все еще почти целиком B-like
+### 3. Новый пул границы `OB` по семантике Gaia для горячих звезд все еще почти целиком ближе к `B`
 
-На refreshed crosswalk:
+На обновленной сводке crosswalk:
 
 - `OB -> B`: `1115 / 1163 = 95.87%`
 - `OB -> O`: `16 / 1163 = 1.38%`
@@ -85,18 +85,18 @@ Median:
 
 - `OB median teff_esphs ≈ 20000.95 K`
 
-Это хорошо согласуется с предыдущим выводом: широкий problematic downstream
-пул не был clean `O`, а был hot boundary / B-like population.
+Это хорошо согласуется с предыдущим выводом: широкий проблемный рабочий
+пул не был чистым `O`, а был пограничной популяцией, близкой к `B`.
 
-### 4. Оставшийся explicit `O`-хвост уже не выглядит как полный provenance-failure
+### 4. Оставшийся явный хвост `O` уже не выглядит как полный сбой происхождения меток
 
-На refreshed crosswalk:
+На обновленной сводке crosswalk:
 
 - `O -> O`: `11 / 25 = 44.00%`
 - `O -> B`: `12 / 25 = 48.00%`
 - `O -> U`: `2 / 25 = 8.00%`
 
-Top raw labels в оставшемся downstream `O`:
+Основные raw labels в оставшемся рабочем `O`:
 
 - `O9V`: `92`
 - `O8V`: `65`
@@ -104,31 +104,31 @@ Top raw labels в оставшемся downstream `O`:
 - `O9.5III`: `34`
 - `O8.5V`: `26`
 
-То есть оставшийся downstream `O` уже состоит в основном из explicit `O`-like
-labels, а не из `OB...`.
+То есть оставшийся рабочий `O` уже состоит в основном из явных `O`-подобных
+обозначений, а не из `OB...`.
 
 ## Интерпретация
 
-Этот раунд сильно подтверждает root cause:
+Этот раунд сильно подтверждает основную причину:
 
-- основной mass-issue сидел не в coarse plumbing и не в train split;
-- основной mass-issue сидел в parser/provenance semantics для `OB...`;
-- после фикса этой semantics широкий ложный `O`-хвост исчез как класс.
+- основная массовая проблема сидела не в устройстве coarse-контура и не в обучающем разбиении;
+- основная массовая проблема сидела в parser/provenance semantics для `OB...`;
+- после исправления этой семантики широкий ложный `O`-хвост исчез как класс.
 
 Новый статус проблемы:
 
-- broad issue `O -> B` для ambiguous `OB...` по сути подтвержден и локализован;
-- остается уже узкий scientific вопрос для explicit `O`-tail:
-  - являются ли эти `25` строк реально boundary-case;
-  - или для них still нужен отдельный source-alignment / model-side review.
+- широкая проблема `O -> B` для ambiguous `OB...` по сути подтверждена и локализована;
+- остается уже узкий научный вопрос для явного хвоста `O`:
+  - являются ли эти `25` строк реальным пограничным случаем;
+  - или для них все еще нужен отдельный обзор согласования источников и поведения модели.
 
 ## Практический Вывод
 
-Blind retrain coarse-модели на текущем этапе по-прежнему не выглядит первым
+Retrain coarse-модели вслепую на текущем этапе по-прежнему не выглядит первым
 шагом.
 
 Сначала честнее:
 
-1. считать `OB` отдельным hot-boundary pool, а не чистым `O`;
-2. проверить, как эту новую semantics лучше встроить в downstream routing;
-3. только после этого решать, нужен ли narrow retrain для explicit `O`.
+1. считать `OB` отдельным пограничным пулом горячих звезд, а не чистым `O`;
+2. проверить, как эту новую семантику лучше встроить в рабочую маршрутизацию;
+3. только после этого решать, нужен ли узкий retrain для явного `O`.

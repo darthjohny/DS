@@ -1,19 +1,19 @@
-# Star-Level Review Round 2
+# Второй обзор по отдельным объектам
 
 ## Цель
 
-Этот документ фиксирует второй предметный разбор `final decision` run после
-ужатия `priority` thresholds:
+Этот документ фиксирует второй предметный разбор прогона `final decision` после
+ужатия порогов `priority`:
 
 - `artifacts/decisions/hierarchical_final_decision_2026_03_29_111132_270743`
 
-Задача round 2:
+Задача второго обзора:
 
-- проверить, что изменение thresholds не ломает верхний routing;
-- посмотреть, стала ли `priority`-стратификация содержательнее;
+- проверить, что изменение порогов не ломает верхнюю маршрутизацию;
+- посмотреть, стало ли распределение `priority` содержательнее;
 - перепроверить, где именно остается проблема с классом `O`.
 
-## Сводка По Run
+## Сводка по прогону
 
 - `n_rows_input = 402226`
 - `n_rows_final_decision = 402226`
@@ -39,9 +39,9 @@
 - `medium = 41851` (`23.55%`)
 - `low = 63775` (`35.89%`)
 
-## Что Изменилось Относительно Baseline
+## Что изменилось относительно базового прогона
 
-Threshold-policy изменилась только в `priority`-слое:
+Политика порогов изменилась только в слое `priority`:
 
 - `high_min = 0.85`
 - `medium_min = 0.55`
@@ -52,7 +52,7 @@ Threshold-policy изменилась только в `priority`-слое:
 - `final_quality_state` не изменился;
 - `final_decision_reason` не изменился.
 
-Изменилась только downstream priority stratification:
+Изменилось только распределение приоритетов:
 
 - `high -> medium = 28125`
 - `medium -> low = 4647`
@@ -60,11 +60,11 @@ Threshold-policy изменилась только в `priority`-слое:
 Итог:
 
 - `priority` стал заметно менее насыщенным наверху;
-- никаких признаков hidden coupling между thresholds и верхним routing не видно.
+- никаких признаков скрытой связности между порогами и верхней маршрутизацией не видно.
 
 ## Ключевые Наблюдения
 
-### 1. Главный Драйвер `unknown` По-Прежнему Не Модельный
+### 1. Главный источник `unknown` по-прежнему не связан с моделью
 
 Текущая top-структура `quality_reason`:
 
@@ -85,9 +85,9 @@ Threshold-policy изменилась только в `priority`-слое:
 Вывод:
 
 - доля `unknown/reject` по-прежнему определяется не слабостью `coarse` или
-  `refinement`, а `quality_gate` и availability core physics.
+  `refinement`, а `quality_gate` и наличием основных физических признаков.
 
-### 2. `priority` Стал Содержательнее, Но `K` Все Еще Доминирует В High-Zone
+### 2. `priority` стал содержательнее, но `K` все еще доминирует в зоне `high`
 
 Новая class-level структура:
 
@@ -100,47 +100,46 @@ Threshold-policy изменилась только в `priority`-слое:
 
 Вывод:
 
-- tightening thresholds действительно помог;
-- но если top-zone `K` останется operationally слишком широкой,
-  следующим шагом нужен отдельный scaling review, а не новый random threshold tweak.
+- ужесточение порогов действительно помогло;
+- но если верхняя зона `K` останется слишком широкой на практике,
+  следующим шагом нужен отдельный обзор масштабирования, а не новый подбор порогов.
 
-### 3. Класс `O` По-Прежнему Практически Отсутствует В Final Output
+### 3. Класс `O` по-прежнему практически отсутствует в итоговом выводе
 
-На текущем run:
+На текущем прогоне:
 
 - `final_coarse_class = O` встречается только `1` раз
 
-Это согласуется с уже зафиксированным issue:
+Это согласуется с уже зафиксированной проблемой:
 
 - `quality_gate` не вырезает `O` полностью;
-- проблема остается в поведении coarse-model на rare-tail классе.
+- проблема остается в поведении coarse-модели на редком хвосте распределения.
 
-## Практический Вывод После Round 2
+## Практический вывод после второго обзора
 
-Система на текущем run ведет себя стабильнее с точки зрения `priority`:
+Система на текущем прогоне ведет себя стабильнее с точки зрения `priority`:
 
-- high-zone стала уже;
-- medium-zone стала полезнее;
-- upper routing не изменился.
+- зона `high` стала уже;
+- зона `medium` стала полезнее;
+- верхняя маршрутизация не изменилась.
 
 Но два открытых вопроса остаются:
 
-1. нужен ли `priority scaling` поверх нового threshold-run;
+1. нужен ли отдельный слой масштабирования `priority` поверх нового прогона с порогами;
 2. как отдельно разбирать исчезновение класса `O`.
 
 ## Следующие Шаги
 
-1. Продолжить star-level review уже на этом run через
+1. Продолжить обзор по отдельным объектам уже на этом прогоне через
    [final_decision_review.ipynb](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/technical/final_decision_review.ipynb).
-2. Провести отдельный coarse rare-tail review для `O` через
+2. Провести отдельный обзор редкого хвоста coarse-модели для `O` через
    [11_coarse_o_tail_review.ipynb](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/archive_research/11_coarse_o_tail_review.ipynb)
-   и зафиксировать findings в
+   и зафиксировать выводы в
    [coarse_o_tail_review_round1_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/coarse_o_tail_review_round1_ru.md).
-3. Только после этого решать, нужен ли отдельный `priority scaling` пакет.
+3. Только после этого решать, нужен ли отдельный пакет масштабирования `priority`.
 
-## Related
+## Связанные документы
 
 - [priority_threshold_review_round2_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/priority_threshold_review_round2_ru.md)
 - [coarse_o_tail_review_round1_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/coarse_o_tail_review_round1_ru.md)
 - [stabilization_issue_ledger_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/stabilization_issue_ledger_ru.md)
-- [post_run_stabilization_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/post_run_stabilization_tz_ru.md)

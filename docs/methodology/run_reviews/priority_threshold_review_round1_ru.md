@@ -1,13 +1,13 @@
-# Priority Threshold Review Round 1
+# Первый обзор порогов слоя приоритета
 
-## Run
+## Прогон
 
-- decision run:
+- прогон итогового решения:
   - `artifacts/decisions/hierarchical_final_decision_2026_03_29_075935_878508`
-- review notebook:
+- обзорный ноутбук:
   - `analysis/notebooks/technical/priority_threshold_review.ipynb`
 
-## Reviewed Variants
+## Проверенные варианты
 
 - baseline:
   - `high_min = 0.75`
@@ -19,11 +19,11 @@
   - `high_min = 0.85`
   - `medium_min = 0.55`
 
-## Live Summary
+## Сводка по рабочему прогону
 
 `n_rows = 177674`
 
-### Baseline
+### Базовый вариант
 
 - `high = 100173` (`56.38%`)
 - `medium = 18373` (`10.34%`)
@@ -34,12 +34,12 @@
 - `high = 90293` (`50.82%`)
 - `medium = 28253` (`15.90%`)
 - `low = 59128` (`33.28%`)
-- changed from baseline:
+- изменились относительно базового варианта:
   - `9880` (`5.56%`)
 
-Transition:
+Переходы:
 
-- only one meaningful move:
+- есть только один содержательный переход:
   - `high -> medium`
 
 ### `strict_high_medium_085_055`
@@ -47,15 +47,15 @@ Transition:
 - `high = 72048` (`40.55%`)
 - `medium = 41851` (`23.55%`)
 - `low = 63775` (`35.89%`)
-- changed from baseline:
+- изменились относительно базового варианта:
   - `32772` (`18.45%`)
 
-Transitions:
+Переходы:
 
 - `high -> medium = 28125`
 - `medium -> low = 4647`
 
-## Class-Level Impact For `strict_high_medium_085_055`
+## Влияние по классам для `strict_high_medium_085_055`
 
 - `K`
   - `high = 69.51%`
@@ -76,36 +76,35 @@ Transitions:
 - `A/B`
   - остаются целиком в `low`
 
-## Primary Findings
+## Основные выводы
 
-1. Threshold tightening уже дает заметный эффект без изменения ranking formula.
-   - simple cutoff review действительно сужает `high` zone
-   - значит saturation не обязательно требует немедленного scaling layer
+1. Ужесточение порогов уже дает заметный эффект без изменения формулы ранжирования.
+   - простая проверка порогов действительно сужает зону `high`
+   - значит насыщение не обязательно требует немедленного отдельного слоя масштабирования
 
 2. `strict_high_080` слишком мягкий.
    - меняет только `5.56%` строк
-   - operationally полезен, но не решает ширину high-zone достаточно сильно
+   - практически полезен, но не сужает зону `high` достаточно сильно
 
-3. `strict_high_medium_085_055` выглядит как рабочий кандидат для следующего live run.
-   - high-zone сжимается с `56.38%` до `40.55%`
-   - medium становится информативнее
-   - low почти не ломается
+3. `strict_high_medium_085_055` выглядит как рабочий кандидат для следующего прогона.
+   - зона `high` сжимается с `56.38%` до `40.55%`
+   - `medium` становится информативнее
+   - `low` почти не меняется
 
 4. `K` все еще слишком насыщен наверху.
-   - даже на stricter thresholds у `K` high share остается `69.51%`
-   - это уже аргумент в пользу следующего scaling review,
-     если после нового run top-zone останется слишком плоской
+   - даже на более строгих порогах у `K` доля `high` остается `69.51%`
+   - это уже аргумент в пользу следующего обзора масштабирования,
+     если после нового прогона верхняя зона останется слишком плоской
 
-## Decision After Round 1
+## Решение после первого обзора
 
-- ranking formula пока не меняем
-- post-hoc calibration для host-model пока не включаем
+- формулу ранжирования пока не меняем
+- дополнительную калибровку для host-модели пока не включаем
 - следующий разумный шаг:
-  - сделать one-step live run с stricter thresholds
-  - и только потом решать, нужен ли отдельный scaling package
+  - сделать один рабочий прогон с более строгими порогами
+  - и только потом решать, нужен ли отдельный пакет масштабирования
 
-## Related
+## Связанные документы
 
-- [priority_threshold_calibration_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/priority_threshold_calibration_tz_ru.md)
 - [priority_review_round1_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/priority_review_round1_ru.md)
 - [host_priority_calibration_round1_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/host_priority_calibration_round1_ru.md)

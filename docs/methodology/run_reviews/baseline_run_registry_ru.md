@@ -1,16 +1,16 @@
-# Baseline Run Registry
+# Реестр базовых прогонов
 
 ## Цель
 
-Этот документ фиксирует baseline artifacts, на которые опирается текущая
-stabilization-фаза.
+Этот документ фиксирует базовые артефакты, на которые опирается текущая
+фаза стабилизации.
 
 Правило:
 
-- пока отдельный bugfix или calibration-step не доказал необходимость смены
-  baseline, именно эти runs считаются reference state проекта.
+- пока отдельное исправление или шаг калибровки не доказал необходимость смены
+  базового прогона, именно эти прогоны считаются опорным состоянием проекта.
 
-## Stable Benchmark Runs
+## Стабильные benchmark-прогоны
 
 ### Hierarchical Core
 
@@ -26,7 +26,7 @@ stabilization-фаза.
 - `host_field`:
   - `artifacts/benchmarks/host_field_classification_2026_03_29_071615_364867`
 
-## Stable Model Artifacts
+## Стабильные модельные артефакты
 
 ### OOD / Coarse
 
@@ -46,28 +46,28 @@ stabilization-фаза.
 
 - `artifacts/models/host_field_classification__hist_gradient_boosting__2026_03_29_071601_090632`
 
-## Stable Threshold Artifacts
+## Стабильные артефакты порогов
 
 - `artifacts/thresholds/gaia_id_ood_classification__hist_gradient_boosting_calibrated_sigmoid__threshold__2026_03_28_215240_850166`
 
-## Stable Final Decision Runs
+## Стабильные прогоны итогового решения
 
-### Historical First End-To-End Run
+### Первый сквозной исторический прогон
 
 - `artifacts/decisions/hierarchical_final_decision_2026_03_28_220214_410649`
 
-### Historical Stable Baseline
+### Исторический стабильный базовый прогон
 
 - `artifacts/decisions/hierarchical_final_decision_2026_03_29_075935_878508`
 
-Это прежний стабильный baseline run, на который опирался основной слой
-stabilization до пакета донастройки `quality_gate + priority`.
+Это прежний стабильный базовый прогон, на который опирался основной слой
+стабилизации до пакета донастройки `quality_gate + priority`.
 
-### Current Active Baseline
+### Текущий основной базовый прогон
 
 - `artifacts/decisions/hierarchical_final_decision_2026_04_05_123111_055017`
 
-Это текущий основной baseline run, потому что он:
+Это текущий основной базовый прогон, потому что он:
 
 - прошел после отдельной донастройки `quality_gate` и `priority`;
 - сохраняет осторожные пороги `RUWE = 1.4` и `parallax_over_error = 5.0`;
@@ -75,7 +75,7 @@ stabilization до пакета донастройки `quality_gate + priority`
 - использует более читаемую label-policy `priority`:
   - `high_min = 0.85`
   - `medium_min = 0.55`
-- уже используется как active baseline для технического review-слоя.
+- уже используется как основной базовый прогон для технического обзорного слоя.
 
 Связанные разборы:
 
@@ -83,32 +83,33 @@ stabilization до пакета донастройки `quality_gate + priority`
 - [high_priority_cohort_review_2026_04_05_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/high_priority_cohort_review_2026_04_05_ru.md)
 - [regression_validation_run_2026_04_06_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/regression_validation_run_2026_04_06_ru.md)
 
-### Current Threshold Candidate Run
+### Кандидатный прогон для новых порогов
 
 - `artifacts/decisions/hierarchical_final_decision_2026_03_29_111132_270743`
 
-Это отдельный live run для проверки более строгих `priority` thresholds:
+Это отдельный рабочий прогон для проверки более строгих порогов `priority`:
 
 - `priority_high_min = 0.85`
 - `priority_medium_min = 0.55`
 
-Этот run пока не переопределяет baseline автоматически и используется как
-comparison/candidate run для stabilization-review.
+Этот прогон пока не переопределяет базовый автоматически и используется как
+сравнительный кандидат в рамках стабилизации.
 
-### Current Diagnostic Tuning Baseline
+### Диагностический базовый прогон для донастройки
 
 - `artifacts/decisions/hierarchical_final_decision_2026_04_05_090717_885503`
 
-Это не новый production baseline, а диагностический run для пакета
+Это не новый основной рабочий прогон, а диагностический запуск для пакета
 донастройки перед следующим боевым прогоном.
 
 Он нужен как единая точка отсчета для:
 
-- `quality_gate` tuning;
-- `priority` tuning;
-- сравнения candidate policy без смешения со старым stable baseline.
+- донастройки `quality_gate`;
+- донастройки `priority`;
+- сравнения вариантов политики без смешения со старым стабильным базовым
+  прогоном.
 
-Ключевые live-показатели этого run:
+Ключевые показатели этого прогона:
 
 - `n_rows_input = 402226`
 - `id = 177674` (`44.17%`)
@@ -116,26 +117,26 @@ comparison/candidate run для stabilization-review.
 - `ood = 765` (`0.19%`)
 - `quality_reject = 159964`
 - `quality_unknown = 63823`
-- `priority high = 100173` (`56.38%` от priority-пула)
+- `priority high = 100173` (`56.38%` от пула приоритета)
 
 Связанный разбор:
 
 - [pre_battle_diagnostic_run_2026_04_05_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/pre_battle_diagnostic_run_2026_04_05_ru.md)
 
-## Active Review Notebooks
+## Основные обзорные ноутбуки
 
-- pipeline review:
+- обзор контура обработки:
   - [model_pipeline_review.ipynb](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/technical/model_pipeline_review.ipynb)
-- final decision review:
+- обзор итогового решения:
   - [final_decision_review.ipynb](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/technical/final_decision_review.ipynb)
-- quality-gate calibration:
+- разбор калибровки `quality_gate`:
   - [quality_gate_calibration.ipynb](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/research/quality_gate_calibration.ipynb)
 
-## Правило Смены Baseline
+## Правило смены базового прогона
 
-Baseline можно менять только если новый run:
+Базовый прогон можно менять только если новый прогон:
 
 - воспроизводимо проходит;
-- не ломает contracts;
-- закрывает подтвержденный defect или calibration goal;
-- зафиксирован в docs и notebook review.
+- не ломает контракты;
+- закрывает подтвержденную ошибку или цель калибровки;
+- зафиксирован в документации и обзорных ноутбуках.

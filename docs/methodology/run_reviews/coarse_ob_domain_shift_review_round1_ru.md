@@ -1,29 +1,25 @@
-# Round 1: Domain Shift Review На Границе `O/B`
+# Первый обзор доменного сдвига на границе `O/B`
 
 ## Контекст
 
-После предыдущих deep-dive review стало ясно:
+После предыдущих подробных обзоров стало ясно:
 
-- current coarse-artifact на собственном train-time `O/B` boundary работает почти идеально;
+- текущий артефакт coarse-модели на собственной обучающей границе `O/B` работает почти идеально;
 - starvation по `O` нет;
-- downstream hot pass-source при этом почти полностью схлопывается в `B`.
+- рабочий горячий проходной пул при этом почти полностью схлопывается в `B`.
 
 Здесь проверяется следующая гипотеза:
 
-- проблема `O -> B` вызвана не train-time incapacity модели, а domain shift / source mismatch
-  между train-time coarse source и downstream hot pass-source.
-
-Опорное ТЗ:
-
-- [coarse_ob_domain_shift_review_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/coarse_ob_domain_shift_review_tz_ru.md)
+- проблема `O -> B` вызвана не неспособностью модели на этапе обучения, а доменным
+  сдвигом и расхождением источников между обучающим пулом и рабочим горячим проходным пулом.
 
 ## Live Source
 
-- coarse model artifact:
+- артефакт coarse-модели:
   - `/Users/evgeniikuznetsov/Desktop/dspro-vkr/artifacts/models/gaia_id_coarse_classification__hist_gradient_boosting__2026_03_28_215003_509969`
-- train-time domain:
+- обучающий домен:
   - `GAIA_ID_COARSE_CLASSIFICATION_TASK`
-- downstream domain:
+- рабочий домен:
   - `lab.gaia_mk_quality_gated`
   - `quality_state = 'pass'`
   - `spectral_class IN ('O', 'B')`
@@ -43,7 +39,7 @@
   - `B = 7112`
   - `O = 1188`
 
-## Поведение Current Coarse Artifact
+## Поведение текущего артефакта coarse-модели
 
 На `train_time`:
 
@@ -61,8 +57,8 @@
 
 Вывод:
 
-- current coarse-artifact не теряет `O` на собственном train-time hot boundary;
-- downstream true `O` полностью попадает в `B`.
+- текущий артефакт coarse-модели не теряет `O` на собственной обучающей горячей границе;
+- рабочие true `O` полностью попадают в `B`.
 
 ## Вероятности
 
@@ -77,7 +73,7 @@ Median probabilities:
 
 Это очень сильный сигнал:
 
-- downstream true `O` для модели выглядят почти так же, как downstream true `B`;
+- рабочие true `O` для модели выглядят почти так же, как рабочие true `B`;
 - это уже не “пограничная неуверенность”, а почти полная смена области признаков.
 
 ## Физические Сдвиги
@@ -103,14 +99,14 @@ Median probabilities:
 
 По ключевым coarse features различия по пропускам не выглядят объяснением проблемы:
 
-- на sampled review-слое `missing_share = 0.0` по основным feature columns
+- на проверочной выборке `missing_share = 0.0` по основным столбцам признаков
   в обоих доменах.
 
 Следовательно:
 
-- `O -> B` не объясняется тем, что downstream hot pass-source просто “дырявый”.
+- `O -> B` не объясняется тем, что рабочий горячий проходной пул просто “дырявый”.
 
-## Separability Train vs Downstream
+## Разделимость обучающего и рабочего доменов
 
 Самые сильные domain-shift признаки для true `O`:
 
@@ -133,28 +129,28 @@ Median probabilities:
 
 Вывод:
 
-- domain shift подтвержден;
+- доменный сдвиг подтвержден;
 - для true `O` он очень сильный именно по физике, а не по missingness.
 
 ## Текущая Интерпретация
 
-С учетом предыдущих review это означает:
+С учетом предыдущих обзоров это означает:
 
-- starvation по `O` нет;
-- train-time `O/B` separability у current coarse-artifact есть;
-- downstream `O -> B` вызван уже не нехваткой support, а source/domain mismatch.
+- нехватки `O` нет;
+- разделимость `O/B` на этапе обучения у текущего артефакта coarse-модели есть;
+- рабочий `O -> B` вызван уже не нехваткой опоры, а расхождением домена и источников.
 
-То есть сейчас преждевременный narrow retrain выглядит плохо обоснованным.
+То есть сейчас преждевременный узкий retrain выглядит плохо обоснованным.
 
 ## Следующий Шаг
 
 Следующий правильный пакет:
 
-- не ретрейнить coarse вслепую;
-- отдельно разбирать provenance и label semantics downstream true `O` pass-pool;
-- проверить, насколько downstream `O` согласуются с физикой hot stars и с происхождением
+- не ретрейнить coarse-модель вслепую;
+- отдельно разбирать происхождение меток и семантику меток в рабочем проходном пуле true `O`;
+- проверить, насколько рабочие `O` согласуются с физикой hot stars и с происхождением
   меток в этом контуре;
 - только после этого решать, нужен ли:
-  - source alignment,
+  - согласование источников,
   - relabeling,
-  - или уже потом узкий retrain/class weighting.
+  - или уже потом узкий retrain и перенастройка весов классов.

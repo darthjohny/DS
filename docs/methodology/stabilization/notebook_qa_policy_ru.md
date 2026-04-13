@@ -1,105 +1,64 @@
-# Политика QA Для Notebook
+# Правила проверки notebook
 
 Дата фиксации: `2026-04-05`
 
 Связанные документы:
 
-- [project_cleanup_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/project_cleanup_tz_ru.md)
 - [analysis/notebooks/README.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/README.md)
 - [test_analysis_notebooks.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/tests/unit/notebooks/test_analysis_notebooks.py)
 
-Внутренний микро-план notebook cleanup ведется вне публичного контура
-репозитория.
+## Зачем нужен этот документ
 
-## Цель
+В проекте notebook играют важную роль, но проверять их все одинаково было бы
+неправильно. Одни notebook нужны для регулярного обзора и должны уверенно
+запускаться, другие служат только для легкой структурной проверки.
 
-Разделить две разные задачи:
+## Основной принцип
 
-- быстрый smoke-контроль notebook как файлов проекта;
-- осознанное исполнение важных notebook через `nbclient` в scoped QA.
+Проверка notebook разделена на два уровня:
 
-Это нужно, чтобы:
+1. Быстрая структурная проверка через `pytest`.
+2. Адресный запуск ключевых notebook через `nbclient`.
 
-- не делать вид, что обычный `pytest` выполняет тяжелые notebook;
-- не терять повторяемую проверку тех notebook, которые реально участвуют в
-  анализе результатов проекта;
-- не смешивать активный обзорный слой и исследовательский архив.
+## Что дает быстрая проверка
 
-## Что Считается Smoke-Проверкой
+Файл
+[test_analysis_notebooks.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/tests/unit/notebooks/test_analysis_notebooks.py)
+страхует:
 
-Файл [test_analysis_notebooks.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/tests/unit/notebooks/test_analysis_notebooks.py)
-проверяет только активные notebook из каталогов
-[eda](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/eda),
-[research](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/research)
-и
-[technical](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/technical):
+- корректность JSON-структуры;
+- наличие непустого содержимого;
+- синтаксическую корректность code-cell.
 
-- файл является валидным JSON;
-- все code-cell синтаксически компилируются;
-- notebook не пустой.
+Эта проверка нужна для быстрого контроля структуры, но не заменяет полноценный
+запуск notebook.
 
-Этот тест:
+## Какие notebook запускаются адресно
 
-- не запускает notebook;
-- не проверяет доступность внешних данных;
-- не заменяет исполнение через `nbclient`.
+Через `nbclient` запускаются активные notebook, которые участвуют в обзоре
+рабочего результата проекта:
 
-## Какие Notebook Идут В Scoped `nbclient` QA
+- итоговый обзор полного прогона;
+- обзор моделей и этапов контура;
+- разбор `quality_gate`;
+- калибровка `host_similarity_score`;
+- обзор порогов наблюдательного ранга;
+- исследовательские notebook по границе `O/B`.
 
-Следующие notebook считаются активными рабочими notebook, которые должны
-исполняться через `nbclient`, когда затронут их связанный слой:
+Именно эти notebook должны подтверждать, что проектные выводы опираются не
+только на сохраненный файл, но и на воспроизводимый запуск.
 
-- `scoring_review.ipynb`
-  из каталога `technical`,
-  при изменениях scoring/reporting слоя;
-- `model_pipeline_review.ipynb`
-  из каталога `technical`,
-  при изменениях pipeline review, benchmark/reporting и model artifact слоя;
-- `final_decision_review.ipynb`
-  из каталога `technical`,
-  при изменениях final decision review, final decision artifacts и posthoc;
-- `quality_gate_calibration.ipynb`
-  из каталога `research`,
-  при изменениях quality gate review и calibration policy;
-- `host_priority_calibration_review.ipynb`
-  из каталога `technical`,
-  при изменениях host calibration review и host priority слоя;
-- `priority_threshold_review.ipynb`
-  из каталога `technical`,
-  при изменениях ranking/priority threshold review;
-- `coarse_ob_domain_shift.ipynb`
-  из каталога `research`,
-  при изменениях active `O/B` domain-shift review;
-- `secure_o_tail.ipynb`
-  из каталога `research`,
-  при изменениях active review маленького надежного хвоста `O`.
+## Что остается вне постоянного запуска
 
-## Какие Notebook По Умолчанию Остаются Только В Smoke-Контуре
+Архивные notebook и часть обзорных EDA-notebook не входят в обязательный
+адресный запуск на каждом шаге. Их проверяют отдельно, когда затрагивается
+соответствующий слой данных или логика построения обзора.
 
-Следующие notebook не считаются обязательными для регулярного `nbclient` QA
-на каждом шаге уборки:
+## Итог
 
-- `router_training.ipynb`
-- `host_training.ipynb`
-- `label_coverage.ipynb`
+Такая схема позволяет одновременно:
 
-Их исполняют отдельно только тогда, когда меняются соответствующие source
-relations или логика их обзорного слоя.
-
-## Архивные Notebook
-
-Notebook из
-[analysis/notebooks/archive_research](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/archive_research)
-не входят в активный notebook QA.
-
-Они считаются исследовательским архивом и исполняются только по отдельному
-запросу или при возвращении конкретной архивной ветки в активную работу.
-
-## Правило Для Следующих Шагов
-
-Во всех следующих микро-ТЗ:
-
-- обычный `pytest` покрывает только smoke-проверку notebook;
-- `nbclient` прогоняется адресно, когда меняется соответствующий notebook-слой;
-- факт исполнения notebook через `nbclient` фиксируется в ответе и, при
-  необходимости, в рабочей документации шага.
+- быстро страховать структуру notebook;
+- не перегружать обычную проверку тяжелыми запусками;
+- сохранять воспроизводимость тех notebook, на которые опираются основные
+  выводы проекта.

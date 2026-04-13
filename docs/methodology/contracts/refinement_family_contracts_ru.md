@@ -1,47 +1,43 @@
-# Refinement Family Contracts
+# Контракты refinement-семейств
 
 ## Цель
 
-Этот документ фиксирует second-wave contract для family-based refinement.
+Этот документ фиксирует контракт второй рабочей версии для refinement,
+разбитого по семействам.
 
 Нужен он для того, чтобы:
 
-- не продолжать refinement как один flat `59`-class task;
+- не продолжать refinement как одну плоскую задачу на `59` классов;
 - не тащить новую decomposition-логику сразу в код;
-- сначала зафиксировать family-view contracts, а уже потом materialize-ить DB views
-  и писать loaders.
+- сначала зафиксировать контракты представлений по семействам, а уже потом
+  материализовать представления в БД и писать загрузчики.
 
-## Инженерный Инвариант
+## Общий принцип
 
-Для second-wave refinement действуют те же правила:
+Документ фиксирует только устройство семейства задач, а не нашу внутреннюю
+организацию работы по файлам и шагам.
 
-- `1 файл = 1 ответственность`
-- без giant refinement-модуля "на все классы"
-- `PEP 8`
-- явная типизация
-- простая логика раньше сложной
-- без лишних зависимостей
-- после каждого небольшого куска:
-  - micro-QA
-  - `ruff`
-  - точечный `mypy/pyright`
-  - целевые тесты
-- после завершения микро-ТЗ:
-  - scoped big-QA только по написанному слою
+Здесь задаются:
 
-## Official Опора
+- состав семейств;
+- общие фильтры;
+- набор признаков;
+- правила, какие классы остаются только на coarse-уровне.
+
+## Документационная опора
 
 ### Multiclass Docs
 
-Official scikit-learn docs фиксируют:
+Документация `scikit-learn` фиксирует:
 
-- multiclass classification поддерживается большинством classifiers из коробки;
+- многоклассовая классификация поддерживается большинством классификаторов из
+  коробки;
 - отдельные multiclass meta-estimator-стратегии нужны только если пользователь
   сознательно хочет экспериментировать с альтернативной decomposition.
 
 Практический вывод:
 
-- second-wave refinement не нужно начинать с `OvR`/`OvO`-оберток;
+- refinement второй рабочей версии не нужно начинать с `OvR`/`OvO`-оберток;
 - сначала надо изменить сам task decomposition.
 
 Официальный источник:
@@ -50,17 +46,17 @@ Official scikit-learn docs фиксируют:
 
 ### Cross-Validation Docs
 
-Official docs предупреждают:
+Документация предупреждает:
 
 - stratification решает только часть проблем при несбалансированных/редких классах;
 - редкий tail все равно нужно учитывать отдельно.
 
 Практический вывод:
 
-- family decomposition здесь является project inference из official CV behavior
-  и live support audit;
+- разбиение по семействам здесь является выводом проекта из поведения
+  кросс-валидации и обзора поддержки по классам;
 - это не "официальное предписание scikit-learn", а инженерно корректная реакция на
-  observed rare-tail structure.
+  наблюдаемую редкую хвостовую структуру.
 
 Официальный источник:
 
@@ -68,38 +64,38 @@ Official docs предупреждают:
 
 ### HistGradientBoostingClassifier
 
-Official docs фиксируют:
+Документация фиксирует:
 
-- `HistGradientBoostingClassifier` хорошо подходит для больших datasets;
+- `HistGradientBoostingClassifier` хорошо подходит для больших наборов данных;
 - поддерживает missing values;
 - поддерживает multiclass tasks.
 
 Практический вывод:
 
-- family views проектируем без смены baseline estimator family;
-- задача этого шага — не заменить classifier, а улучшить task decomposition.
+- семейства проектируем без смены базового семейства моделей;
+- задача этого шага — не заменить классификатор, а улучшить разбиение задачи.
 
 Официальный источник:
 
 - [HistGradientBoostingClassifier](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.HistGradientBoostingClassifier.html)
 
-## Upstream Source
+## Исходная таблица
 
-Все second-wave family views строятся от:
+Все семейства второй рабочей версии строятся от:
 
 - `lab.v_gaia_mk_refinement_training`
 
 Причина:
 
-- это уже gated in-domain source;
+- это уже отфильтрованный внутридоменный источник;
 - в нем уже есть core features, FLAME enrichment и label fields;
-- через него second-wave design не ломает coarse/OOD contracts.
+- через него новая версия не ломает контракты `coarse/OOD`.
 
-## Common Family Contract
+## Общий контракт семейств
 
-### Общий Shape
+### Общая форма
 
-Каждый family view должен быть отдельной relation:
+Каждое семейство должно быть отдельным представлением:
 
 - `lab.v_gaia_mk_refinement_training_a`
 - `lab.v_gaia_mk_refinement_training_b`
@@ -110,7 +106,7 @@ Official docs фиксируют:
 
 `O`-family view не создаем в second wave.
 
-### Common Required Filters
+### Общие обязательные фильтры
 
 Каждый family view обязан применять:
 
@@ -132,9 +128,9 @@ Official docs фиксируют:
   - `phot_g_mean_mag IS NOT NULL`
 - support по full subclass `spectral_class + spectral_subclass >= 15`
 
-### Common Feature Contract
+### Общий контракт признаков
 
-Во всех family views first-wave common feature set одинаковый:
+Во всех семействах первой рабочей версии набор признаков одинаковый:
 
 - `teff_gspphot`
 - `logg_gspphot`
@@ -148,7 +144,7 @@ Official docs фиксируют:
 - `evolstage_flame`
 - `phot_g_mean_mag`
 
-### Common Label Contract
+### Общий контракт меток
 
 Каждый family view обязан отдавать:
 
@@ -160,23 +156,23 @@ Official docs фиксируют:
 - `full_subclass_label`
   - `spectral_class || spectral_subclass::text`
 
-### Target Policy
+### Политика целевого признака
 
-Second-wave refinement target:
+Целевой признак второй рабочей версии:
 
 - `spectral_subclass`
 
-`full_subclass_label` сохраняется как traceable human-readable label,
+`full_subclass_label` сохраняется как прослеживаемая человекочитаемая метка,
 но не считается основным target field.
 
 Причина:
 
 - внутри family-view `spectral_class` уже фиксирован;
-- subclass-digit становится нормальным class target без смешения с другими
+- цифра подкласса становится нормальным целевым классом без смешения с другими
   coarse groups;
-- final decision layer потом приклеивает coarse prefix обратно.
+- слой итогового решения потом добавляет coarse-префикс обратно.
 
-### Task Names
+### Имена задач
 
 Code-side second-wave family tasks называются так:
 
@@ -187,10 +183,10 @@ Code-side second-wave family tasks называются так:
 - `gaia_mk_refinement_k_classification`
 - `gaia_mk_refinement_m_classification`
 
-Эти task names маппятся `1:1` на family views и не смешиваются с legacy flat task
-`gaia_mk_refinement_classification`.
+Эти имена задач сопоставляются `1:1` с представлениями по семействам и не
+смешиваются со старой плоской задачей `gaia_mk_refinement_classification`.
 
-## Family-Specific Contracts
+## Контракты по семействам
 
 ### `lab.v_gaia_mk_refinement_training_a`
 
@@ -263,7 +259,7 @@ Code-side second-wave family tasks называются так:
 - expected row budget:
   - `12761`
 
-## Coarse-Only Policy
+## Политика coarse-only
 
 ### `O`
 
@@ -279,28 +275,29 @@ Code-side second-wave family tasks называются так:
 
 - `O` остается coarse-only;
 - при необходимости идет в `unknown/review`;
-- не forced-fit-ится в subclass family.
+- не подгоняется принудительно в семейство подклассов.
 
-## Что Не Делаем На Этом Шаге
+## Чего не делаем на этом шаге
 
 - не materialize-им views прямо в этом документе;
 - не пишем loaders;
 - не вводим class-specific feature engineering;
 - не добавляем class-specific estimators без необходимости;
-- не смешиваем calibration policy с view contract.
+- не смешиваем политику калибровки с контрактом представлений.
 
-## Критерий Готовности
+## Критерий готовности
 
-`MTZ-M50` считается закрытым, когда:
+Документ считается зафиксированным, когда:
 
 - семейство refinement views определено явно;
-- для каждой family relation зафиксированы filters, features и target;
+- для каждого семейства зафиксированы фильтры, признаки и целевой признак;
 - explicit exclusions и coarse-only policy записаны отдельно;
-- следующий шаг может уже materialize-ить DB views без архитектурной импровизации.
+- следующий шаг может уже материализовать представления в БД без архитектурной
+  импровизации.
 
-## Live Status
+## Состояние реализации
 
-На `2026-03-28` family views уже materialized в live БД:
+На `2026-03-28` семейства уже материализованы в рабочей БД:
 
 - `lab.v_gaia_mk_refinement_training_a`: `26693`
 - `lab.v_gaia_mk_refinement_training_b`: `9881`
