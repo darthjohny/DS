@@ -1,145 +1,52 @@
-# Coarse O/B Boundary Review TZ
+# План разбора границы O/B
 
-## Цель
+## Зачем проводился этот шаг
 
-Этот пакет открывает следующий narrow step после
-[coarse_o_hot_subset_review_round1_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/coarse_o_hot_subset_review_round1_ru.md).
+Этот документ сохраняет исходный план следующего шага после выделения горячего
+подмножества `O`.
 
-Задача:
+На том этапе требовалось:
 
 - не трогать всю coarse-модель;
-- отдельно разобрать узкую границу `O vs B` на physically hot subset;
-- понять, это genuine model-boundary issue или отражение source-label overlap;
-- только после этого решать, нужен ли rebalance, class-weighting или source-cleaning.
+- отдельно разобрать узкую границу `O` и `B` на горячем подмножестве;
+- понять, это ошибка модели на границе классов или отражение пересечения
+  исходных меток и физики.
 
-## Official И Авторитетная Опора
+## Почему понадобился отдельный разбор границы
 
-### Gaia
+Разбор горячего подмножества уже показал:
 
-- [Gaia DR3 documentation index](https://gea.esac.esa.int/archive/documentation/GDR3/)
-- [Gaia DR3 astrophysical_parameters semantics](https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_astrophysical_parameter_tables/ssec_dm_astrophysical_parameters.html)
-- [Gaia DR3 Apsis overview](https://gea.esac.esa.int/archive/documentation/GDR3/Data_analysis/chap_cu8par/sec_cu8par_intro/ssec_cu8par_intro_apsis.html)
-- [Astrophysical parameters associated to hot stars in Gaia DR3](https://www.aanda.org/articles/aa/full_html/2023/06/aa43709-22/aa43709-22.html)
+- после отсечения холодного хвоста исчезают `F/G/K/M`;
+- физически горячее подмножество почти целиком уходит в `B`;
+- значит вопрос смещается с общего класса `O` на более узкую границу `O/B`.
 
-### Spectral Temperature Semantics
+## Базовый срез этого шага
 
-- [NASA spectral classification overview](https://asd.gsfc.nasa.gov/archive/star_class/spectral_classification.html)
-- [ESA star types overview](https://www.esa.int/Science_Exploration/Space_Science/Star_types)
-
-### Python / pandas / scikit-learn
-
-- [typing — Python docs](https://docs.python.org/3/library/typing.html)
-- [collections.abc — Python docs](https://docs.python.org/3/library/collections.abc.html)
-- [pandas missing data](https://pandas.pydata.org/docs/user_guide/missing_data.html)
-- [classification_report](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification_report.html)
-- [balanced_accuracy_score](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.balanced_accuracy_score.html)
-- [compute_class_weight](https://scikit-learn.org/stable/modules/generated/sklearn.utils.class_weight.compute_class_weight.html)
-
-## Почему Нужен Отдельный Boundary Review
-
-Hot-subset review уже показал:
-
-- после отсечения cool contamination `F/G/K/M` исчезают;
-- physically hot subset почти целиком уходит в `B`;
-- значит следующий научно корректный вопрос уже не “что не так с `O` вообще”,
-  а “что происходит на границе `O/B`”.
-
-Это отдельный слой проблемы:
-
-- он уже не про broad source contamination;
-- и еще не про retrain/rebalance.
-
-## Project Baseline
-
-Первая волна boundary-review работает на подмножестве:
+Первый разбор границы строился на подмножестве:
 
 - `spectral_class IN ('O', 'B')`
 - `quality_state = 'pass'`
 - `teff_gspphot >= 10000 K`
 
-Это project baseline narrow slice, а не официальный hard cut Gaia.
+## Что должен был показать разбор
 
-## Пакет OB-C
+На этом шаге требовалось:
 
-### OB-C01. Зафиксировать Boundary Contract
+1. оценить размер горячего граничного среза `O/B`;
+2. посмотреть, как coarse-модель распределяет предсказания между `O` и `B`;
+3. сравнить вероятности `P(O)` и `P(B)` на true `O` и true `B`;
+4. проверить, есть ли заметное физическое перекрытие между этими группами.
 
-Что нужно уметь показать:
+## Почему документ сохранен в архиве
 
-1. сколько `O` и `B` строк есть в hot pass-boundary source;
-2. как coarse-model распределяет предсказания между `O/B` и остальными классами;
-3. как выглядят `P(O)` и `P(B)` на true `O` и true `B`;
-4. есть ли физический overlap между true `O` и true `B` на этом срезе;
-5. нужен ли следующий шаг уже в сторону retrain или class-weighting.
+Этот план важен как постановка узкой проблемы на границе `O/B`. Позднее стало
+ясно, что после него нужно было разбирать уже не только границу в прогнозах, а
+еще и обучающую поддержку `O` и разделимость признаков.
 
-### OB-C02. Собрать Narrow Loader Для `O/B` Boundary Source
+Итог этого шага зафиксирован в документе
+[coarse_ob_boundary_review_round1_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/coarse_ob_boundary_review_round1_ru.md).
 
-Файлы:
-
-- `src/exohost/datasets/archive_research/load_coarse_ob_boundary_review_dataset.py`
-- `tests/archive_research/archived_load_coarse_ob_boundary_review_dataset.py`
-
-Требования:
-
-- читать `lab.gaia_mk_quality_gated`;
-- фильтровать `spectral_class IN ('O', 'B')`;
-- поддерживать baseline `quality_state` и `teff`-условия;
-- без notebook-level SQL.
-
-### OB-C03. Собрать Typed Boundary Review Helper
-
-Файлы:
-
-- `src/exohost/reporting/archive_research/coarse_ob_boundary_review.py`
-- `tests/archive_research/archived_coarse_ob_boundary_review.py`
-
-Что должен уметь helper:
-
-- строить source summary по true `O/B`;
-- считать coarse scoring с полными `P(O)` и `P(B)`;
-- строить confusion-like review frame;
-- сравнивать медианную физику true `O` и true `B`;
-- показывать high-confidence `O -> B` и `B -> O` случаи.
-
-### OB-C04. Собрать Notebook Review
-
-Файл:
-
-- `analysis/notebooks/archive_research/13_coarse_ob_boundary_review.ipynb`
-
-Notebook должен отвечать:
-
-- это реальная boundary-problem `O/B` или остаточный source noise;
-- насколько сильна asymmetry `O -> B` против `B -> O`;
-- похожи ли true `O` и true `B` по hot-source physics.
-
-### OB-C05. Зафиксировать Round 1 Findings
-
-Файл:
-
-- `docs/methodology/archive_research/coarse_ob_boundary_review_round1_ru.md`
-
-После первого review решаем:
-
-- нужен ли отдельный class-weight/rebalance для `O`;
-- нужен ли narrow retrain на `O/B` slice;
-- или сначала нужен source-cleaning hottest tail.
-
-## Инженерный Стандарт
-
-- `1 файл = 1 ответственность`
-- без монолитов
-- `PEP 8`
-- явная типизация
-- простая логика раньше сложной
-- comments только там, где они реально помогают читать код
-- после каждого slice:
-  - `ruff`
-  - `mypy`
-  - `pyright`
-  - targeted `pytest`
-- notebook отдельно проходит `nbclient` execution
-
-## Related
+## Связанные документы
 
 - [coarse_o_tail_review_round1_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/coarse_o_tail_review_round1_ru.md)
 - [coarse_o_hot_subset_review_round1_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/coarse_o_hot_subset_review_round1_ru.md)

@@ -1,14 +1,14 @@
-# Coarse O Train Support Review Round 1
+# Разбор обучающей поддержки O-класса: первый архивный обзор
 
-## Контекст
+## Зачем проводился разбор
 
-Этот review закрывает следующий вопрос после
+Этот разбор закрывал следующий вопрос после
 [coarse_ob_boundary_review_round1_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/coarse_ob_boundary_review_round1_ru.md):
 
-- есть ли у coarse-модели вообще достаточная train-time поддержка для класса `O`;
-- или проблема `O -> B` возникает уже при нормальном support.
+- есть ли у coarse-модели вообще достаточная обучающая поддержка для класса `O`;
+- или проблема `O -> B` возникает уже при нормальной поддержке класса.
 
-Срез повторяет текущий benchmark policy:
+Срез повторял текущую benchmark policy:
 
 - source: `lab.v_gaia_id_coarse_training`
 - prepared frame: `prepare_gaia_id_coarse_training_frame(...)`
@@ -17,25 +17,25 @@
   - `random_state = 42`
   - `stratify_columns = ('spec_class', 'evolution_stage')`
 
-## Главный Результат
+## Главный результат
 
-Train-time support для класса `O` в coarse source достаточный.
+Обучающая поддержка класса `O` в coarse-источнике оказалась достаточной.
 
 Проблема `O -> B` не объясняется тем, что:
 
-- `O` мало в source;
+- `O` мало в источнике;
 - `O` почти не попадает в train/test;
-- hottest `O` tail теряется на split;
-- или benchmark split не совпадает с reconstructed review split.
+- самый горячий хвост `O` теряется на split;
+- или benchmark split не совпадает с восстановленным разбиением.
 
 Иными словами:
 
-- support issue здесь не подтвердился;
-- проблема сужается до model-side boundary issue `O vs B`.
+- версия о нехватке поддержки здесь не подтвердилась;
+- проблема сужается до границы `O vs B` на уровне модели.
 
-## Что Показал Review
+## Что показал разбор
 
-### 1. Reconstructed Split Совпадает С Benchmark Один В Один
+### 1. Восстановленный split совпадает с benchmark
 
 - `full`: `32986`
 - `train`: `23090`
@@ -45,9 +45,10 @@ Train-time support для класса `O` в coarse source достаточны
 
 - `artifacts/benchmarks/gaia_id_coarse_classification_2026_03_28_171258_103400`
 
-Значит дальше мы анализируем именно тот же split, который использовался в coarse benchmark.
+Значит дальше анализировался именно тот же split, который использовался в
+coarse benchmark.
 
-### 2. True `O` В Source Не Недопредставлен
+### 2. True `O` в источнике не был недопредставлен
 
 - `full`: `3000`
 - `train`: `2100`
@@ -59,23 +60,23 @@ Train-time support для класса `O` в coarse source достаточны
 - `train`: `9.0948%`
 - `test`: `9.0946%`
 
-Это не выглядит как train/test starvation.
+Это не выглядит как нехватка примеров в `train/test`.
 
-### 3. Все True `O` В Coarse Source Идут Как `evolved`
+### 3. Все true `O` в coarse-источнике шли как `evolved`
 
-На reconstructed source:
+На восстановленном источнике:
 
 - `full`: `evolved = 3000`
 - `train`: `evolved = 2100`
 - `test`: `evolved = 900`
 
-То есть внутри текущего coarse source:
+То есть внутри текущего coarse-источника:
 
 - `O` не смешан с `dwarf`;
 - stratify по `('spec_class', 'evolution_stage')` не режет `O` на несколько редких подметок;
 - наоборот, `O` идет как один стабильный bucket.
 
-### 4. Hottest `O` Tail Не Теряется
+### 4. Самый горячий хвост `O` не терялся
 
 Для true `O` temperature-band review дал:
 
@@ -83,15 +84,18 @@ Train-time support для класса `O` в coarse source достаточны
 - `train`: `>= 25000 K = 2100`
 - `test`: `>= 25000 K = 900`
 
-Это самый сильный вывод этого review:
+Это был один из самых сильных выводов этого разбора:
 
-- в coarse training source true `O` уже является полностью hot tail;
-- `cool contamination`, которое мы видели на `quality_gate` review, в coarse training source не живет;
-- значит full coarse source для `O` уже очищен сильнее, чем downstream pass-slice.
+- в coarse-источнике обучения true `O` уже представляет собой полностью
+  горячий хвост;
+- холодный шум, который был виден при разборе `quality_gate`, в этом источнике
+  отсутствует;
+- значит полный coarse-источник для `O` уже очищен сильнее, чем проходящий
+  срез в downstream-контуре.
 
-### 5. Narrow Hot `O/B` Boundary Имеет Симметричный Support До Inference
+### 5. Горячая граница `O/B` имела симметричную поддержку до inference
 
-Hot boundary support в reconstructed split:
+Поддержка горячей границы в восстановленном split:
 
 - `full`:
   - `B = 3000`
@@ -105,10 +109,11 @@ Hot boundary support в reconstructed split:
 
 Это означает:
 
-- до inference граница `O/B` по support идеальна и симметрична;
-- asymmetry `O -> B` не объясняется class-count imbalance на train/test уровне.
+- до inference граница `O/B` по числу строк идеальна и симметрична;
+- асимметрия `O -> B` не объясняется дисбалансом классов на уровне
+  `train/test`.
 
-### 6. Физика True `O` В Train И Test Стабильна
+### 6. Физика true `O` в train и test была стабильной
 
 Медианная физика true `O`:
 
@@ -124,16 +129,16 @@ Hot boundary support в reconstructed split:
   - `teff_gspphot ≈ 34334.6 K`
   - `radius_feature ≈ 8.810`
 
-Train/test drift по базовой физике здесь не виден.
+Сдвиг между `train` и `test` по базовой физике здесь не виден.
 
-## Интерпретация
+## Вывод на момент этого шага
 
-После этого review можно достаточно уверенно утверждать:
+После этого разбора можно было достаточно уверенно утверждать:
 
-- coarse source не starving для `O`;
-- split policy не starving для `O`;
-- hottest `O` tail полноценно присутствует и в train, и в test;
-- narrow `O/B` boundary по support симметрична.
+- coarse-источник не испытывал нехватки `O`;
+- политика split не создавала нехватку `O`;
+- самый горячий хвост `O` полноценно присутствовал и в `train`, и в `test`;
+- узкая граница `O/B` была симметрична по числу строк.
 
 Следовательно:
 
@@ -142,24 +147,24 @@ Train/test drift по базовой физике здесь не виден.
 
 Текущая рабочая гипотеза:
 
-- coarse-модель фактически учит boundary, в которой true `O` и true `B`
-  схлопываются в один `B`-кластер по текущему feature contract.
+- coarse-модель фактически учит границу, в которой true `O` и true `B`
+  схлопываются в один `B`-кластер при текущем наборе признаков.
 
-## Что Это Значит Для Следующего Шага
+## Почему документ сохранен в архиве
 
-Следующий корректный narrow step:
+Позднее этот сюжет был продолжен через разбор разделимости признаков на
+границе `O/B`. Поэтому документ хранится как промежуточный исследовательский
+вывод.
 
-- не rebalance всего coarse source;
-- не blind oversampling `O`;
-- не ослабление `quality_gate`.
+На момент этого обзора следующий шаг виделся так:
 
-Следующий правильный пакет:
+- разбор разделимости признаков `O` и `B` внутри обучающего источника;
+- сравнение физического перекрытия и перекрытия признаков для true `O` и
+  true `B`;
+- и только потом решение, нужен ли узкий повторный запуск обучения, веса
+  классов или изменение набора признаков.
 
-- review feature separability `O vs B` внутри train-time source;
-- сравнение physical overlap и feature overlap для true `O` и true `B`;
-- и только потом решение, нужен ли narrow retrain / class weighting / feature-policy change.
-
-## Related
+## Связанные документы
 
 - [coarse_o_tail_review_round1_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/coarse_o_tail_review_round1_ru.md)
 - [coarse_o_hot_subset_review_round1_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/coarse_o_hot_subset_review_round1_ru.md)

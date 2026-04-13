@@ -1,12 +1,13 @@
-# Coarse O/B Feature Separability Review Round 1
+# Разбор разделимости признаков на границе O/B: первый архивный обзор
 
-## Контекст
+## Зачем проводился разбор
 
-Этот review закрывает следующий вопрос после
+Этот разбор закрывал следующий вопрос после
 [coarse_o_train_support_review_round1_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/coarse_o_train_support_review_round1_ru.md):
 
-- separable ли true `O` и true `B` по текущему coarse feature contract;
-- и способен ли текущий coarse artifact различать их на собственном train-time source.
+- различимы ли true `O` и true `B` по текущему набору coarse-признаков;
+- и способен ли текущий coarse artifact различать их на собственном
+  обучающем источнике.
 
 Срез:
 
@@ -19,29 +20,30 @@ Artifact:
 
 - `artifacts/models/gaia_id_coarse_classification__hist_gradient_boosting__2026_03_28_215003_509969`
 
-## Главный Результат
+## Главный результат
 
-На train-time `O/B` boundary current coarse artifact различает `O` и `B` почти идеально.
+На обучающей границе `O/B` текущий coarse artifact различал `O` и `B` почти
+идеально.
 
 Это значит:
 
-- проблема `O -> B`, которую мы видели на downstream hot pass-slice,
-  не воспроизводится на собственном train-time source coarse-модели;
-- текущий coarse feature contract уже содержит сильный discriminative signal;
-- следующий основной риск — не отсутствие separability,
-  а domain shift / source mismatch между coarse reference source и downstream pass-source.
+- проблема `O -> B`, которую мы видели на горячем проходящем срезе downstream,
+  не воспроизводится на собственном обучающем источнике coarse-модели;
+- текущий набор coarse-признаков уже содержит сильный различающий сигнал;
+- основной риск связан не с отсутствием разделимости, а со сдвигом между
+  обучающим и проходящим доменами.
 
-## Что Показал Review
+## Что показал разбор
 
-### 1. Train-Time Boundary Источник Симметричен
+### 1. Обучающий граничный источник был симметричен
 
 - `n_rows_boundary = 6000`
 - `B = 3000`
 - `O = 3000`
 
-То есть это не несбалансированный boundary.
+То есть это не несбалансированная граница.
 
-### 2. Current Coarse Artifact На Этом Source Работает Нормально
+### 2. Текущий coarse artifact на этом источнике работал нормально
 
 Предсказания:
 
@@ -49,14 +51,15 @@ Artifact:
 - `B = 2995`
 - `A = 4`
 
-То есть на train-time source coarse artifact не схлопывает `O` в `B`.
+То есть на обучающем источнике coarse artifact не схлопывает `O` в `B`.
 
-Это уже резко отличается от downstream review, где на hot pass-slice было:
+Это уже резко отличается от downstream-разбора, где на горячем проходящем
+срезе было:
 
 - true `O -> B = 1188`
 - true `O -> O = 0`
 
-### 3. Вероятности На Train-Time Boundary Почти Идеальны
+### 3. Вероятности на обучающей границе были почти идеальными
 
 Для true `B`:
 
@@ -68,12 +71,12 @@ Artifact:
 - `median P(O) ≈ 0.999845`
 - `median P(B) ≈ 0.000018`
 
-Это еще один сильный аргумент:
+Это был еще один сильный аргумент:
 
-- coarse artifact умеет различать `O/B` на своем source;
-- collapse возникает где-то после смены source-domain.
+- coarse artifact умеет различать `O/B` на собственном источнике;
+- схлопывание возникает уже после смены домена.
 
-### 4. Single-Feature Separability Уже Очень Сильна
+### 4. Разделимость по отдельным признакам уже была сильной
 
 Top признаки по `separability_auc`:
 
@@ -87,11 +90,11 @@ Top признаки по `separability_auc`:
 
 - `ruwe ≈ 0.503`
 
-То есть signal реально есть и он не тонкий.
+То есть различающий сигнал действительно был и не выглядел тонким.
 
-### 5. Permutation Importance Подтверждает То Же
+### 5. Permutation importance подтверждала тот же вывод
 
-Top признаки current coarse artifact на train-time `O/B` boundary:
+Главные признаки текущего coarse artifact на обучающей границе `O/B`:
 
 - `teff_gspphot ≈ 0.494`
 - `bp_rp ≈ 0.0022`
@@ -104,40 +107,42 @@ Top признаки current coarse artifact на train-time `O/B` boundary:
 Иными словами:
 
 - модель в основном держит границу через `teff`;
-- и этого на train-time source достаточно.
+- и этого на обучающем источнике достаточно.
 
-## Интерпретация
+## Вывод на момент этого шага
 
-На этом шаге hypothesis “coarse model не умеет `O/B` даже на своем source” не подтверждается.
+На этом шаге гипотеза о том, что coarse-модель не умеет различать `O/B` даже
+на собственном обучающем источнике, не подтвердилась.
 
-Наоборот, review говорит следующее:
+Наоборот, разбор говорил следующее:
 
-- support для `O` достаточный;
-- feature separability для `O/B` на train-time source сильная;
-- coarse artifact на этом source ведет себя почти идеально.
+- поддержка класса `O` достаточная;
+- разделимость признаков для `O/B` на обучающем источнике сильная;
+- coarse artifact на этом источнике ведет себя почти идеально.
 
 Значит текущая рабочая гипотеза теперь такая:
 
 - проблема `O -> B` возникает не в coarse artifact как таковом;
-- она возникает из-за domain mismatch между:
-  - coarse reference / train-time source
-  - и downstream hot pass-source из `quality_gated/final_decision`.
+- она возникает из-за несовпадения доменов между:
+  - обучающим coarse-источником;
+  - и горячим проходящим срезом из `quality_gated/final_decision`.
 
-## Что Это Значит Для Следующего Шага
+## Почему документ сохранен в архиве
 
-Следующий корректный narrow step:
+Позднее этот результат был переосмыслен уже в активном рабочем контуре, где
+основной акцент сместился с редкого хвоста `O` на прикладную задачу
+приоритизации наблюдений. Поэтому документ сохранен как исторический
+исследовательский вывод.
 
-- не retrain coarse model;
-- не class-weighting;
-- не oversampling `O`.
+На момент этого обзора следующий шаг виделся так:
 
-Следующий правильный пакет:
+- отдельный разбор обучающей границы `O/B` и горячего проходящего среза `O/B`;
+- сравнение физики, распределений признаков и пропусков между этими двумя
+  доменами;
+- и только после этого решение, нужен ли новый цикл обучения или выравнивание
+  источников.
 
-- отдельный review `train-time O/B boundary` vs `downstream hot pass O/B boundary`;
-- сравнение физики, feature distributions и missingness между этими двумя domains;
-- только после этого решать, нужен ли новый retrain или source-alignment step.
-
-## Related
+## Связанные документы
 
 - [coarse_o_train_support_review_round1_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/coarse_o_train_support_review_round1_ru.md)
 - [coarse_ob_boundary_review_round1_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/coarse_ob_boundary_review_round1_ru.md)

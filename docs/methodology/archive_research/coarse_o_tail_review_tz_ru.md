@@ -1,136 +1,46 @@
-# Coarse O-Tail Review TZ
+# План разбора редкого хвоста O-класса
 
-## Цель
+## Зачем проводился этот шаг
 
-Этот пакет открывает отдельный review-слой для редкого класса `O` в coarse
-classification pipeline.
+Этот документ сохраняет исходный план первого предметного разбора редкого
+класса `O` в coarse-контуре.
 
-Задача пакета:
+На старте нужно было понять:
 
-- не менять модель вслепую;
-- сначала воспроизводимо показать, где именно пропадает `O`;
-- отделить `quality_gate`-эффект от поведения coarse-model;
-- зафиксировать evidence до любого retrain, rebalance или policy change.
+- что именно происходит с true `O` после `quality_gate`;
+- как выглядит часть выборки со статусом `quality_state = 'pass'`;
+- есть ли основания считать, что проблема сидит только в coarse-модели.
 
-## Official Опора
+## На чем строился разбор
 
-### Gaia
+- coarse model artifact:
+  `artifacts/models/gaia_id_coarse_classification__hist_gradient_boosting__2026_03_28_215003_509969`
+- final decision run:
+  `artifacts/decisions/hierarchical_final_decision_2026_03_29_111132_270743`
+- review notebook:
+  [11_coarse_o_tail_review.ipynb](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/archive_research/11_coarse_o_tail_review.ipynb)
 
-- [Gaia DR3 documentation index](https://gea.esac.esa.int/archive/documentation/GDR3/)
-- [Gaia DR3 gaia_source semantics](https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_main_source_catalogue/ssec_dm_gaia_source.html)
-- [Gaia DR3 astrophysical_parameters semantics](https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_astrophysical_parameter_tables/ssec_dm_astrophysical_parameters.html)
-- [Gaia DR3 Apsis overview](https://gea.esac.esa.int/archive/documentation/GDR3/Data_analysis/chap_cu8par/sec_cu8par_intro/ssec_cu8par_intro_apsis.html)
+## Что должен был показать разбор
 
-### scikit-learn
+На этом этапе требовалось:
 
-- [classification_report](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification_report.html)
-- [confusion_matrix](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.confusion_matrix.html)
-- [balanced_accuracy_score](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.balanced_accuracy_score.html)
-- [compute_class_weight](https://scikit-learn.org/stable/modules/generated/sklearn.utils.class_weight.compute_class_weight.html)
+1. отделить влияние `quality_gate` от поведения coarse-модели;
+2. посмотреть, как coarse-модель ведет себя на части выборки со статусом
+   `pass`;
+3. проверить, согласуется ли физика surviving `O` с горячими `O/B`-звездами;
+4. решить, есть ли основания сразу говорить о переобучении или ребалансировке.
 
-### Python / pandas
+## Почему документ сохранен в архиве
 
-- [typing — Python docs](https://docs.python.org/3/library/typing.html)
-- [collections.abc — Python docs](https://docs.python.org/3/library/collections.abc.html)
-- [pandas missing data](https://pandas.pydata.org/docs/user_guide/missing_data.html)
+Этот план важен как первая постановка проблемы. Позднее стало ясно, что
+основной вопрос связан не со всем пулом `O` целиком, а с более узким горячим
+подмножеством и границей `O/B`.
 
-## Почему Это Отдельный Пакет
+Итоговый разбор этого шага зафиксирован в документе
+[coarse_o_tail_review_round1_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/coarse_o_tail_review_round1_ru.md).
 
-По текущему stabilization-review уже видно:
+## Связанные документы
 
-- `O` не исчезает на уровне source;
-- `O` не полностью вырезается `quality_gate`;
-- но в final outputs почти не появляется как `final_coarse_class`.
-
-Это уже не `priority`-проблема и не notebook drift.
-
-Значит нужен отдельный narrow package под rare-tail review, а не очередная
-правка общего pipeline.
-
-## Пакет OR-C
-
-### OR-C01. Зафиксировать Review Contract
-
-Что нужно уметь показать:
-
-1. сколько `O` строк есть в source;
-2. сколько из них проходит `quality_state = pass`;
-3. что coarse-model предсказывает именно на pass-части;
-4. как эти же `O` строки выглядят в текущем `final decision` run;
-5. high-confidence ошибки, если `O` системно уходит в другой coarse class.
-
-### OR-C02. Собрать Loader Для `O`-Source
-
-Файлы:
-
-- `src/exohost/datasets/archive_research/load_coarse_o_review_dataset.py`
-- `tests/archive_research/archived_load_coarse_o_review_dataset.py`
-
-Требования:
-
-- читать `lab.gaia_mk_quality_gated`;
-- фильтровать `spectral_class = 'O'`;
-- без notebook-level SQL;
-- поддерживать optional filter по `quality_state`.
-
-### OR-C03. Собрать Typed Review Helper
-
-Файлы:
-
-- `src/exohost/reporting/archive_research/coarse_o_review.py`
-- `tests/archive_research/archived_coarse_o_review.py`
-
-Что должен уметь helper:
-
-- готовить `O`-source summary;
-- строить coarse scoring только по pass-строкам;
-- объединять `O` source с final decision run;
-- показывать распределение predicted coarse labels;
-- показывать high-confidence non-`O` predictions.
-
-### OR-C04. Собрать Notebook Review
-
-Файл:
-
-- `analysis/notebooks/archive_research/11_coarse_o_tail_review.ipynb`
-
-Notebook должен отвечать:
-
-- где именно пропадает `O`;
-- сколько `O` теряется на gate;
-- что coarse-model делает с surviving `O`;
-- какой downstream outcome получают истинные `O` объекты.
-
-### OR-C05. Зафиксировать Round 1 Findings
-
-Файл:
-
-- `docs/methodology/archive_research/coarse_o_tail_review_round1_ru.md`
-
-После первого review решаем:
-
-- нужен ли rebalance;
-- нужен ли отдельный threshold/policy для `O`;
-- или проблема объясняется source/physics ограничениями и не требует срочного
-  retrain.
-
-## Инженерный Стандарт
-
-- `1 файл = 1 ответственность`
-- без монолитов
-- `PEP 8`
-- явная типизация
-- простая логика раньше сложной
-- comments только там, где они реально помогают читать код
-- после каждого slice:
-  - `ruff`
-  - `mypy`
-  - `pyright`
-  - targeted `pytest`
-- notebook отдельно проходит compile/execute check
-
-## Related
-
-- [post_run_stabilization_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/post_run_stabilization_tz_ru.md)
+- [coarse_o_tail_review_round1_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/coarse_o_tail_review_round1_ru.md)
+- [coarse_o_hot_subset_review_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/coarse_o_hot_subset_review_tz_ru.md)
 - [stabilization_issue_ledger_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/stabilization/stabilization_issue_ledger_ru.md)
-- [star_level_review_round2_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/run_reviews/star_level_review_round2_ru.md)

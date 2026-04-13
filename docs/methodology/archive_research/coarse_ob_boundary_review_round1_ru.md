@@ -1,11 +1,11 @@
-# Coarse O/B Boundary Review Round 1
+# Разбор границы O/B: первый архивный обзор
 
-## Цель
+## Зачем проводился разбор
 
-Этот документ фиксирует первый narrow review границы `O/B` после hot-subset
-анализа.
+Этот документ фиксирует первый разбор границы `O/B` после выделения горячего
+подмножества.
 
-Разбор сделан на связке:
+Разбор был сделан на связке:
 
 - coarse model artifact:
   `artifacts/models/gaia_id_coarse_classification__hist_gradient_boosting__2026_03_28_215003_509969`
@@ -16,7 +16,7 @@
 - review notebook:
   [13_coarse_ob_boundary_review.ipynb](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/archive_research/13_coarse_ob_boundary_review.ipynb)
 
-## Сводка По Boundary Source
+## Сводка по граничному срезу
 
 - `n_rows_boundary_source = 8300`
 - `n_rows_scored = 8300`
@@ -29,7 +29,7 @@
 То есть boundary review опирается не на микроскопический пул, а на вполне
 заметный hot pass-slice.
 
-## Что Делает Coarse-Model На Boundary
+## Что делает coarse-модель на границе `O/B`
 
 Распределение `coarse_predicted_label`:
 
@@ -44,13 +44,13 @@ Confusion-like breakdown:
 - true `O -> B = 1188` (`100%` внутри true `O`)
 - true `O -> O = 0`
 
-Это уже очень сильный вывод:
+Это был очень сильный сигнал:
 
-- asymmetry односторонняя;
+- асимметрия односторонняя;
 - `B -> O` практически отсутствует;
 - `O -> B` происходит полностью.
 
-## Что Говорят Вероятности
+## Что показывают вероятности
 
 Median probability summary:
 
@@ -75,9 +75,9 @@ Mean probability summary:
 - модель даже не считает true `O` чем-то близким к `O`;
 - она уверенно видит и true `O`, и true `B` как один и тот же `B`-кластер.
 
-Это не похоже на пограничные uncertain mistakes.
+Это не похоже на случайные пограничные ошибки.
 
-## Что Видно По Физике
+## Что видно по физическим признакам
 
 Median physics:
 
@@ -99,7 +99,7 @@ Median physics:
 - coarse-модель, похоже, не выучила отдельную boundary для hottest tail и
   схлопывает его в `B`.
 
-## Preview Односторонних Ошибок
+## Просмотр односторонних ошибок
 
 High-confidence `O -> B` preview показывает:
 
@@ -109,31 +109,39 @@ High-confidence `O -> B` preview показывает:
 
 High-confidence `B -> O` preview пуст.
 
-Это окончательно подтверждает:
+Это дополнительно подтверждает:
 
 - проблема не симметричная;
 - `O` не просто путается с `B`;
 - модель фактически не использует `O` как рабочий coarse outcome на этом slice.
 
-## Практическая Трактовка
+## Вывод на момент этого шага
 
-После round 1 самый сильный вывод такой:
+После первого разбора основной вывод был таким:
 
-- broad contamination уже убрана на предыдущем шаге;
-- текущая проблема — это узкая и очень жесткая boundary failure `O -> B`;
-- blind rebalance всей coarse-модели по-прежнему не лучший первый шаг.
+- широкий холодный шум уже убран на предыдущем шаге;
+- текущая проблема — это узкая и очень жесткая граница `O -> B`;
+- слепая ребалансировка всей coarse-модели по-прежнему не лучший первый шаг.
 
-Сейчас scientific/logical next step выглядит так:
+Следующий логичный шаг на тот момент выглядел так:
 
-1. отдельно проверить train-time representation hottest `O` tail;
-2. посмотреть, достаточно ли у `O` support в train/test split после текущей
-   source-политики;
+1. отдельно проверить, как самый горячий хвост `O` представлен в обучающем
+   контуре;
+2. посмотреть, достаточно ли у `O` поддержки в `train/test split` после
+   текущей политики источника;
 3. и только потом решать:
-   - narrow retrain;
-   - class-weighting для `O`;
-   - или targeted source-cleaning/relabelling hottest tail.
+   - нужен ли узкий повторный запуск обучения;
+   - нужны ли веса классов для `O`;
+   - или нужна точечная очистка источника и пересмотр меток самого горячего
+     хвоста.
 
-## Related
+## Почему документ сохранен в архиве
+
+Позднее этот вопрос был дополнен разбором обучающей поддержки `O` и
+разделимости признаков на границе `O/B`. Поэтому документ хранится как
+исторический промежуточный вывод, а не как финальная интерпретация.
+
+## Связанные документы
 
 - [coarse_ob_boundary_review_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/coarse_ob_boundary_review_tz_ru.md)
 - [coarse_o_hot_subset_review_round1_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/coarse_o_hot_subset_review_round1_ru.md)

@@ -1,11 +1,11 @@
-# Coarse O Hot-Subset Review Round 1
+# Разбор горячего подмножества O-класса: первый архивный обзор
 
-## Цель
+## Зачем проводился разбор
 
-Этот документ фиксирует первый narrow review physically hot `O/B-like` subset
-внутри true `O` source.
+Этот документ фиксирует первый разбор горячего подмножества `O/B` внутри
+true `O`.
 
-Разбор сделан на связке:
+Разбор был сделан на связке:
 
 - coarse model artifact:
   `artifacts/models/gaia_id_coarse_classification__hist_gradient_boosting__2026_03_28_215003_509969`
@@ -13,23 +13,24 @@
   `artifacts/decisions/hierarchical_final_decision_2026_03_29_111132_270743`
 - baseline subset-config:
   - `teff_gspphot >= 10000 K`
-- review notebook:
+- notebook:
   [12_coarse_o_hot_subset_review.ipynb](/Users/evgeniikuznetsov/Desktop/dspro-vkr/analysis/notebooks/archive_research/12_coarse_o_hot_subset_review.ipynb)
 
-## Зачем Был Нужен Этот Шаг
+## Почему понадобился этот шаг
 
-Round 1 по всему `O` source уже показал:
+Первый разбор по всему `O`-пулу уже показал:
 
-- в true `O` source есть заметная cool contamination;
-- часть surviving `O` rows ведет себя как `F/G/K/M-like` physics;
-- поэтому общий `O` пул слишком шумный для немедленного retrain.
+- в true `O` есть заметный холодный шум;
+- часть сохранившихся объектов `O` ведет себя как `F/G/K/M` по физическим
+  признакам;
+- поэтому весь пул `O` был слишком шумным для немедленного переобучения.
 
-Hot-subset review должен был ответить:
+Этот шаг должен был ответить:
 
 - остается ли broad contamination после простого physics cut;
 - или проблема сужается до более чистой границы `O -> B`.
 
-## Сводка По Hot-Subset
+## Сводка по горячему подмножеству
 
 При baseline `teff_gspphot >= 10000 K`:
 
@@ -41,11 +42,12 @@ Hot-subset review должен был ответить:
 
 Вывод:
 
-- почти половина true `O` source проходит минимум на hot `O/B-like` physics;
-- значит narrow review на hot-subset статистически осмыслен и не упирается в
+- почти половина true `O` проходит минимальный порог горячей физики `O/B`;
+- значит узкий разбор горячего подмножества статистически осмыслен и не
+  упирается в
   слишком маленький sample.
 
-## Что Делает Quality Gate На Hot-Subset
+## Что делает `quality_gate` на горячем подмножестве
 
 Распределение `quality_state`:
 
@@ -62,11 +64,13 @@ Top `quality_reason`:
 
 Практический вывод:
 
-- после hot-cut главный blocker уже не `missing_core_features`, а
+- после отсечения холодного хвоста главным ограничителем уже становится не
+  `missing_core_features`, а
   `missing_radius_flame`;
-- значит у physically hot subset gate-loss стал чище и лучше интерпретируется.
+- значит потери на `quality_gate` внутри этого горячего подмножества стали
+  чище и лучше интерпретируются.
 
-## Что Делает Coarse-Model На Hot Pass-Subset
+## Что делает coarse-модель на горячем подмножестве со статусом `pass`
 
 Распределение `coarse_predicted_label`:
 
@@ -74,14 +78,14 @@ Top `quality_reason`:
 - `O = 0`
 - `A/F/G/K/M = 0`
 
-Это самый важный результат round 1:
+Это был главный результат первого разбора:
 
-- после удаления cool contamination coarse-model больше не разбрасывает `O`
+- после удаления холодного шума coarse-модель больше не разбрасывает `O`
   в `F/G/K/M`;
-- broad contamination исчезает;
+- широкий холодный шум исчезает;
 - проблема сужается до устойчивого routing `O -> B`.
 
-## Физический Профиль Predicted Hot-Subset
+## Физический профиль предсказанного горячего подмножества
 
 Для predicted `B`:
 
@@ -92,11 +96,11 @@ Top `quality_reason`:
 
 Интерпретация:
 
-- hot-subset уже выглядит физически согласованнее, чем полный `O` source;
-- то есть этот subset намного лучше подходит для следующего narrow review, чем
-  весь исходный `O` pool.
+- горячее подмножество уже выглядит физически согласованнее, чем весь пул `O`;
+- значит это подмножество лучше подходит для следующего узкого разбора, чем
+  весь исходный `O`.
 
-## Downstream Fate В Final Decision
+## Что происходило дальше в `final_decision`
 
 Распределение `final_domain_state`:
 
@@ -118,41 +122,44 @@ Top `quality_reason`:
 
 Вывод:
 
-- если hot-subset проходит в `id`, он почти всегда попадает туда как `B`, а не
+- если горячее подмножество проходит в `id`, оно почти всегда попадает туда
+  как `B`, а не
   как `O`;
-- значит проблема теперь уже не broad failure всего coarse-layer, а узкая
-  boundary issue между `O` и `B`.
+- значит проблема теперь уже не в широкой ошибке всего coarse-слоя, а в узкой
+  границе между `O` и `B`.
 
-## Что Это Меняет По Сравнению С Full O Review
+## Что этот шаг изменил по сравнению с первым обзором
 
-На полном `O` source мы видели:
+На полном пуле `O` мы видели:
 
 - большой увод в `F/G/K/M`
-- evidence of cool contamination
+- признаки холодного шума
 
-На hot-subset мы видим:
+На горячем подмножестве видно:
 
 - `F/G/K/M` исчезают полностью;
-- high-confidence `non-O/B` preview становится пустым;
-- остается чистая systematic граница `O -> B`.
+- предварительный просмотр уверенных `non-O/B` ошибок становится пустым;
+- остается чистая системная граница `O -> B`.
 
-Это очень полезное сужение гипотезы.
+Это был важный шаг к сужению гипотезы.
 
-## Решение После Round 1
+## Почему документ сохранен в архиве
 
-Сейчас не нужен blind rebalance по всему `O` source.
+Позднее эта линия анализа была развита через отдельный разбор границы `O/B`.
+Поэтому документ хранится как промежуточный исследовательский результат, а не
+как текущая рабочая интерпретация.
 
-Следующий правильный шаг:
+На момент этого обзора следующий шаг виделся так:
 
-1. открыть отдельный narrow review для boundary `O vs B`;
-2. проверить, насколько hot true `O` физически и label-wise пересекается с
-   train-time `B`;
+1. открыть отдельный узкий разбор границы `O` и `B`;
+2. проверить, насколько горячие true `O` пересекаются по физике и меткам с
+   обучающим `B`;
 3. только после этого решать:
-   - нужен ли rebalance;
-   - нужен ли class-weight policy;
-   - нужен ли source-cleaning для hottest tail.
+   - нужна ли ребалансировка;
+   - нужны ли веса классов;
+   - нужна ли очистка источника для самого горячего хвоста.
 
-## Related
+## Связанные документы
 
 - [coarse_o_hot_subset_review_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/coarse_o_hot_subset_review_tz_ru.md)
 - [coarse_o_tail_review_round1_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/archive_research/coarse_o_tail_review_round1_ru.md)
