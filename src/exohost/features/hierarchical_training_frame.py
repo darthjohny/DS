@@ -21,6 +21,8 @@ from exohost.features.hierarchical_training_frame_refinement import (
     prepare_gaia_mk_refinement_training_frame,
 )
 
+# Публичный фасад training-frame слоя держит три независимых контура:
+# coarse, ID/OOD и refinement. Это упрощает импорт на уровне обучения и benchmark.
 __all__ = [
     "collapse_multi_membership_ood_rows",
     "prepare_gaia_id_coarse_training_frame",

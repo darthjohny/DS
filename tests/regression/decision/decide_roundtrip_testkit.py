@@ -51,6 +51,8 @@ def prepare_decide_roundtrip_regression_context(
     output_dir = tmp_path / "decision_artifacts"
     input_csv_path = tmp_path / "decision_input.csv"
 
+    # Для регресса учим маленькие игрушечные модели прямо внутри теста.
+    # Это дешевле, чем тянуть большой baseline-run, и достаточно для страховки поведения.
     ood_paths = save_model_artifacts(
         _build_train_result(
             _build_ood_training_frame(),
@@ -100,6 +102,8 @@ def build_decide_roundtrip_cli_argv(
     context: DecideRoundtripRegressionContext,
 ) -> list[str]:
     # Собираем стабильный CLI-сценарий малого `decide`-прогона для regression.
+    # Здесь намеренно зашиты tuned policy-параметры, чтобы regression страховал
+    # именно актуальный рабочий контур, а не абстрактный baseline из прошлого.
     return [
         "decide",
         "--input-csv",
@@ -150,6 +154,8 @@ def _build_train_result(
     task,
     model_name: str = "hist_gradient_boosting",
 ) -> TrainRunResult:
+    # В testkit держим один путь обучения для всех задач, чтобы набор артефактов
+    # был собран одинаково и не расходился между OOD, coarse и host-моделью.
     return run_training(
         frame,
         task=task,
@@ -166,6 +172,7 @@ def _build_train_result(
 
 
 def _build_ood_training_frame() -> pd.DataFrame:
+    # Маленький контрастный набор для OOD-задачи: две ID и две OOD строки.
     return pd.DataFrame(
         [
             {
@@ -221,6 +228,8 @@ def _build_ood_training_frame() -> pd.DataFrame:
 
 
 def _build_coarse_training_frame() -> pd.DataFrame:
+    # Для coarse регресса хватает двух устойчиво разделимых классов, потому что
+    # тест проверяет не научное качество, а целостность artifact bundle и routing.
     return pd.DataFrame(
         [
             {
@@ -276,6 +285,8 @@ def _build_coarse_training_frame() -> pd.DataFrame:
 
 
 def _build_host_training_frame() -> pd.DataFrame:
+    # Host-набор сделан нарочно простым: host и field различаются по тем же признакам,
+    # которые позже участвуют в priority и должны воспроизводиться стабильно.
     return pd.DataFrame(
         [
             {

@@ -61,6 +61,8 @@ def materialize_bmk_external_labeled_relation(
         crossmatch_relation_name=crossmatch_relation_name,
     )
     with TemporaryDirectory(prefix="bmk_external_labeled__") as temp_dir:
+        # Сначала выгружаем канонический CSV-срез, а уже потом загружаем его в БД.
+        # Это держит export и load в одном воспроизводимом контуре и упрощает отладку.
         export_summary = export_bmk_external_labeled_csv(
             engine,
             output_csv_path=Path(temp_dir) / B_MK_EXTERNAL_LABELED_CSV_FILENAME,
@@ -73,9 +75,13 @@ def materialize_bmk_external_labeled_relation(
         dbapi_connection = engine.raw_connection()
         cursor = dbapi_connection.cursor()
         try:
+            # Схему таблицы обновляем перед каждым запуском materialization, чтобы
+            # не зависеть от ручного состояния relation в локальной базе.
             for statement in build_bmk_external_labeled_schema_sql(target_relation_name):
                 cursor.execute(statement)
 
+            # Удаляем только текущую партию `xmatch_batch_id`, а не весь relation.
+            # Это позволяет безопасно пересобирать отдельный батч без полного drop/load.
             cursor.execute(
                 build_delete_bmk_external_labeled_batch_sql(
                     target_relation_name,
@@ -89,6 +95,8 @@ def materialize_bmk_external_labeled_relation(
             with export_summary.output_csv_path.open("r", encoding="utf-8", newline="") as input_file:
                 cursor.copy_expert(copy_sql, input_file)
 
+            # После загрузки сразу считаем основные контрольные метрики relation.
+            # Эти числа потом используются и для QA, и для review в документации.
             load_summary = BmkExternalLabeledLoadSummary(
                 filtered_relation_name=filtered_relation_name,
                 crossmatch_relation_name=crossmatch_relation_name,
@@ -147,6 +155,7 @@ def materialize_bmk_external_labeled_relation(
             dbapi_connection.commit()
             return load_summary
         except Exception:
+            # Любая ошибка должна откатить и схему загрузки, и промежуточный batch.
             dbapi_connection.rollback()
             raise
         finally:

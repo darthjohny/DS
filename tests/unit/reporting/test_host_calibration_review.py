@@ -38,6 +38,8 @@ def _require_int_scalar(value: object) -> int:
 
 
 def build_host_frame() -> pd.DataFrame:
+    # Небольшой host-кадр имитирует подтвержденные звезды-хозяева, на которых
+    # review-слой потом строит calibration и групповые сводки.
     return pd.DataFrame(
         [
             {
@@ -129,6 +131,8 @@ def build_host_frame() -> pd.DataFrame:
 
 
 def build_router_frame() -> pd.DataFrame:
+    # Router-кадр служит фоновым сравнительным доменом. Он нужен, чтобы
+    # calibration-source мог собрать balanced host/field картину для review.
     return pd.DataFrame(
         [
             {
@@ -204,6 +208,8 @@ def build_router_frame() -> pd.DataFrame:
 
 
 def test_host_calibration_review_frames_build_expected_outputs() -> None:
+    # Один тест покрывает весь главный набор таблиц host-calibration review:
+    # split summary, metric summary, curve, probability bins и групповую сводку.
     host_frame = prepare_host_training_frame(build_host_frame())
     router_frame = prepare_router_training_frame(build_router_frame())
     source = build_host_calibration_source_from_frames(

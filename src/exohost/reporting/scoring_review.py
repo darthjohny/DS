@@ -21,6 +21,9 @@ from exohost.reporting.scoring_review_frames import (
     build_top_candidates_frame,
 )
 
+# Тонкий публичный фасад для scoring-review слоя.
+# Через него notebook и docs получают все основные сводки без знания внутренней
+# структуры bundle/contracts/frames модулей.
 __all__ = [
     "ScoringReviewBundle",
     "build_goal_alignment_frame",

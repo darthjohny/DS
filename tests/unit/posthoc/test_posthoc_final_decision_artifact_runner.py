@@ -71,6 +71,8 @@ class DummyHostEstimator:
 
 
 def build_base_frame() -> pd.DataFrame:
+    # Этот вход уже ближе к живому `decide`-сценарию: тут есть и признаки для
+    # моделей, и поля для host/priority слоя, и достаточно строк для разных исходов.
     return pd.DataFrame(
         {
             "source_id": [1, 2, 3],
@@ -91,6 +93,8 @@ def build_base_frame() -> pd.DataFrame:
 
 
 def build_bundle() -> FinalDecisionModelBundle:
+    # Bundle собираем вручную из dummy-артефактов, чтобы тестировать artifact-runner
+    # без чтения с диска и без зависимости от training pipeline.
     return FinalDecisionModelBundle(
         ood_artifact=LoadedModelArtifact(
             estimator=DummyIdOodEstimator(),
@@ -159,6 +163,8 @@ def build_bundle() -> FinalDecisionModelBundle:
 
 
 def test_run_final_decision_with_artifacts_builds_priority_for_clean_id_rows() -> None:
+    # Проверяем полную связку: artifact bundle -> final decision -> priority integration.
+    # В приоритизацию должна попасть только чистая ID-строка, пригодная для наблюдений.
     result = run_final_decision_with_artifacts(
         build_base_frame(),
         bundle=build_bundle(),

@@ -38,6 +38,9 @@ from exohost.ranking.priority_score_scalars import (
     is_missing_scalar,
 )
 
+# Этот модуль намеренно остается тонким фасадом.
+# Его задача — собрать в одном месте публичный API ranking-слоя без смешения
+# самих правил, скаляров, frame-builder и dataclass-контрактов.
 __all__ = [
     "DEFAULT_HOST_SCORE_COLUMN",
     "DEFAULT_PRIORITY_THRESHOLDS",

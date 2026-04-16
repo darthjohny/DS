@@ -24,6 +24,8 @@ def build_priority_integration_config_from_namespace(
     namespace: argparse.Namespace,
 ) -> PriorityIntegrationConfig:
     # Собираем explicit priority integration config из CLI namespace.
+    # В конфиг попадает только то, что реально влияет на итоговый наблюдательный ранг.
+    # Остальные правила остаются в базовом ranking-слое и не дублируются здесь.
     return PriorityIntegrationConfig(
         host_score_column=_coerce_string(
             namespace.host_score_column,
@@ -46,6 +48,8 @@ def build_priority_integration_config_from_namespace(
 
 
 def _coerce_optional_float(value: object, *, default: float) -> float:
+    # Для порогов priority не разрешаем неявные преобразования из bool.
+    # Такая защита помогает не получить случайный `1.0` вместо реального порога.
     if value is None:
         return float(default)
     if isinstance(value, bool) or not isinstance(value, (int, float)):
@@ -54,6 +58,7 @@ def _coerce_optional_float(value: object, *, default: float) -> float:
 
 
 def _coerce_string(value: object, *, field_name: str, default: str) -> str:
+    # Пустая строка в CLI трактуется как отсутствие override, а не как новое имя поля.
     if value is None:
         return default
     if not isinstance(value, str):

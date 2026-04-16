@@ -37,6 +37,8 @@ def build_refinement_family_scored_frame(
         return _build_empty_refinement_frame(model_name=model_name, family_name=normalized_family)
 
     require_feature_columns(df, feature_columns=feature_columns)
+    # На вход family-модели должен прийти уже отфильтрованный срез одной coarse-семьи.
+    # Иначе даже хороший классификатор начнет смешивать ярлыки соседних семейств.
     _validate_input_family(df, family_name=normalized_family)
 
     model = cast(ClassifierModel, estimator)
@@ -53,6 +55,8 @@ def build_refinement_family_scored_frame(
         confidence_column_name="refinement_probability_max",
         margin_column_name="refinement_probability_margin",
     )
+    # Часть моделей может вернуть только число подкласса без буквенной семьи.
+    # Здесь приводим прогноз к единому виду вроде `G2` или `K7`.
     summary_frame["refinement_predicted_label"] = summary_frame[
         "refinement_predicted_label"
     ].map(
@@ -81,6 +85,8 @@ def _validate_input_family(df: pd.DataFrame, *, family_name: str) -> None:
     if "spectral_class" not in df.columns:
         return
 
+    # Проверка нужна для раннего отлова ошибок handoff между coarse и refinement.
+    # Если сюда попали строки нескольких семейств, виноват уже upstream routing.
     normalized_classes = {
         str(value).strip().upper()
         for value in df["spectral_class"].dropna().tolist()
@@ -97,6 +103,8 @@ def _validate_input_family(df: pd.DataFrame, *, family_name: str) -> None:
 
 
 def _validate_predicted_family(summary_frame: pd.DataFrame, *, family_name: str) -> None:
+    # Даже после нормализации модель не должна выдавать метки чужого семейства.
+    # Это защищает итоговый pipeline от скрытого разъезда классов в артефактах.
     invalid_labels = [
         str(value)
         for value in summary_frame["refinement_predicted_label"].dropna().tolist()
@@ -115,6 +123,8 @@ def _normalize_predicted_family_label(
     *,
     family_name: str,
 ) -> object:
+    # Нормализуем разные формы выхода модели к одному контракту.
+    # Пустые значения сохраняем как пропуск, а числовой подкласс привязываем к семье.
     if value is None or value is pd.NA:
         return pd.NA
     if isinstance(value, float) and pd.isna(value):
@@ -133,6 +143,8 @@ def _build_empty_refinement_frame(
     model_name: str | None,
     family_name: str,
 ) -> pd.DataFrame:
+    # Пустой результат тоже должен сохранять схему scoring-слоя, чтобы
+    # final decision мог безопасно объединять его с другими кадрами.
     result = pd.DataFrame(
         {
             "source_id": pd.Series(dtype="int64"),

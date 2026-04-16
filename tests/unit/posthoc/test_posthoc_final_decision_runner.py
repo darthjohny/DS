@@ -67,6 +67,8 @@ class DummyGRefinementEstimator:
 
 
 def build_base_frame() -> pd.DataFrame:
+    # Базовый вход специально собран так, чтобы один запуск одновременно показал
+    # ID, candidate OOD и hard OOD ветки в финальном маршрутизаторе.
     return pd.DataFrame(
         {
             "source_id": [1, 2, 3],
@@ -85,6 +87,8 @@ def build_base_frame() -> pd.DataFrame:
 
 
 def test_run_final_decision_pipeline_routes_id_candidate_and_ood() -> None:
+    # Главный сценарий runner: OOD-gate, coarse, refinement и final decision
+    # должны дать разные итоговые состояния для трех строк одного входного кадра.
     config = FinalDecisionRunnerConfig(
         ood_estimator=DummyIdOodEstimator(),
         ood_feature_columns=(
@@ -130,6 +134,8 @@ def test_run_final_decision_pipeline_routes_id_candidate_and_ood() -> None:
 
 
 def test_run_final_decision_pipeline_can_map_candidate_ood_to_unknown() -> None:
+    # Здесь проверяем только policy-switch для candidate OOD.
+    # Остальная логика пайплайна уже покрыта базовым сценарием выше.
     config = FinalDecisionRunnerConfig(
         ood_estimator=DummyIdOodEstimator(),
         ood_feature_columns=(
@@ -165,6 +171,8 @@ def test_run_final_decision_pipeline_can_map_candidate_ood_to_unknown() -> None:
 
 
 def test_run_final_decision_pipeline_requires_refinement_columns_when_family_estimators_set() -> None:
+    # Если конфиг заявляет refinement family-модели, runner обязан требовать
+    # и соответствующий набор признаков, а не молча пропускать ошибочный setup.
     config = FinalDecisionRunnerConfig(
         ood_estimator=DummyIdOodEstimator(),
         ood_feature_columns=(

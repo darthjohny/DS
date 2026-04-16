@@ -52,6 +52,8 @@ def build_priority_input_frame(
     if eligible_decision_df.empty:
         return _build_empty_priority_input_frame(host_score_column=host_score_column)
 
+    # В ranking-слой тащим только те признаки, которые реально доступны в базе.
+    # Это позволяет не ломать контур, если часть наблюдательных полей отсутствует.
     available_base_columns = [
         "source_id",
         host_score_column,
@@ -67,6 +69,8 @@ def build_priority_input_frame(
         how="left",
         validate="one_to_one",
     )
+    # Финальный coarse-класс становится нормализованным `spec_class`, потому что
+    # ranking-правила работают уже на каноническом коротком обозначении класса.
     merged_df["spec_class"] = (
         merged_df.loc[:, "final_coarse_class"].astype(str).str.strip().str.upper()
     )
@@ -84,6 +88,8 @@ def build_priority_input_frame(
 
 
 def _select_priority_eligible_rows(final_decision_df: pd.DataFrame) -> pd.DataFrame:
+    # В приоритизацию попадают только строки, которые уже признаны рабочими:
+    # внутри домена, прошли `quality_gate` и сохранили coarse-класс.
     eligible_mask = (
         final_decision_df["final_domain_state"].astype(str).str.lower().eq("id")
         & final_decision_df["final_quality_state"].astype(str).str.lower().eq("pass")
@@ -100,6 +106,8 @@ def _build_empty_priority_input_frame(
     *,
     host_score_column: str,
 ) -> pd.DataFrame:
+    # Пустой каркас нужен, чтобы downstream-слой всегда получал ожидаемую схему
+    # даже в редком сценарии, где после routing не осталось ни одной подходящей строки.
     columns: dict[str, pd.Series] = {
         "source_id": pd.Series(dtype="object"),
         "spec_class": pd.Series(dtype="string"),
@@ -116,6 +124,8 @@ def _require_columns(
     *,
     frame_name: str,
 ) -> None:
+    # Ошибку формируем сразу на границе модуля, чтобы не ловить разъехавшуюся
+    # схему позже в ranking-правилах или при сохранении артефактов.
     missing_columns = [
         column_name for column_name in columns if column_name not in df.columns
     ]
@@ -126,6 +136,8 @@ def _require_columns(
 
 def _require_unique_source_id(df: pd.DataFrame, *, frame_name: str) -> None:
     _require_columns(df, ("source_id",), frame_name=frame_name)
+    # Для priority input нам нужен строгий one-to-one по `source_id`.
+    # Дубликаты здесь почти всегда означают, что upstream уже отдал некорректный кадр.
     duplicate_mask = df["source_id"].astype(str).duplicated(keep=False)
     if bool(duplicate_mask.to_numpy().any()):
         raise ValueError(f"{frame_name} contains duplicate source_id values.")

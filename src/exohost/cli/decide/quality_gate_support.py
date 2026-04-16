@@ -22,6 +22,8 @@ def build_quality_gate_tuning_config_from_namespace(
     namespace: argparse.Namespace,
 ) -> QualityGateTuningConfig:
     # Собираем explicit quality-gate policy override из CLI namespace.
+    # CLI может частично переопределять policy, поэтому каждое поле сначала
+    # приводим к типу, а потом сравниваем с проектным вариантом по умолчанию.
     ruwe_threshold = _coerce_optional_float(
         namespace.quality_ruwe_unknown_threshold,
         default=DEFAULT_QUALITY_GATE_TUNING_CONFIG.ruwe_unknown_threshold,
@@ -41,6 +43,8 @@ def build_quality_gate_tuning_config_from_namespace(
         and require_flame_for_pass
         == DEFAULT_QUALITY_GATE_TUNING_CONFIG.require_flame_for_pass
     )
+    # Имя policy нужно не только для запуска, но и для metadata/artifacts.
+    # Поэтому явно помечаем tuned-вариант, если хотя бы один порог изменился.
     policy_name = "baseline" if is_baseline else "decide_tuned_quality_gate"
     return QualityGateTuningConfig(
         policy_name=policy_name,
@@ -59,6 +63,8 @@ def _coerce_optional_float(value: object, *, default: float | None) -> float | N
 
 
 def _coerce_optional_bool(value: object, *, default: bool) -> bool:
+    # Булевы флаги в CLI должны быть строгими, без неявных строк и чисел.
+    # Иначе слишком легко получить тихую подмену policy в боевом прогоне.
     if value is None:
         return bool(default)
     if not isinstance(value, bool):

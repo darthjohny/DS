@@ -30,6 +30,8 @@ def build_coarse_scored_frame(
     _require_source_id_column(df)
     require_feature_columns(df, feature_columns=feature_columns)
     model = cast(ClassifierModel, estimator)
+    # В coarse-слое сохраняем только сжатую сводку по вероятностям, а не весь
+    # probability frame. Этого достаточно для handoff в final decision policy.
     probability_frame = build_probability_frame(
         model,
         df.loc[:, list(feature_columns)].copy(),
@@ -43,6 +45,8 @@ def build_coarse_scored_frame(
         confidence_column_name="coarse_probability_max",
         margin_column_name="coarse_probability_margin",
     )
+    # На выходе намеренно остается только `source_id`, прогноз и его уверенность.
+    # Остальные входные признаки уже живут в исходном decision input кадре.
     result = df.loc[:, ["source_id"]].copy().join(summary_frame)
     if model_name is not None:
         result["coarse_model_name"] = model_name
@@ -50,5 +54,6 @@ def build_coarse_scored_frame(
 
 
 def _require_source_id_column(df: pd.DataFrame) -> None:
+    # Без `source_id` coarse-scoring нельзя безопасно склеить с остальными слоями.
     if "source_id" not in df.columns:
         raise ValueError("Coarse scoring frame is missing required column: source_id")

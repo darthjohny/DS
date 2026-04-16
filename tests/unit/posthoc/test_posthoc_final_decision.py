@@ -31,6 +31,8 @@ from exohost.posthoc.refinement_handoff import RefinementHandoffPolicy
 
 
 def build_input_frame() -> pd.DataFrame:
+    # Набор покрывает основные развилки финального policy-слоя:
+    # quality reject, hard OOD, candidate OOD, coarse-only и refinement acceptance/reject.
     return pd.DataFrame(
         [
             {
@@ -111,6 +113,8 @@ def test_build_final_decision_frame_routes_quality_ood_and_refinement_cases() ->
 
     result = build_final_decision_frame(build_input_frame(), policy=policy)
 
+    # Здесь проверяем весь верхнеуровневый routing в одном сценарии:
+    # порядок domain-state, судьбу refinement и финальные причины решения.
     assert result["final_domain_state"].tolist() == [
         FINAL_DOMAIN_UNKNOWN,
         FINAL_DOMAIN_OOD,
@@ -173,6 +177,8 @@ def test_build_final_decision_frame_respects_probability_handoff_thresholds() ->
 
     result = build_final_decision_frame(frame, policy=policy)
 
+    # Даже при хорошем refinement-прогнозе handoff не должен сработать,
+    # если coarse-уверенность ниже настроенного порога.
     assert result.loc[0, "final_domain_state"] == FINAL_DOMAIN_ID
     assert result.loc[0, "final_refinement_state"] == FINAL_REFINEMENT_NOT_ATTEMPTED
     assert result.loc[0, "final_decision_reason"] == "coarse_probability_below_threshold"
@@ -202,5 +208,6 @@ def test_build_final_decision_frame_can_map_candidate_ood_to_unknown() -> None:
 
     result = build_final_decision_frame(build_input_frame(), policy=policy)
 
+    # Вариант policy должен менять только судьбу candidate OOD, не ломая остальные строки.
     assert result.loc[2, "final_domain_state"] == FINAL_DOMAIN_UNKNOWN
     assert result.loc[2, "final_decision_reason"] == "candidate_ood_mapped_to_unknown"

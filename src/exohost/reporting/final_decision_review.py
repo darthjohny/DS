@@ -47,6 +47,9 @@ from exohost.reporting.final_decision_review_star_level import (
     build_star_result_preview_frame,
 )
 
+# Публичный review-фасад нужен для notebook и документации.
+# Он собирает в одном месте сводки, распределения и star-level helper без копирования
+# длинных импортов по всему проекту.
 __all__ = [
     "FinalDecisionReviewBundle",
     "build_decision_reason_frame",

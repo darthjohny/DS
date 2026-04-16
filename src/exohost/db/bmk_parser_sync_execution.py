@@ -43,6 +43,8 @@ def sync_bmk_parser_fields_downstream(
     dbapi_connection = engine.raw_connection()
     cursor = dbapi_connection.cursor()
     try:
+        # Обновляем все целевые relation в одном транзакционном контуре,
+        # чтобы training/quality/unknown не разъезжались между собой по parser-полям.
         relation_summaries = tuple(
             _sync_target_relation(
                 cursor,
@@ -71,6 +73,8 @@ def _sync_target_relation(
     target_relation_name: str,
     source_relation_name: str,
 ) -> BmkParserSyncRelationSummary:
+    # Сначала синхронизируем сами parser-derived поля, потом тут же снимаем
+    # короткую сводку по `OB`, `O` и неоднозначным строкам для контроля результата.
     cursor.execute(
         build_bmk_parser_sync_update_sql(
             target_relation_name,
@@ -95,6 +99,8 @@ def _sync_target_relation(
 
 
 def _refresh_downstream_summary_tables(cursor: DbapiCursorProtocol) -> None:
+    # Сводные review-таблицы пересобираем после основного sync, чтобы они
+    # всегда отражали текущее состояние downstream relation, а не старый снимок.
     for drop_sql, create_sql in (
         build_bmk_training_summary_refresh_sql(),
         build_bmk_quality_summary_refresh_sql(),

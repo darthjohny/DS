@@ -15,6 +15,7 @@ BOOLEAN_LABELS: dict[bool, str] = {
     False: "Нет",
 }
 
+# Базовые короткие словари для состояний и итоговых категорий.
 PRIORITY_LABELS: dict[str, str] = {
     "high": "Высокий",
     "medium": "Средний",
@@ -51,6 +52,8 @@ PIPELINE_RUNTIME_LABELS: dict[str, str] = {
     "total_seconds": "Всего",
 }
 
+# Подписи метрик вынесены в один модуль, чтобы notebook не разъезжались
+# по терминологии и не дублировали почти одинаковые строки вручную.
 PIPELINE_STAGE_METRIC_LABELS: dict[str, str] = {
     "test_accuracy": "Точность на тесте (accuracy)",
     "test_balanced_accuracy": "Сбалансированная точность на тесте",
@@ -108,6 +111,8 @@ QUALITY_POLICY_METRIC_LABELS: dict[str, str] = {
     "share_reject": "Доля отклонения",
 }
 
+# Эти словари используются в исследовательских notebook, где важно показать
+# человеку не кодовое имя группы, а физически понятную подпись на русском языке.
 DOMAIN_NAME_LABELS: dict[str, str] = {
     "train_time": "Обучающий домен",
     "downstream_pass": "Рабочий домен",

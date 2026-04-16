@@ -15,8 +15,10 @@ from exohost.evaluation.refinement_family_tasks import REFINEMENT_FAMILY_TASK_BY
 from exohost.training.run_host_benchmark import HOST_TASK_BY_NAME
 from exohost.training.run_router_benchmark import ROUTER_TASK_BY_NAME
 
+# Часть router-задач остается служебной и не должна появляться в публичном CLI-списке.
 HIDDEN_ROUTER_TASK_NAMES: tuple[str, ...] = ("spectral_subclass_classification",)
 
+# Ниже собираем стабильные публичные списки задач для help/output команд CLI.
 PUBLIC_ROUTER_TASK_NAMES: tuple[str, ...] = tuple(
     sorted(
         task_name

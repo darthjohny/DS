@@ -44,6 +44,8 @@ def write_benchmark_run(
     macro_f1: float,
     balanced_accuracy: float,
 ) -> None:
+    # Сохраняем минимальный набор CSV/JSON артефактов, который ожидает review-helper.
+    # Здесь важна не полнота эксперимента, а стабильная схема файлов и основных полей.
     run_dir.mkdir(parents=True, exist_ok=False)
     pd.DataFrame(
         [
@@ -109,6 +111,8 @@ def write_benchmark_run(
 
 
 def build_train_result() -> TrainRunResult:
+    # TrainRunResult нужен для artifact review и должен напоминать реальный run,
+    # но оставаться маленьким и полностью контролируемым внутри теста.
     label_distribution_df = pd.DataFrame(
         [
             {"target_label": "A", "n_rows": 60, "share": 0.6},

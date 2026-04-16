@@ -41,6 +41,8 @@ from exohost.ingestion.bmk import (
 
 
 def test_read_bmk_catalog_uses_cds_reader(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    # На границе чтения важно убедиться, что мы действительно используем CDS-reader
+    # с правильными путями, а не подменяем формат или README без явного сигнала.
     captured: dict[str, object] = {}
     expected_table = Table(rows=[("G2V",)], names=["SpType"])
     source = BmkCatalogSource(
@@ -68,6 +70,8 @@ def test_read_bmk_catalog_uses_cds_reader(monkeypatch: pytest.MonkeyPatch, tmp_p
 
 
 def test_build_bmk_raw_frame_normalizes_expected_columns() -> None:
+    # Raw-слой должен дать канонический набор колонок и координаты в градусах,
+    # чтобы downstream-фильтры и CSV-экспорт не зависели от формы исходной таблицы.
     table = Table(
         rows=[
             (
@@ -106,6 +110,8 @@ def test_build_bmk_raw_frame_normalizes_expected_columns() -> None:
 
 
 def test_build_bmk_import_summary_counts_expected_rows() -> None:
+    # Import summary нужен для быстрого контроля качества сырого каталога:
+    # сколько строк вообще пригодно к дальнейшему разбору и crossmatch.
     table = Table(
         rows=[
             ("2012ApJS..203...21A", "Star A", 0, 0, 0.67, "+", 0, 43, 15.5, 15.9, "K5V", "note"),
@@ -129,6 +135,8 @@ def test_build_bmk_import_summary_counts_expected_rows() -> None:
 
 
 def test_build_bmk_transform_bundle_builds_layers_and_summaries_in_one_call() -> None:
+    # Здесь страхуем основной orchestration helper ingestion-слоя:
+    # он должен за один вызов собрать raw/filtered/rejected кадры и обе сводки.
     table = Table(
         rows=[
             ("2012ApJS..203...21A", "Star A", 0, 0, 0.67, "+", 0, 43, 15.5, 15.9, "K5V", "note"),
@@ -173,6 +181,8 @@ def test_build_bmk_transform_bundle_builds_layers_and_summaries_in_one_call() ->
 
 
 def test_write_bmk_raw_csv_writes_expected_columns(tmp_path: Path) -> None:
+    # Экспорт raw CSV должен сохранять порядок колонок и пустые ячейки так,
+    # чтобы файл был стабилен для локального аудита и дальнейшей загрузки.
     raw_frame = pd.DataFrame(
         [
             {
@@ -217,6 +227,8 @@ def test_write_bmk_raw_csv_writes_expected_columns(tmp_path: Path) -> None:
 def test_write_bmk_filtered_csv_writes_empty_cells_for_missing_numeric_values(
     tmp_path: Path,
 ) -> None:
+    # Для filtered CSV отдельно страхуем сериализацию пропусков: числовые пустые
+    # значения должны уходить как пустые ячейки, а не как `nan` или `None`.
     filtered_frame = pd.DataFrame(
         [
             {

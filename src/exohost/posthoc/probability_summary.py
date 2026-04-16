@@ -23,6 +23,8 @@ def build_probability_summary_frame(
 ) -> pd.DataFrame:
     # Собираем predicted label, max probability и margin top-2 классов.
     if probability_frame.empty:
+        # Пустой probability-кадр не должен ломать downstream-слой.
+        # Возвращаем ту же схему, которую затем ожидают scoring и routing helper.
         return pd.DataFrame(
             {
                 prediction_column_name: pd.Series(dtype="string"),
@@ -33,6 +35,8 @@ def build_probability_summary_frame(
         )
 
     probability_matrix = probability_frame.to_numpy(dtype=float)
+    # Метку берем через `idxmax`, а числовые summary считаем уже по матрице,
+    # чтобы не тащить лишние циклы по строкам pandas.
     predicted_labels = probability_frame.idxmax(axis=1).astype("string")
     confidence_series = pd.Series(
         probability_matrix.max(axis=1),
@@ -60,6 +64,8 @@ def _compute_probability_margin(probability_matrix: np.ndarray) -> np.ndarray:
     if probability_matrix.shape[1] == 0:
         raise ValueError("Probability matrix must contain at least one class column.")
 
+    # Margin нужен как простой индикатор уверенности: разница между лучшим
+    # и вторым по вероятности классом лучше показывает пограничные случаи.
     sorted_probabilities = np.sort(probability_matrix, axis=1)
     max_probability = sorted_probabilities[:, -1]
     if probability_matrix.shape[1] == 1:

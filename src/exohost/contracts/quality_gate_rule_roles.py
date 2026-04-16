@@ -30,6 +30,8 @@ class QualityGateRuleSpec:
 
 
 QUALITY_GATE_RULE_SPECS: tuple[QualityGateRuleSpec, ...] = (
+    # `reject`-правила отсекают строки, которые уже нельзя безопасно подавать
+    # в основной прикладной контур без потери ключевых признаков.
     QualityGateRuleSpec(
         rule_name="missing_core_features",
         role="reject",
@@ -42,6 +44,8 @@ QUALITY_GATE_RULE_SPECS: tuple[QualityGateRuleSpec, ...] = (
             "для normal pass в первую волну."
         ),
     ),
+    # `review`-правила не удаляют объект навсегда, а переводят его в проверку.
+    # Это отдельный слой аккуратности, который мы донастраивали перед боевым прогоном.
     QualityGateRuleSpec(
         rule_name="high_ruwe",
         role="review",
@@ -78,6 +82,8 @@ QUALITY_GATE_RULE_SPECS: tuple[QualityGateRuleSpec, ...] = (
             "review-сигналом, а не hard reject."
         ),
     ),
+    # `info`-правила нужны для объяснения и диагностики. Они не должны превращаться
+    # в скрытые hard reject, иначе контур доверия станет непрозрачным.
     QualityGateRuleSpec(
         rule_name="non_single_star_flag",
         role="info",

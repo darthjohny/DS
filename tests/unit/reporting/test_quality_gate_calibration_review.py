@@ -36,6 +36,8 @@ def _require_float_scalar(value: object) -> float:
 
 
 def _build_quality_gate_df() -> pd.DataFrame:
+    # В кадре есть базовый pass, review по RUWE, hard reject и review по FLAME.
+    # Этого достаточно, чтобы увидеть, как policy-варианты меняют покрытие и причины.
     return pd.DataFrame(
         {
             "source_id": [1, 2, 3, 4],
@@ -61,6 +63,8 @@ def _build_quality_gate_df() -> pd.DataFrame:
 
 
 def test_build_quality_gate_variant_summary_frame_compares_policy_coverage() -> None:
+    # Сравниваем базовый и смягченный варианты policy на одном frozen наборе
+    # и смотрим, как меняются доли `pass` и `unknown`.
     specs = (
         QualityGateCalibrationSpec(
             policy_name="baseline",
@@ -90,6 +94,8 @@ def test_build_quality_gate_variant_summary_frame_compares_policy_coverage() -> 
 
 
 def test_variant_transition_and_reason_frames_explain_policy_differences() -> None:
+    # Помимо summary, review-слой должен объяснять, какие именно строки и причины
+    # меняются при выборе другого варианта `quality_gate`.
     spec = QualityGateCalibrationSpec(
         policy_name="relaxed",
         ruwe_unknown_threshold=1.6,

@@ -32,6 +32,8 @@ from exohost.training.train_runner import TrainRunResult, run_training
 
 
 def build_id_ood_training_frame() -> pd.DataFrame:
+    # Минимальный train-frame для OOD-артефакта. Его задача — дать bundle-тесту
+    # воспроизводимый источник модели и порогов, а не реалистичный benchmark.
     return pd.DataFrame(
         [
             {
@@ -87,6 +89,8 @@ def build_id_ood_training_frame() -> pd.DataFrame:
 
 
 def build_coarse_training_frame() -> pd.DataFrame:
+    # Небольшой coarse train-frame с двумя классами нужен для проверки,
+    # что bundle корректно поднимает feature union и metadata обеих моделей.
     return pd.DataFrame(
         [
             {
@@ -146,6 +150,8 @@ def build_train_result(
     frame: pd.DataFrame,
     task_name: str,
 ) -> TrainRunResult:
+    # Один helper на обучение не дает тесту размножать почти одинаковый setup
+    # и держит bundle-сценарии на одном способе подготовки артефактов.
     if task_name == GAIA_ID_OOD_CLASSIFICATION_TASK.name:
         task = GAIA_ID_OOD_CLASSIFICATION_TASK
     elif task_name == GAIA_ID_COARSE_CLASSIFICATION_TASK.name:
@@ -169,6 +175,8 @@ def build_train_result(
 
 
 def test_load_final_decision_model_bundle_reads_valid_bundle(tmp_path: Path) -> None:
+    # Проверяем основной happy path: артефакты моделей и порогов читаются вместе,
+    # а итоговый bundle возвращает согласованный набор feature columns.
     ood_paths = save_model_artifacts(
         build_train_result(
             frame=build_id_ood_training_frame(),
@@ -211,6 +219,8 @@ def test_load_final_decision_model_bundle_reads_valid_bundle(tmp_path: Path) -> 
 def test_load_final_decision_model_bundle_rejects_misaligned_threshold_artifact(
     tmp_path: Path,
 ) -> None:
+    # Если threshold artifact собран для другого `model_name`, bundle должен
+    # упасть сразу, а не тащить несогласованную пару в боевой pipeline.
     ood_paths = save_model_artifacts(
         build_train_result(
             frame=build_id_ood_training_frame(),

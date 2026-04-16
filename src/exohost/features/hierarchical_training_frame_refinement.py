@@ -54,6 +54,8 @@ def prepare_gaia_mk_refinement_training_frame(df: pd.DataFrame) -> pd.DataFrame:
             "spectral_subclass": "spec_subclass",
         }
     )
+    # Coarse-класс и подкласс нормализуем отдельно: coarse остается буквенной семьей,
+    # а подкласс приводится к виду, пригодному для family-specific обучения.
     result["spec_class"] = result["spec_class"].astype(str).str.strip().str.upper()
     result["spec_subclass"] = result.apply(
         lambda row: normalize_refinement_subclass(
@@ -66,6 +68,8 @@ def prepare_gaia_mk_refinement_training_frame(df: pd.DataFrame) -> pd.DataFrame:
         result["luminosity_class"] = result["luminosity_class"].map(
             normalize_optional_text
         )
+        # Эволюционную стадию не тащим из сырого текста напрямую.
+        # Вместо этого пересчитываем ее из luminosity class, чтобы разметка была единообразной.
         result["evolution_stage"] = result["luminosity_class"].map(
             lambda value: map_luminosity_class_to_evolution_stage(
                 str(value) if pd.notna(value) else None
@@ -76,6 +80,8 @@ def prepare_gaia_mk_refinement_training_frame(df: pd.DataFrame) -> pd.DataFrame:
 
     result["radius_gspphot"] = result["radius_flame"]
     result = cast_numeric_columns(result, REFINEMENT_NUMERIC_COLUMNS)
+    # Для refinement оставляем только строки с полным набором ключевых числовых признаков.
+    # Иначе family-модели начнут учиться на неоднородном и частично пустом наборе.
     result = result.dropna(
         subset=(
             "source_id",
@@ -92,6 +98,8 @@ def prepare_gaia_mk_refinement_training_frame(df: pd.DataFrame) -> pd.DataFrame:
         )
     ).reset_index(drop=True)
     validate_label_columns(result, frame_name="gaia mk refinement training frame")
+    # Минимальная поддержка подкласса защищает модель от единичных редких меток,
+    # которые дают красивую физику, но нестабильны для обучения.
     result = filter_minimum_label_support(
         result,
         target_column="spec_subclass",

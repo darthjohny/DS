@@ -21,6 +21,8 @@ from exohost.reporting.priority_threshold_review_frames import (
     build_priority_variant_by_class_frame,
 )
 
+# Фасад review-слоя для сравнения пороговых вариантов priority.
+# Он оставляет наружу только контракты и итоговые таблицы, нужные notebook и docs.
 __all__ = [
     "DEFAULT_PRIORITY_THRESHOLD_VARIANTS",
     "PriorityThresholdVariant",

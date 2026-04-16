@@ -22,6 +22,8 @@ def require_int_scalar(value: object) -> int:
 
 
 def build_decision_input_df() -> pd.DataFrame:
+    # Игрушечный вход покрывает три характерных сценария:
+    # нормальный pass, review-строку и hard reject по качеству.
     return pd.DataFrame(
         {
             "source_id": [1, 2, 3],
@@ -47,6 +49,8 @@ def build_decision_input_df() -> pd.DataFrame:
 
 
 def build_final_decision_df() -> pd.DataFrame:
+    # Итоговый кадр специально показывает три разные развязки пайплайна,
+    # чтобы review-helper можно было проверять на разных состояниях одновременно.
     return pd.DataFrame(
         {
             "source_id": [1, 2, 3],
@@ -68,6 +72,7 @@ def build_final_decision_df() -> pd.DataFrame:
 
 
 def build_priority_input_df() -> pd.DataFrame:
+    # В приоритизацию проходят только строки, которые сохранили usable класс.
     return pd.DataFrame(
         {
             "source_id": [1, 2],
@@ -78,6 +83,7 @@ def build_priority_input_df() -> pd.DataFrame:
 
 
 def build_priority_ranking_df() -> pd.DataFrame:
+    # Ranking-кадр нужен для проверки распределений и top-candidate helper-слоя.
     return pd.DataFrame(
         {
             "source_id": [1, 2],

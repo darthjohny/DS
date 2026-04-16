@@ -30,6 +30,7 @@ from exohost.training.train_runner import run_training
 
 
 def build_ood_training_frame() -> pd.DataFrame:
+    # Небольшой контрастный train-frame, достаточный для локального CLI-прогона.
     return pd.DataFrame(
         [
             {
@@ -85,6 +86,8 @@ def build_ood_training_frame() -> pd.DataFrame:
 
 
 def build_coarse_training_frame() -> pd.DataFrame:
+    # Здесь coarse-классы разделены намеренно просто, чтобы тест страховал CLI-контур,
+    # а не качество конкретной модели на сложной физике.
     return pd.DataFrame(
         [
             {
@@ -140,6 +143,7 @@ def build_coarse_training_frame() -> pd.DataFrame:
 
 
 def build_host_training_frame() -> pd.DataFrame:
+    # Host-набор нужен для проверки интеграции host-модели и priority-слоя внутри CLI.
     return pd.DataFrame(
         [
             {
@@ -195,6 +199,8 @@ def build_host_training_frame() -> pd.DataFrame:
 
 
 def build_train_result(frame: pd.DataFrame, task, *, model_name: str = "hist_gradient_boosting"):
+    # Один helper на обучение всех локальных моделей держит тест короче
+    # и не дает артефактам разъехаться по разным способам подготовки.
     return run_training(
         frame,
         task=task,
@@ -211,6 +217,8 @@ def build_train_result(frame: pd.DataFrame, task, *, model_name: str = "hist_gra
 
 
 def test_cli_decide_builds_final_decision_artifacts(tmp_path: Path) -> None:
+    # Это основной end-to-end сценарий CLI: поднимаем локальные модели,
+    # создаем входной CSV и проверяем полный набор артефактов `decide`.
     ood_paths = save_model_artifacts(
         build_train_result(build_ood_training_frame(), GAIA_ID_OOD_CLASSIFICATION_TASK),
         output_dir=tmp_path / "models",
