@@ -1,12 +1,12 @@
-# Gaia Crossmatch Strategy For MK Wave
+# Стратегия crossmatch Gaia для волны MK
 
 ## Цель
 
-Этот документ фиксирует стратегию crossmatch внешнего spectral source с `Gaia`.
+Этот документ фиксирует стратегию crossmatch внешнего спектрального источника с `Gaia`.
 
 Нужно определить:
 
-- как practically связать внешний MK-catalog с `Gaia`;
+- как практически связать внешний каталог `MK` с `Gaia`;
 - что делать в `Gaia Archive`;
 - что сохранять в локальную БД;
 - как не смешать upload, xmatch и final labeled data.
@@ -136,7 +136,7 @@
 Правило:
 
 - wide landing relation хранит reproducible снимок результата `Gaia`;
-- downstream-слои читают уже не его, а узкий canonical crossmatch layer.
+- следующие слои читают уже не его, а узкий канонический слой crossmatch.
 
 ### Шаг 6. Сохранить Локально По Слоям
 

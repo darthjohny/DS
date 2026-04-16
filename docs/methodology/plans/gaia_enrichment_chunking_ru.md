@@ -1,4 +1,4 @@
-# Gaia Enrichment Chunking Policy
+# Политика поэтапного обогащения Gaia-данных
 
 ## Цель
 

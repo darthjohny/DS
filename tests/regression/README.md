@@ -1,4 +1,4 @@
-# Регресс-Тесты Проекта
+# Слой регресс-тестов проекта
 
 Этот каталог хранит отдельный слой регресс-тестирования.
 
@@ -8,14 +8,14 @@
 - поведение `quality_gate`;
 - поведение `priority`;
 - малый сквозной контур `decide`;
-- структуру и смысл основных artifact bundle;
+- структуру и смысл основных наборов артефактов;
 - устойчивость ключевых summary-слоев.
 
 Текущая роль каталога:
 
 - каркас нового слоя;
 - база для frozen fixtures;
-- доменные подпапки под системные regression-тесты.
+- доменные подпапки под системные регресс-тесты.
 
 Внутренний helper-слой:
 
@@ -29,13 +29,13 @@
 Сквозной decision-регресс:
 
 - [decision/decide_roundtrip_testkit.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/tests/regression/decision/decide_roundtrip_testkit.py)
-  собирает маленький локальный контур artifacts и frozen input для `decide`;
+  собирает маленький локальный контур артефактов и замороженный вход для `decide`;
 - [decision/test_decide_roundtrip_regression.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/tests/regression/decision/test_decide_roundtrip_regression.py)
   страхует полный run bundle, metadata и базовые допустимые состояния выхода.
 - [decision/test_decision_artifact_schema_regression.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/tests/regression/decision/test_decision_artifact_schema_regression.py)
-  страхует обязательные колонки и metadata-контракты малого decision-bundle.
+  страхует обязательные колонки и metadata-контракты малого набора `decide`.
 - [decision/test_high_priority_cohort_regression.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/tests/regression/decision/test_high_priority_cohort_regression.py)
-  страхует, что верхняя приоритетная группа остается непустой и сохраняет host-like профиль.
+  страхует, что верхняя приоритетная группа остается непустой и сохраняет профиль, похожий на звезды-хозяева.
 
 Review и summary-регресс:
 

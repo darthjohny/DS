@@ -48,7 +48,7 @@
 
 Слой итогового решения обязан применять шаги в фиксированном порядке:
 
-1. `quality gate`
+1. `quality_gate`
 2. `ID/OOD gate`
 3. `coarse classification`
 4. `refinement handoff`

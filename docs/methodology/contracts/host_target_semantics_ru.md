@@ -74,7 +74,7 @@
 
 Он предсказывает:
 
-- `host-likeness`
+- `host_likeness`
   или
 - `confirmed-host prior`
 
@@ -153,7 +153,7 @@ Host-слой не должен выдавать это как:
 
 Корректные формулировки:
 
-- "объект имеет высокий host-like score"
+- "объект имеет высокий показатель сходства со звездами-хозяевами"
 - "объект близок к confirmed-host population"
 - "confirmed-host prior высокий/средний/низкий"
 
@@ -182,7 +182,7 @@ Host-слой не должен выдавать это как:
 
 Для следующего рабочего пакета фиксируем:
 
-- target semantics = `confirmed-host prior / host-likeness`;
+- целевая семантика = `confirmed-host prior / host_likeness`;
 - positive label source не берем "как есть" из `stellarhosts`;
 - `pscomppars` не используем как primary positive truth;
 - ноутбуки и итоговая интерпретация больше не должны называть host-оценку

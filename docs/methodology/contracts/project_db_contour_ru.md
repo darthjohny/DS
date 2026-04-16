@@ -77,7 +77,7 @@
 - `lab.gaia_mk_external_labeled`
   Нормализованные спектральные метки после разбора и выбора рабочего совпадения.
 - `lab.gaia_mk_training_reference`
-  Нормализованный Gaia-enriched слой перед quality gate.
+  Нормализованный обогащенный Gaia-слой перед `quality_gate`.
 - `lab.gaia_mk_quality_gated`
   Главный рабочий вход для боевого `decide`.
 - `lab.gaia_mk_unknown_review`

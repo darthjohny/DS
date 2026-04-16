@@ -1,4 +1,4 @@
-# План доработки quality gate и слоя host priority
+# План доработки `quality_gate` и слоя host priority
 
 Дата фиксации: `2026-03-31`
 
