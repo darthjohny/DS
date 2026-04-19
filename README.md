@@ -42,6 +42,92 @@
 
 ![Обзорная схема системы проекта](assets/diagrams/system_overview_ru.svg)
 
+## Как запустить проект за 5 минут
+
+Если нужно быстро поднять проект и не читать весь репозиторий, достаточно
+следующего минимального маршрута.
+
+### 1. Поставить зависимости
+
+```bash
+python3.13 -m venv .venv-v2
+source .venv-v2/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements-v2.txt
+python -m pip install -e .
+python -m pip install -r requirements-streamlit-v2.txt
+```
+
+После `python -m pip install -e .` в окружении появляется CLI-команда
+`exohost`.
+
+### 2. Подготовить вход
+
+Базовый боевой вход текущего контура:
+
+- таблица `lab.gaia_mk_quality_gated` в PostgreSQL.
+
+Если локальной БД нет, проект можно запускать от внешнего `CSV`. Минимально
+нужны поля:
+
+- `source_id`, `ra`, `dec`
+- `phot_g_mean_mag`, `bp_rp`
+- `parallax`, `parallax_over_error`, `ruwe`
+- `teff_gspphot`, `logg_gspphot`, `mh_gspphot`
+- `radius_gspphot`, `radius_flame`, `lum_flame`, `evolstage_flame`
+- `non_single_star`, `classprob_dsc_combmod_star`
+
+Полный контракт для внешнего запуска зафиксирован в
+[external_decide_input_contract_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/contracts/external_decide_input_contract_ru.md).
+
+### 3. Запустить основной пайплайн
+
+Главный прикладной пайплайн проекта — это `final decision`, то есть команда
+`decide`.
+
+Самый быстрый способ для внешнего `CSV`:
+
+```bash
+python -m streamlit run streamlit_app.py --server.address 127.0.0.1 --server.port 8501
+```
+
+Дальше в браузере:
+
+- открыть `http://127.0.0.1:8501`;
+- перейти на страницу `CSV-запуск`;
+- выбрать базовый `run_dir`;
+- загрузить входной `CSV`;
+- получить новый `artifacts/decisions/...` запуск без ручного CLI.
+
+Если нужен именно CLI-сценарий, рабочая форма команды такая:
+
+```bash
+exohost decide \
+  --input-csv /path/to/input.csv \
+  --ood-model-run-dir /path/to/ood_model_run_dir \
+  --ood-threshold-run-dir /path/to/ood_threshold_run_dir \
+  --coarse-model-run-dir /path/to/coarse_model_run_dir \
+  --refinement-model-run-dir /path/to/refinement_family_run_dir \
+  --host-model-run-dir /path/to/host_model_run_dir
+```
+
+Результат команды сохраняется в `artifacts/decisions`.
+
+### 4. Если нужен запуск обучения
+
+Обучение и benchmark запускаются через тот же CLI. На практике чаще всего
+начинают с таких команд:
+
+```bash
+exohost benchmark --task spectral_class_classification --models hist_gradient_boosting
+exohost train --task spectral_class_classification --model hist_gradient_boosting
+```
+
+Артефакты обучения сохраняются в `artifacts/models`, benchmark-артефакты —
+в `artifacts/benchmarks`.
+
+Эти команды требуют настроенный `.env` и доступ к PostgreSQL.
+
 ## Зачем нужна работа
 
 В задачах поиска экзопланет важна не только сама классификация звезд, но и
@@ -291,12 +377,40 @@ analysis/notebooks/
 assets/
   diagrams/     - обзорная схема системы для README и презентации
 
+docs/
+  architecture/ - архитектурные и cleanup-планы по проекту
+  methodology/  - контракты, run review, стабилизация и документы по ВКР
+
 tests/
   unit/         - локальные модульные проверки
   integration/  - короткие сквозные связки между слоями
   smoke/        - быстрые проверки стартового контура
   regression/   - поведенческий регресс `quality_gate`, `priority` и `decide`
 ```
+
+## Что в репозитории главное
+
+Если человек видит проект впервые, удобнее ориентироваться по таким точкам:
+
+- основной прикладной пайплайн:
+  [src/exohost/cli/decide](/Users/evgeniikuznetsov/Desktop/dspro-vkr/src/exohost/cli/decide),
+  [src/exohost/posthoc](/Users/evgeniikuznetsov/Desktop/dspro-vkr/src/exohost/posthoc)
+- обучение и benchmark:
+  [src/exohost/cli/train](/Users/evgeniikuznetsov/Desktop/dspro-vkr/src/exohost/cli/train),
+  [src/exohost/cli/benchmark](/Users/evgeniikuznetsov/Desktop/dspro-vkr/src/exohost/cli/benchmark),
+  [src/exohost/training](/Users/evgeniikuznetsov/Desktop/dspro-vkr/src/exohost/training)
+- inference и итоговое решение:
+  [src/exohost/posthoc/final_decision.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/src/exohost/posthoc/final_decision.py),
+  [src/exohost/posthoc/final_decision_artifact_runner.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/src/exohost/posthoc/final_decision_artifact_runner.py)
+- Streamlit-интерфейс:
+  [streamlit_app.py](/Users/evgeniikuznetsov/Desktop/dspro-vkr/streamlit_app.py),
+  [src/exohost/ui](/Users/evgeniikuznetsov/Desktop/dspro-vkr/src/exohost/ui)
+- тесты:
+  [tests](/Users/evgeniikuznetsov/Desktop/dspro-vkr/tests),
+  [tests/README.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/tests/README.md)
+- документация:
+  [docs](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs),
+  [docs/methodology](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology)
 
 ## Тестовый контур
 
