@@ -24,35 +24,16 @@ htmlcov/
 .vscode/
 .idea/
 
-# OS / notebooks / temp
+# OS / temp
 .DS_Store
 .ipynb_checkpoints/
-notebooks/eda/data/
-Pandas_1 -1-.ipynb
-Untitled*.ipynb
-Untitled Folder/
-docs/assets/Снимок экрана *.png
 tmp/
-docs/architecture/
 
-# Generated data
+# Generated artifacts and data
 artifacts/
 data/processed/
 data/bmk/mktypes.dat
 *.session.sql
-experiments/Логи калибровки decision_layer/iteration_*.md
-experiments/Логи калибровки decision_layer/iteration_*_class_distribution.csv
-experiments/Логи калибровки decision_layer/iteration_*_config.json
-experiments/Логи калибровки decision_layer/iteration_*_score_summary.csv
-experiments/Логи калибровки decision_layer/iteration_*_top_candidates.csv
-experiments/Логи работы программы/run_*.md
-experiments/model_comparison/baseline_comparison_2026-03-13.md
-experiments/model_comparison/baseline_comparison_2026-03-13_*
-!experiments/model_comparison/baseline_comparison_2026-03-13_vkr30_cv10*
-
-# Local duplicate copies of the project
-DS/
-Baum_dspro_vkr_research/
 
 # Локальный архив старой версии проекта
 .legacy_v1/
