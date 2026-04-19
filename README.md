@@ -368,6 +368,36 @@ python -m pip install -e .
 .venv-v2/bin/pytest -q tests/regression
 ```
 
+## Как запустить интерфейс в браузере
+
+Интерфейсный слой поднимается через `Streamlit` и использует отдельный
+манифест зависимостей [requirements-streamlit-v2.txt](/Users/evgeniikuznetsov/Desktop/dspro-vkr/requirements-streamlit-v2.txt).
+
+Если `Streamlit` еще не установлен в рабочем окружении:
+
+```bash
+python -m pip install -r requirements-streamlit-v2.txt
+```
+
+Запуск интерфейса:
+
+```bash
+python -m streamlit run streamlit_app.py --server.address 127.0.0.1 --server.port 8501
+```
+
+После старта приложение открывается в браузере по одному из адресов:
+
+- `http://127.0.0.1:8501`
+- `http://localhost:8501`
+
+Короткие замечания:
+
+- `streamlit_app.py` сам добавляет `src` в `sys.path`, поэтому для запуска из
+  корня проекта не нужен отдельный `PYTHONPATH`;
+- если порт `8501` уже занят, можно указать другой, например `8502`;
+- интерфейс рассчитан на локальный запуск и читает готовые артефакты из
+  `artifacts/decisions`.
+
 ## Основная документация и источники
 
 Python и инженерный стек:

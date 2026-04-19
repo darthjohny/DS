@@ -38,3 +38,7 @@
 Пакет по выравниванию языка и тона документации:
 
 - [documentation_cleanup_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/documentation_cleanup_tz_ru.md)
+
+Пакет по тонкому демонстрационному интерфейсу:
+
+- [streamlit_interface_tz_ru.md](/Users/evgeniikuznetsov/Desktop/dspro-vkr/docs/methodology/plans/streamlit_interface_tz_ru.md)
