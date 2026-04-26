@@ -50,6 +50,8 @@ class UiExternalCsvContract:
     recommended_columns: tuple[str, ...]
     quality_state_default: str
     contract_doc_path: str
+    allowed_quality_states: tuple[str, ...] = ("pass", "unknown", "reject")
+    required_numeric_columns: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -229,6 +231,18 @@ UI_EXTERNAL_CSV_CONTRACT = UiExternalCsvContract(
     contract_doc_path=(
         "docs/methodology/contracts/external_decide_input_contract_ru.md"
     ),
+    required_numeric_columns=(
+        "teff_gspphot",
+        "logg_gspphot",
+        "mh_gspphot",
+        "bp_rp",
+        "parallax",
+        "parallax_over_error",
+        "ruwe",
+        "phot_g_mean_mag",
+        "radius_flame",
+        "lum_flame",
+    ),
 )
 
 UI_SESSION_STATE_CONTRACT = UiSessionStateContract(
@@ -253,7 +267,7 @@ UI_BENCHMARK_STAGE_CONTRACTS: tuple[UiBenchmarkStageContract, ...] = (
     ),
     UiBenchmarkStageContract(
         stage_key="coarse",
-        display_name="Coarse",
+        display_name="Крупный класс",
         task_name_prefix="gaia_id_coarse_classification",
         interpretation_note=(
             "Грубая классификация по крупным спектральным классам. Это основной "
@@ -262,16 +276,16 @@ UI_BENCHMARK_STAGE_CONTRACTS: tuple[UiBenchmarkStageContract, ...] = (
     ),
     UiBenchmarkStageContract(
         stage_key="host",
-        display_name="Host",
+        display_name="Звезды-хозяева",
         task_name_prefix="host_field_classification",
         interpretation_note=(
-            "Прикладной слой сходства с host-популяцией. Он влияет на итоговый "
+            "Прикладной слой сходства со звездами-хозяевами. Он влияет на итоговый "
             "наблюдательный приоритет."
         ),
     ),
     UiBenchmarkStageContract(
         stage_key="refinement",
-        display_name="Refinement",
+        display_name="Уточнение подкласса",
         task_name_prefix="gaia_mk_refinement_classification",
         interpretation_note=(
             "Тонкая научная надстройка по подклассам. Этот слой полезен, но требует "

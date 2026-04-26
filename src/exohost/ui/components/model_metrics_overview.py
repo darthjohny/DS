@@ -53,7 +53,7 @@ def render_model_metrics_overview(
             )
             st.markdown(str(row["trust_summary"]))
             if row["benchmark_run_dir"] is not None:
-                st.caption(f"Benchmark run: `{row['benchmark_run_dir']}`")
+                st.caption(f"Контрольный запуск: `{row['benchmark_run_dir']}`")
 
 
 def _format_metric(value: object) -> str:

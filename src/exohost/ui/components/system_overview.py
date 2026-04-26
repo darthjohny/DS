@@ -27,8 +27,8 @@ def render_system_overview(diagram_path: Path | None) -> None:
         width="stretch",
     )
     st.caption(
-        "Схема показывает путь от источников данных и model layers к итоговому shortlist "
-        "для follow-up наблюдений."
+        "Схема показывает путь от источников данных и слоев моделей к итоговому короткому списку "
+        "для последующих наблюдений."
     )
 
 

@@ -37,11 +37,11 @@ RUN_BROWSER_PREVIEW_DISPLAY_LABELS: dict[str, str] = {
     "review_bucket": "Корзина проверки",
     "spec_class": "Класс",
     "spec_subclass": "Подкласс",
-    "final_coarse_class": "Итоговый coarse-класс",
+    "final_coarse_class": "Итоговый крупный класс",
     "final_refinement_label": "Итоговый подкласс",
     "priority_label": "Приоритет",
     "priority_score": "Итоговый приоритет",
-    "host_similarity_score": "Сходство с host",
+    "host_similarity_score": "Сходство со звездами-хозяевами",
     "observability_score": "Наблюдаемость",
     "priority_reason": "Причина приоритета",
 }

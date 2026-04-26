@@ -76,10 +76,11 @@ def test_load_ui_run_bundle_uncached_rejects_missing_metadata_context_key(
     tmp_path: Path,
 ) -> None:
     run_dir = _build_valid_ui_run_dir(tmp_path)
-    metadata_path = run_dir / "metadata.json"
-    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-    metadata["context"].pop("priority_high_min")
-    metadata_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
+    metadata = _read_metadata(run_dir)
+    context = metadata["context"]
+    assert isinstance(context, dict)
+    context.pop("priority_high_min")
+    _write_metadata(run_dir, metadata)
 
     try:
         load_ui_run_bundle_uncached(run_dir)
@@ -87,6 +88,39 @@ def test_load_ui_run_bundle_uncached_rejects_missing_metadata_context_key(
         assert "priority_high_min" in str(exc)
     else:
         raise AssertionError("Expected UI loader to reject metadata with missing context keys.")
+
+
+def test_load_ui_run_bundle_uncached_rejects_missing_metadata_key(
+    tmp_path: Path,
+) -> None:
+    run_dir = _build_valid_ui_run_dir(tmp_path)
+    metadata = _read_metadata(run_dir)
+    metadata.pop("final_domain_distribution")
+    _write_metadata(run_dir, metadata)
+
+    try:
+        load_ui_run_bundle_uncached(run_dir)
+    except RuntimeError as exc:
+        assert "final_domain_distribution" in str(exc)
+    else:
+        raise AssertionError("Expected UI loader to reject metadata with missing top-level keys.")
+
+
+def test_load_ui_run_bundle_uncached_rejects_unexpected_pipeline_name(
+    tmp_path: Path,
+) -> None:
+    run_dir = _build_valid_ui_run_dir(tmp_path)
+    metadata = _read_metadata(run_dir)
+    metadata["pipeline_name"] = "experimental_pipeline"
+    _write_metadata(run_dir, metadata)
+
+    try:
+        load_ui_run_bundle_uncached(run_dir)
+    except RuntimeError as exc:
+        assert "unexpected pipeline" in str(exc)
+        assert "experimental_pipeline" in str(exc)
+    else:
+        raise AssertionError("Expected UI loader to reject metadata from another pipeline.")
 
 
 def _build_valid_ui_run_dir(tmp_path: Path) -> Path:
@@ -100,6 +134,17 @@ def _build_valid_ui_run_dir(tmp_path: Path) -> Path:
         extra_metadata=_build_metadata_context(),
     )
     return artifact_paths.run_dir
+
+
+def _read_metadata(run_dir: Path) -> dict[str, object]:
+    return json.loads((run_dir / "metadata.json").read_text(encoding="utf-8"))
+
+
+def _write_metadata(run_dir: Path, metadata: dict[str, object]) -> None:
+    (run_dir / "metadata.json").write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
 
 def _build_decision_input_df() -> pd.DataFrame:

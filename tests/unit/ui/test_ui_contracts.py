@@ -73,6 +73,19 @@ def test_ui_external_csv_contract_keeps_current_minimal_input_columns() -> None:
     assert UI_EXTERNAL_CSV_CONTRACT.quality_state_default == "pass"
 
 
+def test_ui_external_csv_contract_keeps_validation_defaults() -> None:
+    required_columns = set(UI_EXTERNAL_CSV_CONTRACT.required_columns)
+    required_numeric_columns = set(UI_EXTERNAL_CSV_CONTRACT.required_numeric_columns)
+
+    assert UI_EXTERNAL_CSV_CONTRACT.allowed_quality_states == ("pass", "unknown", "reject")
+    assert UI_EXTERNAL_CSV_CONTRACT.quality_state_default in (
+        UI_EXTERNAL_CSV_CONTRACT.allowed_quality_states
+    )
+    assert required_numeric_columns <= required_columns
+    assert "teff_gspphot" in required_numeric_columns
+    assert "evolstage_flame" not in required_numeric_columns
+
+
 def test_ui_session_state_contract_keeps_unique_state_keys() -> None:
     state_keys = (
         UI_SESSION_STATE_CONTRACT.selected_run_dir_key,

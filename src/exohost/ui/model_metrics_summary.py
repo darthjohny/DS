@@ -92,7 +92,7 @@ def build_ui_model_metrics_overview(
             weakest_stage_name=None,
             weakest_stage_macro_f1=None,
             overview_message=(
-                "Benchmark-артефакты не найдены, поэтому доверительный слой по моделям пока "
+                "Контрольные артефакты не найдены, поэтому доверительный слой по моделям пока "
                 "нельзя построить."
             ),
         )
@@ -167,7 +167,7 @@ def _build_trust_label(trust_level: str) -> str:
         "strong": "Сильный слой",
         "stable": "Стабильный слой",
         "caution": "Нужна осторожность",
-        "missing": "Нет benchmark-данных",
+        "missing": "Нет контрольных данных",
     }
     return trust_labels.get(trust_level, "Неизвестный статус")
 
@@ -181,7 +181,7 @@ def _build_trust_summary(
 ) -> str:
     if trust_level == "missing":
         return (
-            f"Для слоя `{stage_name}` нет полного набора benchmark-метрик, поэтому "
+            f"Для слоя `{stage_name}` нет полного набора контрольных метрик, поэтому "
             "его нельзя уверенно интерпретировать в UI."
         )
 
@@ -191,7 +191,7 @@ def _build_trust_summary(
     )
     if trust_level == "strong":
         return (
-            f"Слой `{stage_name}` выглядит надежно по основным benchmark-метрикам: "
+            f"Слой `{stage_name}` выглядит надежно по основным контрольным метрикам: "
             f"{metric_sql}"
         )
     if trust_level == "stable":
@@ -219,7 +219,7 @@ def _build_overview_message(
         f"зон осторожной интерпретации: `{n_caution_stages}`."
     )
     if n_missing_stages > 0:
-        message += f" Без benchmark-данных осталось `{n_missing_stages}` слоев."
+        message += f" Без контрольных данных осталось `{n_missing_stages}` слоев."
     if best_stage_name is not None and weakest_stage_name is not None:
         message += (
             f" Лучший слой по Macro F1 сейчас — `{best_stage_name}`, "

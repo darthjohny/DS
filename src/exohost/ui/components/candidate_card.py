@@ -31,7 +31,7 @@ def render_candidate_card(
 
     content_columns = st.columns((1.05, 0.95), gap="medium")
     with content_columns[0]:
-        st.subheader("Маршрут pipeline")
+        st.subheader("Маршрут пайплайна")
         st.dataframe(
             route_df.rename(columns=_ROUTE_LABELS),
             width="stretch",
@@ -51,7 +51,7 @@ def render_candidate_card(
 
     st.markdown("**Физические параметры**")
     if physics_df.empty:
-        st.info("Для выбранного объекта нет физического preview в текущем запуске.")
+        st.info("Для выбранного объекта нет физического предпросмотра в текущем запуске.")
         return
 
     st.dataframe(
@@ -83,25 +83,25 @@ def _render_candidate_overview(overview: UiCandidateOverview) -> None:
     secondary_row = st.columns(4, gap="small")
     with secondary_row[0]:
         st.metric(
-            "Quality gate",
+            "Фильтр качества",
             overview.final_quality_state or "n/a",
             border=True,
         )
     with secondary_row[1]:
         st.metric(
-            "Refinement",
+            "Уточнение класса",
             overview.final_refinement_state or "n/a",
             border=True,
         )
     with secondary_row[2]:
         st.metric(
-            "Host similarity",
+            "Сходство со звездами-хозяевами",
             _format_metric_value(overview.host_similarity_score),
             border=True,
         )
     with secondary_row[3]:
         st.metric(
-            "Observability",
+            "Наблюдаемость",
             _format_metric_value(overview.observability_score),
             border=True,
         )
@@ -112,7 +112,7 @@ def _render_candidate_overview(overview: UiCandidateOverview) -> None:
 def _render_physical_snapshot(overview: UiCandidateOverview) -> None:
     upper_row = st.columns(2, gap="small")
     with upper_row[0]:
-        st.metric("Teff", _format_metric_value(overview.teff_gspphot), border=True)
+        st.metric("Температура", _format_metric_value(overview.teff_gspphot), border=True)
     with upper_row[1]:
         st.metric("logg", _format_metric_value(overview.logg_gspphot), border=True)
 
@@ -121,7 +121,7 @@ def _render_physical_snapshot(overview: UiCandidateOverview) -> None:
         st.metric("BP-RP", _format_metric_value(overview.bp_rp), border=True)
     with middle_row[1]:
         st.metric(
-            "G magnitude",
+            "Звездная величина G",
             _format_metric_value(overview.phot_g_mean_mag),
             border=True,
         )
@@ -129,7 +129,7 @@ def _render_physical_snapshot(overview: UiCandidateOverview) -> None:
     lower_row = st.columns(2, gap="small")
     with lower_row[0]:
         st.metric(
-            "Parallax",
+            "Параллакс",
             _format_metric_value(overview.parallax),
             border=True,
         )
@@ -158,16 +158,16 @@ _SUMMARY_LABELS = {
     "source_id": "source_id",
     "final_domain_state": "Итоговое состояние",
     "final_quality_state": "Состояние качества",
-    "final_coarse_class": "Итоговый coarse-класс",
+    "final_coarse_class": "Итоговый крупный класс",
     "final_refinement_label": "Итоговый подкласс",
     "final_refinement_state": "Состояние подкласса",
     "final_decision_reason": "Причина итогового решения",
-    "quality_reason": "Причина quality gate",
+    "quality_reason": "Причина фильтра качества",
     "review_bucket": "Корзина проверки",
     "priority_label": "Приоритет",
     "priority_score": "Итоговый приоритет",
     "priority_reason": "Причина приоритета",
-    "host_similarity_score": "Сходство с host",
+    "host_similarity_score": "Сходство со звездами-хозяевами",
     "observability_score": "Наблюдаемость",
 }
 
@@ -190,7 +190,7 @@ _PHYSICS_LABELS = {
 }
 
 _ROUTE_LABELS = {
-    "stage_name": "Этап pipeline",
+    "stage_name": "Этап пайплайна",
     "stage_state": "Состояние",
     "stage_reason": "Причина / результат",
 }

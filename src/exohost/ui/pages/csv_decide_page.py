@@ -15,13 +15,13 @@ from pathlib import Path
 import streamlit as st
 
 from exohost.ui.components.overview_metrics import render_run_overview_metrics
+from exohost.ui.components.run_selector import render_run_dir_selector
 from exohost.ui.contracts import UI_EXTERNAL_CSV_CONTRACT
 from exohost.ui.loaders import (
     clear_ui_run_caches,
     list_available_run_dirs,
     load_ui_run_bundle,
 )
-from exohost.ui.pages.support import resolve_selected_index
 from exohost.ui.run_overview import build_ui_run_overview
 from exohost.ui.run_service import (
     build_ui_csv_decide_defaults,
@@ -48,29 +48,24 @@ def render_csv_decide_page() -> None:
         "рабочего запуска и сохраняет новый `run_dir` без ручного CLI."
     )
     st.info(
-        "Для повторяемости UI не придумывает свои defaults. Он берет model artifacts "
-        "и policy из уже готового `run_dir`, выбранного ниже."
+        "Для повторяемости интерфейс не придумывает настройки по умолчанию. Он берет "
+        "модельные артефакты и политику из уже готового `run_dir`, выбранного ниже."
     )
 
     available_run_dirs = list_available_run_dirs()
     if not available_run_dirs:
         st.warning(
             "Не удалось найти базовый `run_dir` в `artifacts/decisions`, "
-            "от которого можно унаследовать model artifacts и policy."
+            "от которого можно унаследовать модельные артефакты и политику."
         )
         return
 
     _render_contract_reference()
 
-    run_dir_options = tuple(str(path) for path in available_run_dirs)
-    selected_run_dir = st.selectbox(
-        "Базовый запуск для defaults",
-        options=run_dir_options,
-        index=resolve_selected_index(
-            options=run_dir_options,
-            selected_value=st.session_state.get("selected_run_dir"),
-        ),
-        format_func=lambda value: Path(value).name,
+    selected_run_dir = render_run_dir_selector(
+        label="Базовый запуск для настроек",
+        run_dirs=available_run_dirs,
+        selected_value=st.session_state.get("selected_run_dir"),
     )
     remember_selected_run_dir(st.session_state, selected_run_dir)
 
@@ -79,14 +74,14 @@ def render_csv_decide_page() -> None:
         defaults = build_ui_csv_decide_defaults(base_bundle)
     except RuntimeError as exc:
         set_run_load_error(st.session_state, str(exc))
-        st.error(f"Не удалось собрать defaults из выбранного запуска: {exc}")
+        st.error(f"Не удалось собрать настройки из выбранного запуска: {exc}")
         _render_last_generated_run()
         return
 
     set_run_load_error(st.session_state, None)
     st.caption(
         "Будут повторно использованы: "
-        f"`{defaults.decision_policy_version}`, пороги priority и model artifacts "
+        f"`{defaults.decision_policy_version}`, пороги приоритизации и модельные артефакты "
         f"из `{Path(selected_run_dir).name}`."
     )
 
@@ -115,7 +110,7 @@ def render_csv_decide_page() -> None:
     _render_validation_preview(validation_preview)
 
     if not st.button(
-        "Запустить decide по этому CSV",
+        "Запустить `decide` по этому CSV",
         type="primary",
         width="stretch",
     ):
@@ -165,6 +160,20 @@ def _render_contract_reference() -> None:
                 f"`{column_name}`" for column_name in UI_EXTERNAL_CSV_CONTRACT.recommended_columns
             )
         )
+        st.caption("Рекомендуемые колонки помогают сверке и обзору, но не блокируют запуск.")
+        st.markdown(
+            "Допустимые значения `quality_state`: "
+            + ", ".join(
+                f"`{value}`" for value in UI_EXTERNAL_CSV_CONTRACT.allowed_quality_states
+            )
+        )
+        st.markdown(
+            "Числовые обязательные поля: "
+            + ", ".join(
+                f"`{column_name}`"
+                for column_name in UI_EXTERNAL_CSV_CONTRACT.required_numeric_columns
+            )
+        )
         st.markdown(
             "Если quality-слой проекта не воспроизводится отдельно, "
             f"допустим технический сценарий с `quality_state = '{UI_EXTERNAL_CSV_CONTRACT.quality_state_default}'`."
@@ -197,7 +206,7 @@ def _render_validation_preview(validation_preview) -> None:
             f"{missing_sql}."
         )
 
-    st.subheader("Preview входного CSV")
+    st.subheader("Предпросмотр входного CSV")
     st.dataframe(
         validation_preview.validated_df.head(10),
         width="stretch",

@@ -10,6 +10,8 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 import pandas as pd
 import streamlit as st
 
@@ -66,13 +68,13 @@ def render_run_browser(
             )
         )
 
-    st.subheader("Preview текущей выборки")
+    st.subheader("Предпросмотр текущей выборки")
     if preview_df.empty:
-        st.info("Для текущих фильтров нет строк в preview.")
+        st.info("Для текущих фильтров нет строк в предпросмотре.")
         return None
 
     st.caption(
-        "Выделите строку в preview, чтобы синхронизировать `source_id` с блоком "
+        "Выделите строку в предпросмотре, чтобы синхронизировать `source_id` с блоком "
         "перехода в карточку объекта."
     )
     preview_display_df = build_ui_run_browser_preview_display_frame(preview_df)
@@ -81,13 +83,16 @@ def render_run_browser(
         width="stretch",
         height="content",
         hide_index=True,
-        column_config=_build_preview_column_config(),
+        column_config=cast(Any, _build_preview_column_config()),
         key="run_browser_preview_table",
         on_select="rerun",
         selection_mode="single-row",
-        selection_default=build_ui_run_browser_preview_selection_default(
-            preview_df,
-            selected_source_id=selected_source_id,
+        selection_default=cast(
+            Any,
+            build_ui_run_browser_preview_selection_default(
+                preview_df,
+                selected_source_id=selected_source_id,
+            ),
         ),
     )
     return resolve_ui_run_browser_selected_source_id(preview_df, preview_selection_state)
@@ -126,8 +131,8 @@ def _build_preview_column_config() -> dict[str, object]:
         ),
         "Класс": st.column_config.TextColumn("Класс", width="small"),
         "Подкласс": st.column_config.TextColumn("Подкласс", width="small"),
-        "Итоговый coarse-класс": st.column_config.TextColumn(
-            "Итоговый coarse-класс",
+        "Итоговый крупный класс": st.column_config.TextColumn(
+            "Итоговый крупный класс",
             width="small",
         ),
         "Итоговый подкласс": st.column_config.TextColumn(
@@ -140,8 +145,8 @@ def _build_preview_column_config() -> dict[str, object]:
             width="small",
             format="%.3f",
         ),
-        "Сходство с host": st.column_config.NumberColumn(
-            "Сходство с host",
+        "Сходство со звездами-хозяевами": st.column_config.NumberColumn(
+            "Сходство со звездами-хозяевами",
             width="small",
             format="%.3f",
         ),
@@ -180,7 +185,7 @@ def _render_distribution_table(df: pd.DataFrame) -> None:
         df,
         width="stretch",
         hide_index=True,
-        column_config=_build_distribution_column_config(),
+        column_config=cast(Any, _build_distribution_column_config()),
     )
 
 

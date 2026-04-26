@@ -144,12 +144,12 @@ def build_ui_candidate_route_frame(summary_df: pd.DataFrame) -> pd.DataFrame:
     summary_row = summary_df.iloc[0]
     route_rows = [
         {
-            "stage_name": "Quality gate",
+            "stage_name": "Фильтр качества",
             "stage_state": _to_optional_string(summary_row.get("final_quality_state")),
             "stage_reason": _to_optional_string(summary_row.get("quality_reason")),
         },
         {
-            "stage_name": "Refinement",
+            "stage_name": "Уточнение класса",
             "stage_state": _to_optional_string(
                 summary_row.get("final_refinement_state")
             ),
@@ -158,14 +158,14 @@ def build_ui_candidate_route_frame(summary_df: pd.DataFrame) -> pd.DataFrame:
             ),
         },
         {
-            "stage_name": "Final routing",
+            "stage_name": "Итоговая маршрутизация",
             "stage_state": _to_optional_string(summary_row.get("final_domain_state")),
             "stage_reason": _to_optional_string(
                 summary_row.get("final_decision_reason")
             ),
         },
         {
-            "stage_name": "Priority ranking",
+            "stage_name": "Ранжирование приоритета",
             "stage_state": _to_optional_string(summary_row.get("priority_label")),
             "stage_reason": _to_optional_string(summary_row.get("priority_reason")),
         },
@@ -187,12 +187,12 @@ def _build_overview_note(
     message = (
         f"Объект `{source_id}` завершил маршрут со статусом "
         f"`{final_domain_state or 'n/a'}` и итоговым классом `{final_label}`. "
-        f"Quality gate: `{final_quality_state or 'n/a'}`."
+        f"Фильтр качества: `{final_quality_state or 'n/a'}`."
     )
     if priority_label is not None:
         message += f" Приоритет: `{priority_label}`."
     else:
-        message += " Для объекта не рассчитан priority ranking."
+        message += " Для объекта не рассчитано ранжирование приоритета."
     if final_decision_reason is not None:
         message += f" Причина итогового решения: `{final_decision_reason}`."
     return message

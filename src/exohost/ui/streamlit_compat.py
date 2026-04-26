@@ -17,6 +17,7 @@ from typing import Any, ParamSpec, TypeVar
 P = ParamSpec("P")
 T = TypeVar("T")
 
+_streamlit: Any | None
 try:
     import streamlit as _streamlit
 except ModuleNotFoundError:

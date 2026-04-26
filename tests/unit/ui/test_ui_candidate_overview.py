@@ -47,10 +47,10 @@ def test_build_ui_candidate_route_frame_returns_expected_stage_order() -> None:
     route_df = build_ui_candidate_route_frame(summary_df)
 
     assert list(route_df["stage_name"]) == [
-        "Quality gate",
-        "Refinement",
-        "Final routing",
-        "Priority ranking",
+        "Фильтр качества",
+        "Уточнение класса",
+        "Итоговая маршрутизация",
+        "Ранжирование приоритета",
     ]
     assert list(route_df["stage_state"].astype(str)) == [
         "pass",
@@ -70,10 +70,10 @@ def test_build_ui_candidate_overview_handles_missing_priority_data() -> None:
 
     assert overview is not None
     assert overview.priority_label is None
-    assert "не рассчитан priority ranking" in overview.overview_note
+    assert "не рассчитано ранжирование приоритета" in overview.overview_note
     assert pd.isna(
         route_df.loc[
-            route_df["stage_name"] == "Priority ranking",
+            route_df["stage_name"] == "Ранжирование приоритета",
             "stage_state",
         ].iloc[0]
     )

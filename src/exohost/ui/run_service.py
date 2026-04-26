@@ -135,20 +135,18 @@ def validate_uploaded_csv_bytes(uploaded_bytes: bytes) -> UiCsvValidationPreview
     # CSV сначала читаем и валидируем в памяти, чтобы не плодить мусорные временные файлы.
     try:
         validated_df = pd.read_csv(io.BytesIO(uploaded_bytes))
+    except pd.errors.EmptyDataError as exc:
+        raise RuntimeError("Загруженный CSV пустой или не содержит колонок.") from exc
     except Exception as exc:
         raise RuntimeError(f"Не удалось прочитать загруженный CSV: {exc}") from exc
 
-    missing_columns = [
-        column_name
-        for column_name in UI_EXTERNAL_CSV_CONTRACT.required_columns
-        if column_name not in validated_df.columns.astype(str)
-    ]
-    if missing_columns:
-        missing_columns_sql = ", ".join(missing_columns)
-        raise RuntimeError(
-            "Во внешнем CSV отсутствуют обязательные колонки: "
-            f"{missing_columns_sql}"
-        )
+    if validated_df.empty:
+        raise RuntimeError("Внешний CSV не содержит строк данных.")
+
+    _validate_required_csv_columns(validated_df)
+    _validate_required_csv_values(validated_df)
+    _validate_quality_state_values(validated_df)
+    _validate_required_numeric_values(validated_df)
 
     return UiCsvValidationPreview(
         validated_df=validated_df.copy(),
@@ -261,6 +259,97 @@ def _build_namespace_for_ui(
 
 def _unsupported_dataset_loader(*args: Any, **kwargs: Any) -> pd.DataFrame:
     raise RuntimeError("UI CSV launch must not call DB-backed dataset loader.")
+
+
+def _validate_required_csv_columns(df: pd.DataFrame) -> None:
+    missing_columns = [
+        column_name
+        for column_name in UI_EXTERNAL_CSV_CONTRACT.required_columns
+        if column_name not in df.columns.astype(str)
+    ]
+    if not missing_columns:
+        return
+
+    missing_columns_sql = ", ".join(missing_columns)
+    raise RuntimeError(
+        "Во внешнем CSV отсутствуют обязательные колонки: "
+        f"{missing_columns_sql}"
+    )
+
+
+def _validate_required_csv_values(df: pd.DataFrame) -> None:
+    missing_value_summaries = []
+    for column_name in UI_EXTERNAL_CSV_CONTRACT.required_columns:
+        missing_mask = _build_missing_value_mask(_require_df_series(df, column_name))
+        missing_count = int(missing_mask.sum())
+        if missing_count > 0:
+            missing_value_summaries.append(f"{column_name} ({missing_count})")
+
+    if not missing_value_summaries:
+        return
+
+    missing_values_sql = ", ".join(missing_value_summaries)
+    raise RuntimeError(
+        "Во внешнем CSV есть пустые значения в обязательных колонках: "
+        f"{missing_values_sql}"
+    )
+
+
+def _validate_quality_state_values(df: pd.DataFrame) -> None:
+    quality_state = (
+        _require_df_series(df, "quality_state")
+        .astype("string")
+        .str.strip()
+        .str.lower()
+    )
+    allowed_states = set(UI_EXTERNAL_CSV_CONTRACT.allowed_quality_states)
+    invalid_mask = ~quality_state.isin(allowed_states)
+    if not bool(invalid_mask.any()):
+        return
+
+    invalid_values = sorted(
+        str(value)
+        for value in quality_state.loc[invalid_mask].dropna().unique().tolist()
+    )
+    invalid_values_sql = ", ".join(invalid_values)
+    allowed_values_sql = ", ".join(UI_EXTERNAL_CSV_CONTRACT.allowed_quality_states)
+    raise RuntimeError(
+        "Во внешнем CSV колонка `quality_state` содержит недопустимые значения: "
+        f"{invalid_values_sql}. Допустимые значения: {allowed_values_sql}."
+    )
+
+
+def _validate_required_numeric_values(df: pd.DataFrame) -> None:
+    non_numeric_summaries = []
+    for column_name in UI_EXTERNAL_CSV_CONTRACT.required_numeric_columns:
+        source_series = _require_df_series(df, column_name)
+        numeric_series = pd.to_numeric(source_series, errors="coerce")
+        non_numeric_mask = numeric_series.isna() & ~_build_missing_value_mask(source_series)
+        non_numeric_count = int(non_numeric_mask.sum())
+        if non_numeric_count > 0:
+            non_numeric_summaries.append(f"{column_name} ({non_numeric_count})")
+
+    if not non_numeric_summaries:
+        return
+
+    non_numeric_values_sql = ", ".join(non_numeric_summaries)
+    raise RuntimeError(
+        "Во внешнем CSV есть нечисловые значения в физических числовых колонках: "
+        f"{non_numeric_values_sql}"
+    )
+
+
+def _build_missing_value_mask(series: pd.Series) -> pd.Series:
+    text_series = series.astype("string").str.strip()
+    blank_mask = text_series.eq("").fillna(False)
+    return series.isna() | blank_mask
+
+
+def _require_df_series(df: pd.DataFrame, column_name: str) -> pd.Series:
+    column = df.loc[:, column_name]
+    if not isinstance(column, pd.Series):
+        raise RuntimeError(f"Во внешнем CSV колонка `{column_name}` должна быть единственной.")
+    return column
 
 
 def _require_string(context: dict[str, Any], key: str) -> str:

@@ -10,6 +10,10 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
+
+import pytest
+
 from .streamlit_testkit import (
     run_streamlit_entrypoint_smoke,
     run_streamlit_page_smoke,
@@ -21,6 +25,60 @@ def test_streamlit_entrypoint_smoke_renders_default_page() -> None:
 
     assert not app_test.exception
     assert app_test.title[0].value == "Интерфейс проекта"
+
+
+def test_streamlit_entrypoint_navigation_declares_expected_pages(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import streamlit_app
+
+    captured_navigation: dict[str, object] = {}
+    fake_navigation = object()
+
+    def fake_page(
+        page: object,
+        *,
+        title: str,
+        icon: str,
+        url_path: str,
+        default: bool = False,
+    ) -> dict[str, object]:
+        return {
+            "page": page,
+            "title": title,
+            "icon": icon,
+            "url_path": url_path,
+            "default": default,
+        }
+
+    def fake_navigation_factory(
+        *,
+        pages: list[dict[str, object]],
+        position: str,
+    ) -> object:
+        captured_navigation["pages"] = pages
+        captured_navigation["position"] = position
+        return fake_navigation
+
+    monkeypatch.setattr(streamlit_app.st, "Page", fake_page)
+    monkeypatch.setattr(streamlit_app.st, "navigation", fake_navigation_factory)
+
+    navigation = streamlit_app.build_navigation()
+
+    assert navigation is fake_navigation
+    assert captured_navigation["position"] == "sidebar"
+    pages = cast(list[dict[str, Any]], captured_navigation["pages"])
+    assert [
+        (page["title"], page["icon"], page["url_path"], page["default"])
+        for page in pages
+    ] == [
+        ("Главная", "🏠", "home", True),
+        ("Метрики", "📊", "metrics", False),
+        ("Запуск", "📁", "run-browser", False),
+        ("Объект", "⭐", "candidate", False),
+        ("CSV-запуск", "🚀", "csv-decide", False),
+    ]
+    assert all(callable(page["page"]) for page in pages)
 
 
 def test_home_page_smoke_renders_main_sections() -> None:
@@ -71,7 +129,7 @@ def test_candidate_page_smoke_renders_selection_controls() -> None:
     assert not app_test.exception
     assert app_test.title[0].value == "Карточка объекта"
     assert len(app_test.selectbox) >= 2
-    assert "Маршрут pipeline" in [item.value for item in app_test.subheader]
+    assert "Маршрут пайплайна" in [item.value for item in app_test.subheader]
     assert "Подробные таблицы" in [item.value for item in app_test.subheader]
 
 
@@ -79,9 +137,44 @@ def test_csv_decide_page_smoke_renders_upload_flow_shell() -> None:
     app_test = run_streamlit_page_smoke(
         page_module="exohost.ui.pages.csv_decide_page",
         page_function="render_csv_decide_page",
+        setup_code="""
+        from pathlib import Path
+
+        from exohost.ui.run_service import UiCsvDecideDefaults
+        from tests.unit.ui.ui_testkit import build_ui_loaded_run_bundle
+
+        page_module_under_test.list_available_run_dirs = lambda: (
+            Path("artifacts/decisions/hierarchical_final_decision_demo"),
+        )
+        page_module_under_test.load_ui_run_bundle = (
+            lambda selected_run_dir: build_ui_loaded_run_bundle()
+        )
+        page_module_under_test.build_ui_csv_decide_defaults = lambda bundle: UiCsvDecideDefaults(
+            ood_model_run_dir="artifacts/models/ood",
+            ood_threshold_run_dir="artifacts/thresholds/ood",
+            coarse_model_run_dir="artifacts/models/coarse",
+            refinement_model_run_dirs=("artifacts/models/refinement_g",),
+            host_model_run_dir="artifacts/models/host",
+            decision_policy_version="final_decision_v2",
+            candidate_ood_disposition="keep",
+            host_score_column="host_similarity_score",
+            min_refinement_confidence=None,
+            min_coarse_probability=0.60,
+            min_coarse_margin=None,
+            quality_ruwe_unknown_threshold=1.4,
+            quality_parallax_snr_unknown_threshold=10.0,
+            quality_require_flame_for_pass=False,
+            priority_high_min=0.85,
+            priority_medium_min=0.55,
+            output_dir="artifacts/decisions",
+            dotenv_path=".env",
+            connect_timeout=10,
+        )
+        """,
     )
 
     assert not app_test.exception
     assert app_test.title[0].value == "Запуск по внешнему CSV"
     assert len(app_test.selectbox) >= 1
     assert len(app_test.expander) >= 1
+    assert len(app_test.file_uploader) == 1

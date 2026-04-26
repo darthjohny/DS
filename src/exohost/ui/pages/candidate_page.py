@@ -10,8 +10,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import streamlit as st
 
 from exohost.ui.candidate_card import (
@@ -24,8 +22,9 @@ from exohost.ui.candidate_overview import (
     build_ui_candidate_route_frame,
 )
 from exohost.ui.components.candidate_card import render_candidate_card
+from exohost.ui.components.run_selector import render_run_dir_selector
+from exohost.ui.components.source_selector import render_source_id_selector
 from exohost.ui.loaders import list_available_run_dirs, load_ui_run_bundle
-from exohost.ui.pages.support import resolve_selected_index
 from exohost.ui.session_state import (
     remember_selected_run_dir,
     remember_selected_source_id,
@@ -37,7 +36,7 @@ def render_candidate_page() -> None:
     # Детальная карточка живет отдельно, чтобы не перегружать общую страницу запуска.
     st.title("Карточка объекта")
     st.caption(
-        "Страница собирает маршрут по pipeline и физические параметры одной "
+        "Страница собирает маршрут по пайплайну и физические параметры одной "
         "звезды из уже готового `run_dir`."
     )
     available_run_dirs = list_available_run_dirs()
@@ -45,15 +44,10 @@ def render_candidate_page() -> None:
         st.warning("Не удалось найти готовые `run_dir` в `artifacts/decisions`.")
         return
 
-    run_dir_options = tuple(str(path) for path in available_run_dirs)
-    selected_run_dir = st.selectbox(
-        "Источник данных карточки",
-        options=run_dir_options,
-        index=resolve_selected_index(
-            options=run_dir_options,
-            selected_value=st.session_state.get("selected_run_dir"),
-        ),
-        format_func=lambda value: Path(value).name,
+    selected_run_dir = render_run_dir_selector(
+        label="Источник данных карточки",
+        run_dirs=available_run_dirs,
+        selected_value=st.session_state.get("selected_run_dir"),
     )
     remember_selected_run_dir(st.session_state, selected_run_dir)
 
@@ -70,13 +64,10 @@ def render_candidate_page() -> None:
         st.warning("В выбранном запуске нет доступных `source_id` для карточки.")
         return
 
-    selected_source_id = st.selectbox(
-        "Объект (`source_id`)",
-        options=source_id_options,
-        index=resolve_selected_index(
-            options=source_id_options,
-            selected_value=st.session_state.get("selected_source_id"),
-        ),
+    selected_source_id = render_source_id_selector(
+        label="Объект (`source_id`)",
+        source_id_options=source_id_options,
+        selected_value=st.session_state.get("selected_source_id"),
     )
     remember_selected_source_id(st.session_state, selected_source_id)
 

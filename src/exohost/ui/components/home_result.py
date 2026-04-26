@@ -23,8 +23,8 @@ def render_home_main_result(
     # Домашняя страница должна быстро отвечать на прикладной вопрос: что именно получилось на latest run.
     st.subheader("Главный прикладной результат")
     st.success(
-        "Система воспроизводимо формирует shortlist целей для последующих наблюдений. "
-        f"В latest run высокий приоритет получили `{_format_int(main_result.high_priority_count)}` "
+        "Система воспроизводимо формирует короткий список целей для последующих наблюдений. "
+        f"В последнем запуске высокий приоритет получили `{_format_int(main_result.high_priority_count)}` "
         "объектов."
     )
     st.caption(
@@ -43,19 +43,19 @@ def render_home_main_result(
         border=True,
     )
     metric_columns[2].metric(
-        "Доля high среди ranked",
+        "Доля high среди ранжированных",
         _format_share(main_result.high_priority_share),
         border=True,
     )
 
     st.markdown(
-        "Текущий latest run прошел через тот же пайплайн final decision и priority, "
-        "поэтому home-screen показывает не рекламный текст, а реальный итог рабочего контура."
+        "Текущий последний запуск прошел через тот же контур итогового решения "
+        "и приоритизации, поэтому главная страница показывает реальный итог рабочего контура."
     )
 
-    st.subheader("Preview верхнего shortlist")
+    st.subheader("Предпросмотр верхних кандидатов")
     if top_candidates_df.empty:
-        st.info("В latest run нет доступных строк для preview верхнего shortlist.")
+        st.info("В последнем запуске нет доступных строк для предпросмотра верхних кандидатов.")
         return
 
     st.dataframe(
@@ -79,7 +79,7 @@ _HOME_TOP_CANDIDATE_LABELS = {
     "spec_subclass": "Подкласс",
     "priority_label": "Приоритет",
     "priority_score": "Итоговый приоритет",
-    "host_similarity_score": "Сходство с host",
+    "host_similarity_score": "Сходство со звездами-хозяевами",
 }
 
 

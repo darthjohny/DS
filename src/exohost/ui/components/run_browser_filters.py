@@ -67,7 +67,7 @@ def render_run_browser_filters(
         second_row = st.columns((1, 3))
         top_n_value = int(
             second_row[0].number_input(
-                "Строк в preview",
+                "Строк в предпросмотре",
                 min_value=1,
                 value=max(1, int(default_top_n)),
                 step=5,

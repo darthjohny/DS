@@ -47,9 +47,11 @@ def run_streamlit_page_smoke(
     *,
     page_module: str,
     page_function: str,
+    setup_code: str = "",
     timeout: float = DEFAULT_STREAMLIT_SMOKE_TIMEOUT,
 ) -> AppTest:
     # Отдельные страницы запускаем в изолированном AppTest-контуре без переключения multipage navigation.
+    setup_block = dedent(setup_code).strip()
     script = dedent(
         f"""
         from pathlib import Path
@@ -61,11 +63,12 @@ def run_streamlit_page_smoke(
         sys.path.insert(0, str(project_root))
         sys.path.insert(0, str(project_root / "src"))
 
-        from {page_module} import {page_function}
-
-        {page_function}()
+        import {page_module} as page_module_under_test
         """
     )
+    if setup_block:
+        script = f"{script}\n{setup_block}\n"
+    script = f"{script}\npage_module_under_test.{page_function}()\n"
     return _run_streamlit_script(script, timeout=timeout)
 
 

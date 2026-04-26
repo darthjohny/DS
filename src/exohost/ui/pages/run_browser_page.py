@@ -10,8 +10,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import streamlit as st
 
 from exohost.ui.candidate_card import build_ui_candidate_source_options
@@ -20,8 +18,9 @@ from exohost.ui.components.run_browser_filters import (
     render_run_browser_export,
     render_run_browser_filters,
 )
+from exohost.ui.components.run_selector import render_run_dir_selector
+from exohost.ui.components.source_selector import render_source_id_selector
 from exohost.ui.loaders import list_available_run_dirs, load_ui_run_bundle
-from exohost.ui.pages.support import resolve_selected_index
 from exohost.ui.run_browser import build_ui_run_browser_frame
 from exohost.ui.run_browser_filters import (
     apply_ui_run_browser_filters,
@@ -44,22 +43,17 @@ def render_run_browser_page() -> None:
     st.title("Просмотр запуска")
     st.caption(
         "Страница показывает готовый `run_dir`, итоговые распределения и верхний "
-        "список кандидатов без повторного запуска pipeline."
+        "список кандидатов без повторного запуска пайплайна."
     )
     available_run_dirs = list_available_run_dirs()
     if not available_run_dirs:
         st.warning("Не удалось найти готовые `run_dir` в `artifacts/decisions`.")
         return
 
-    run_dir_options = tuple(str(path) for path in available_run_dirs)
-    selected_run_dir = st.selectbox(
-        "Готовый запуск",
-        options=run_dir_options,
-        index=resolve_selected_index(
-            options=run_dir_options,
-            selected_value=st.session_state.get("selected_run_dir"),
-        ),
-        format_func=lambda value: Path(value).name,
+    selected_run_dir = render_run_dir_selector(
+        label="Готовый запуск",
+        run_dirs=available_run_dirs,
+        selected_value=st.session_state.get("selected_run_dir"),
     )
     remember_selected_run_dir(st.session_state, selected_run_dir)
 
@@ -100,16 +94,13 @@ def render_run_browser_page() -> None:
     if not source_id_options:
         return
 
-    selected_source_id = st.selectbox(
-        "Открыть объект на отдельной странице",
-        options=source_id_options,
-        index=resolve_selected_index(
-            options=source_id_options,
-            selected_value=st.session_state.get("selected_source_id"),
-        ),
+    selected_source_id = render_source_id_selector(
+        label="Открыть объект на отдельной странице",
+        source_id_options=source_id_options,
+        selected_value=st.session_state.get("selected_source_id"),
     )
     remember_selected_source_id(st.session_state, selected_source_id)
     st.caption(
-        "Выбор строки в preview и selectbox ниже используют общий `selected_source_id`. "
+        "Выбор строки в предпросмотре и список ниже используют общий `selected_source_id`. "
         "Детальная карточка доступна на странице «Объект»."
     )

@@ -17,10 +17,10 @@ import streamlit as st
 def render_model_metrics_table(metrics_df: pd.DataFrame) -> None:
     # Если benchmark-артефакты не найдены, страница должна честно сказать об этом, а не падать.
     if metrics_df.empty:
-        st.warning("Не удалось найти benchmark-артефакты для страницы метрик.")
+        st.warning("Не удалось найти контрольные артефакты качества для страницы метрик.")
         return
 
-    st.subheader("Подробная benchmark-сводка")
+    st.subheader("Подробная контрольная сводка")
     display_df = metrics_df.loc[
         :,
         [
@@ -47,7 +47,7 @@ def render_model_metrics_table(metrics_df: pd.DataFrame) -> None:
             "cv_mean_balanced_accuracy": "CV balanced accuracy",
             "cv_mean_macro_f1": "CV Macro F1",
             "n_rows_test": "Размер теста",
-            "benchmark_run_dir": "Benchmark run",
+            "benchmark_run_dir": "Контрольный запуск",
         }
     )
     st.dataframe(display_df, width="stretch", hide_index=True)
